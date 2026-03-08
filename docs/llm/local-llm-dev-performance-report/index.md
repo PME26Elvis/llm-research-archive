@@ -1,0 +1,669 @@
+---
+tags:
+  - LLM
+  - 本地
+date: 2026-03-08
+---
+
+# 本地開源大型語言模型在實務軟體開發的真實效能與可部署價值研究報告
+
+## 執行摘要
+
+本報告聚焦「本地部署（Local / On‑prem）」的開源或開放權重（open‑weight）大型語言模型（LLM），評估其在**實務軟體開發**（程式生成、除錯、Code Review、文件摘要、對話式助理、CI/CD 自動化）上的**真實效能**與**可部署價值**，並以「消費級通用 GPU」與「高階／AI 專用 GPU」作為兩大情境分水嶺，提供可落地的選型建議與驗證步驟。
+
+關鍵結論如下（每點均以可追溯來源支撐）：
+
+消費級 GPU（以 RTX 5080 16GB 為代表）在 2026 年已可實務支撐「小～中型」本地模型：以 4-bit/8-bit 量化或特定後訓練量化格式（如 MXFP4）運行，**7B～14B 級別是最穩健的長期部署甜蜜點**；部分 20B 級稀疏模型可在 16GB 記憶體內運行。以 gpt-oss-20b 為例，官方模型卡明確指出可在 **16GB 記憶體內**運行（MXFP4 量化）。
+
+「模型能不能跑」真正的硬限制不只在權重，而是 **上下文（context）越長，KV cache 佔用暴增**，會迅速吃掉 VRAM 並拖垮吞吐；這在官方 speed benchmark 也可直接觀察到：同一模型在更長 input length 下，速度下降、顯存占用上升。
+
+高階／AI 專用 GPU（如 H100/H200）提供的是「可用模型級距」與「多併發服務能力」的躍遷。H100 SXM 具 80GB 記憶體與約 3.35TB/s 頻寬。；H200 則以 **141GB HBM3e**、約 **4.8TB/s** 針對推理記憶體瓶頸更強化。 在此級距，單卡即可承載更大模型／更長上下文／更高併發，並能透過推理引擎（TensorRT‑LLM 等）把吞吐推至每秒數千 token 的「服務級」水準（例如 H200 + TensorRT‑LLM 在特定 batch 與序列長度下對 Llama2‑13B、Llama‑70B 的吞吐量數據）。
+
+跑分（MMLU、HumanEval、MT‑Bench、AlpacaEval、SWE‑bench 等）對軟體開發效能有參考價值，但**不能直接等同於「你團隊的真實產能」**：其一，評測範式可能與真實開發流程不匹配；其二，SWE‑bench Verified 這類熱門基準存在資料污染（contamination）與「記憶」效應疑慮；已有研究指出該基準分數可能高估真實 issue 解題能力。 因此，本地取代雲端 SaaS 的關鍵，不是追逐單一 leaderboard，而是建立**任務導向的內部評測與 SLO（延遲、吞吐、成功率、可追溯性）**。
+
+實務案例顯示，本地部署在工程面常見瓶頸集中於：程式庫／倉庫索引的記憶體與時間成本（例如 Tabby 在企業 monorepo 索引時 RAM 與耗時問題）、併發下延遲線性上升（需要 batching / KV cache 管理 / 推論引擎）、長 context 的 VRAM 壓力、以及 CI/CD 中「輸出可機器解析」與「避免不穩定回覆」的工程化需求（結構化輸出）。
+
+## 研究方法與定義
+
+本報告以公開可查證資料為主，來源優先級依序為：模型官方文件／模型卡、原始論文（arXiv）、官方程式庫與 benchmark 原始資料（如 SWE‑bench、HumanEval）、推理引擎官方文件（如 TensorRT‑LLM）、以及具長期工程脈絡的社群討論（含論壇、專案 issue、技術部落格與繁中社群貼文）。例如，程式能力的代表基準定義（HumanEval、SWE‑bench）均以原始論文／官方 repo 作為依據。
+
+名詞界定：
+
+「本地／自架」：模型權重與推理服務運行於自有硬體（工作站、私有伺服器、內網機房），可離線或僅內網存取。
+
+「開源／open‑weight」：本報告涵蓋「可下載權重並自架推理」的模型族。其授權範圍與商用條款差異很大（Apache‑2.0、社群授權、需註冊等），部署前需逐一檢核；例如 gpt-oss 明確採 Apache‑2.0。
+
+「軟體開發實務效能」：以工程任務為中心衡量（PR review/摘要、issue 修復、倉庫問答、單元測試生成、重構建議、文件整理），並用延遲（TTFT、TPOT）、吞吐（tok/s）、成功率（任務完成／測試通過）、與可維運性（部署、監控、成本）形成決策框架。
+
+## 硬體分水嶺與可跑模型輪廓
+
+本節以兩大情境（消費級通用 GPU vs 高階／AI 專用 GPU）建立「跑得動」的明確界線，並整理代表模型的參數、量化、記憶體、延遲／吞吐與可部署性（含是否有公開長期案例）。
+
+消費級分水嶺的代表卡，以 RTX 5080（16GB GDDR7、TGP 360W）為近代 16GB 級上限之一。；RTX 4090（24GB、TGP 450W）則代表 24GB 級上限。 若需更大 VRAM（48GB 等）通常已進入專業卡或伺服器級配置。
+
+高階／AI 專用 GPU 代表為 H100 與 H200：H100 SXM 80GB、約 3.35TB/s 頻寬、最高 700W TDP。；H200 141GB、約 4.8TB/s。 這類硬體的核心價值不只在算力，而是**更大的 HBM 容量与頻寬**，直接對應 LLM 推理的權重讀取與 KV cache 壓力。
+
+image_group{"layout":"carousel","aspect_ratio":"16:9","query":["GeForce RTX 5080 Founders Edition","GeForce RTX 4090 Founders Edition","NVIDIA H100 SXM GPU module","NVIDIA H200 GPU HGX"],"num_per_query":1}
+
+### 模型規格與可跑範圍對照表
+
+說明：表中「VRAM（短 prompt／長 prompt）」優先引用官方 speed benchmark 的「生成 2048 tokens」測試，展示 input length 增加造成的**顯存／吞吐變化**（這往往比單純權重大小更貼近「真實使用」）。 其他模型若缺乏官方公開數據，則以模型卡、論文、或具明確硬體敘述的社群測試補足，並標註「推估／社群回報」。
+
+| 模型（代表版本） | 參數量（總／活化）與架構 | 授權與使用限制 | 量化選項（代表） | VRAM 需求（短 prompt／約 14k prompt） | 吞吐（tok/s）與延遲觀察 | 消費級 GPU 可跑範圍（16GB / 24GB） | 高階／AI GPU 可跑範圍（≥80GB / 多卡） | 公開長期專案案例 |
+|---|---|---|---|---|---|---|---|---|
+| gpt-oss-20b | 21B（3.6B active），MoE；官方指出 MXFP4 後訓練量化 | Apache‑2.0；需使用 harmony response format，否則「不會正確運作」 | MXFP4（模型卡）、亦可透過 vLLM / Transformers / Ollama 端到端部署 | 官方：可在 16GB 記憶體內運行 | 實務上適合作為低延遲 local／邊緣推理；但需注意格式相容性（工程成本） | 16GB：可（官方明示）；24GB：可且餘裕更大 | 可 | 有（工作流層面：Aider/自架整合在論壇被多次討論） |
+| gpt-oss-120b | 117B（5.1B active），MoE；定位「production / high reasoning」 | Apache‑2.0；同樣需 harmony format | MXFP4（模型卡）；支援 vLLM/Transformers 等 | 官方：可塞進單張 80GB GPU（H100 / MI300X 等） | 社群回報：可用於本地 coding（Aider）但速度與成本仍落後前沿雲端模型 | 16GB／24GB：不適用 | 80GB 單卡：可（官方明示）；多卡：可 | 有（自架 coder 工作流經驗分享） |
+| Qwen2.5‑7B‑Instruct | 7B，dense decoder‑only；屬 Qwen2.5 系列尺寸之一 | 多數尺寸採 Apache‑2.0（但需留意少數例外尺寸） | BF16 / GPTQ‑Int8 / GPTQ‑Int4 / AWQ（官方 speed benchmark） | 約 5.52GB（Int4, input=1）／約 8.05GB（Int4, input≈14k） | 約 43 tok/s（Int4, input=1）→ 約 28.7 tok/s（Int4, input≈14k），顯示長 prompt 直接壓低吞吐 | 16GB：可（Int4/Int8）；24GB：可（更大 context 餘裕） | 可 | 有（以 code assistant / 本地推理工具鏈大量採用；亦有使用者分享） |
+| Qwen2.5‑14B‑Instruct | 14B，dense | 同上（需逐型號檢核授權檔） | BF16 / GPTQ‑Int8 / GPTQ‑Int4 / AWQ | 約 9.94GB（Int4, input=1）／約 13.81GB（Int4, input≈14k） | 約 25.9 tok/s（Int4, input=1）；長 prompt 下仍可維持 ~13–14 tok/s 級距 | 16GB：可（Int4，且可承受較長 prompt）；24GB：可 | 可 | 有（社群與工具鏈常見；偏「實務可部署」） |
+| Qwen2.5‑32B‑Instruct | 32B，dense | 同上 | BF16 / GPTQ‑Int8 / GPTQ‑Int4 / AWQ | 約 18.94GB（Int4, input=1）／約 24.67GB（Int4, input≈14k） | 約 19 tok/s（Int4, input=1）→ 約 9.5 tok/s（input≈14k）；顯示「24GB 卡長 prompt 可能頂到 VRAM 天花板」 | 16GB：通常不建議（除非更激進量化／犧牲 context）；24GB：可跑短～中 prompt，但約 14k input 已接近/超過 24GB 上限 | 80GB：可且可拉長 context/併發 | 有（以 coder 定位；多處開發者實測） |
+| Qwen2.5‑72B‑Instruct | 72B，dense | 同上 | BF16 / GPTQ / AWQ（官方） | 約 39.91GB（Int4, input=1）／約 46.86GB（Int4, input≈14k） | 約 11 tok/s（Int4, input=1）；長 prompt 再下降 | 16GB／24GB：不適用 | 需要 ≥48GB 單卡或多卡；A100/H100/H200 更實際 |（以公開資料看）缺乏「長期產品型」案例的明確敘述，偏實驗/研究與社群測試 |
+| GLM‑4.5 / GLM‑4.5‑Air | GLM‑4.5：355B total、32B activated（MoE） | open‑source（以模型卡／論文公開）；但硬體門檻高 |（依推理引擎而定，常見 FP8/FP16 等） | 官方 model card：GLM‑4.5 需 H200×8 或 H100×16；GLM‑4.5‑Air 可 H200×1 或 H100×2；並建議系統記憶體 ≥1TB、磁碟 ≥500GB | 此級別更接近「機房級部署」，延遲/吞吐高度依賴張量並行與推理引擎 | 消費級：不適用 | 高階：可，但需多卡（或至少 H200/H100 配置） |（本次可得資料）缺乏公開「長期專案落地」敘述，偏前沿研究/能力展示 |
+| MiniMax‑Text‑01 | 456B total、45.9B activated（MoE）；訓練 1M context，推理可到 4M | open‑weight；但屬超大上下文與巨大模型 |（未見一致公開的量化與單卡落地指引） | 未見官方公開「可運行於何種 GPU/張數」的硬規格；推估需多張高階 GPU 才能可用 | 若以超長上下文為賣點，工程上需額外關注 KV cache 與 I/O | 消費級：不適用 | 高階：推估需多卡；資料不足以提供可驗證配置 | 無公開長期專案案例（以本次可得資料） |
+| Llama 2（7B/13B/70B） | 7B/13B/70B（dense；或含 GQA 等架構特徵）；為 open 模型經典基線 | 授權需依版本條款檢核（社群授權） | 常見 4-bit/8-bit/FP16（量化工具鏈廣） | 以權重估算：7B FP16 約 13GB、13B FP16 約 24GB、70B FP16 約 130GB（另加 KV cache）；多數實務需 4-bit/多卡/CPU offload | 社群回報：13B Q4 約可達 70 tok/s（RTX 4080）；70B 在消費級卡多需 offload（速度顯著下降） | 16GB：7B/13B（量化）可；24GB：13B（量化）可，70B 需 offload 或多卡 | 多卡或 ≥80GB 可支撐更大模型併發與更長 context | 有（工具鏈與案例多，但需依專案具體取捨） |
+| Mistral 7B / Mixtral 8×7B | Mistral 7B（dense）；Mixtral 8×7B：每 token 兩專家、13B active、受益於稀疏 MoE | Apache‑2.0（Mixtral 論文明示） | 常見 4-bit/8-bit/FP16 | 7B 可在 16GB 實務運行；Mixtral 因總參與 KV/專家權重管理，通常需要更大 VRAM（24GB 也可能趨緊） |（本次主要具體吞吐來自社群彙整）在 4090 上 Mixtral Q4 常落在數十 tok/s 以下等級（視後端） | 16GB：7B 可；24GB：7B 可，Mixtral 視量化與 context 可能偏緊 | 高階：可且效能更穩 |（本次）Mixtral 有較多討論但缺乏「持續產品開發」具體個案描述；Mistral 7B 則常作為基礎模型 |
+| Falcon / MPT | Falcon 由研究機構提出 7B/40B 等尺寸（論文／模型卡）；MPT‑7B 由模型平台釋出 | 依各模型卡條款 | 常見 4-bit/8-bit/FP16 | 40B 級多需 ≥24GB（量化）；7B 可在 16GB 內 | 吞吐高度依引擎；無一致官方可比對數據 | 16GB：7B 可；24GB：7B 可、40B（量化）可能可 | 高階：可 | 無公開長期專案案例（以本次可得資料；較常作為研究/比較基線） |
+
+補充觀察：Qwen 官方 speed benchmark 的數據特別有決策價值，因為它同時給出了「tokens/s」與「GPU memory footprint」在不同 input length 下的變化，讓你能直接用「我需要的 context 長度」去推估 VRAM 緊迫程度。
+
+## 實務案例彙整與比較
+
+本節蒐集符合「持續整合／部署」或「實際產品開發工作流」的真實案例（而非單次 prompt demo），涵蓋自架 coding assistant（IDE 內補全/聊天）、codebase 索引、併發服務、以及 CI/CD 內的自動 code review/PR 摘要。案例來源包含專案 issue、論壇貼文、技術部落格與繁中社群討論；若案例偏工程討論而非產品落地，將在表中明確標註。
+
+### 案例比較表
+
+| 案例（來源類型） | 用途與「持續性」 | 使用模型／推理方式 | 硬體配置 | 開發者回饋（優點／限制） | 工程問題（痛點）與處理方向 | 最終成果／狀態 |
+|---|---|---|---|---|---|---|
+| Tabby 在企業 monorepo 索引（GitHub issue） | 自架 code assistant + 倉庫索引；屬長期部署情境（「公司 monorepo」） |（未在片段中固定模型） |（未揭露 GPU） | 索引資料量巨大（dataset size 122M），索引流程耗時且吃 RAM | Scheduler 索引耗時>3 小時且記憶體約 9GB；顯示「RAG/索引」本身可能成為維運成本 | 問題在追蹤中；反映部署後會遇到「資料準備」瓶頸 |
+| Tabby 併發下延遲線性上升（GitHub issue） | 自架 completion server；多連線併發（準生產） | 13B 模型（檔案系統）；服務端推理 | A100 80GB（單卡） | completions 單連線可用；但併發增加時 response time 線性成長 | 需要 **continuous batching / in‑flight batching**、更好的排程與 KV cache 管理；否則 GPU 利用率上不去、延遲 SLO 失守。（推理引擎如 TensorRT‑LLM / vLLM 常以此為主攻點） | 問題在追蹤中；提供「自架=要自己扛併發工程」的真例 |
+| 4090 本地 coding assistant 三模型比較（Reddit） | 實際打算長期用於 coding assistant；非一次性 demo（多輪測試與比較） | llama3.1 70B（q2）、llama3.1 8B（fp16）、qwen2.5‑coder 32B | RTX 4090 24GB | 使用者評估：Qwen2.5‑coder 32B 在缺陷偵測與實務性上更好，且速度「很不錯」 | 70B q2 略超出 24GB，仍想換取品質；但結果顯示「更大的模型 + 更重的量化」不一定贏「針對 coding 的中型模型」 | 最終偏向採用 Qwen2.5‑coder 32B 做本地日常 coding |
+| Qwen2.5‑coder 32B 在家用硬體吞吐測試（Reddit） | 針對長 context 的實測；屬持續使用前的性能驗證 | Qwen2.5‑coder 32B（Q4/Q8） | 3×P40 + 3090（使用者自述）；另提 3090 在 32K context 可到 28 tok/s | 3090 在 32K context 仍「可用」；P40 也可用但擴充不線性 | 長 context 主要受 VRAM 與後端影響；多卡不一定線性加速（需張量並行/通訊） | 作為採購/配置依據的前測案例 |
+| 本地 coding workflow：Aider + gpt-oss（Hacker News） | 真實工作流：GPU 伺服器跑 llama.cpp + 模型切換工具；Aider 作為 coder 介面 | Aider + gpt-oss-120b（使用者自述） |（未完整揭露；自述為「monster setup」伺服器） | 使用者仍認為雲端前沿模型（GPT/Claude）在 coding 上「更好、更快、更便宜」 | 現實點：本地模型在大型 prompt（程式碼上下文）下解析成本高；稀疏 MoE 可能改善但仍受整體系統限制 | 作為「本地 vs 雲端」的落差證言；亦提示可用「零留存」雲端供應商策略 |
+| OpenHands‑LM 32B（官方部落格） | 面向 coding agent 的 open 模型；以 SWE‑bench Verified 做能力衡量，屬持續產品/框架方向 | OpenHands LM 32B；搭配 OpenHands agent scaffold | 官方稱可在單張 3090 上跑（「reasonable size 32B」） | 指標：SWE‑bench Verified 37.2% resolve rate（官方聲明） | 需注意：SWE‑bench 類基準可能有污染與評測偏差，不能直接等同真實工程產能 | 作為「本地可跑 + agentic coding」的代表路線（但需內部再驗證） |
+| CI/CD 自動 code review：Gito（GitHub 專案） | 直接為 PR 與本地變更做 code review；內建 CI/CD 工作流（GitHub Actions 等） | 可接任何 provider；含本地服務（Ollama/LM Studio/vLLM 等）與 Transformers 嵌入推理 | CI runner 或本地；模型端可自架 | 強調無中介、程式碼直連自選 provider；若用本地模型「code never leaves your network」 | 工程焦點轉為：如何讓 LLM 輸出穩定、可解析、可當作 quality gate（需結構化輸出、可重跑、可追溯） | 具備可落地的 CI 形態；但要確保誤報/漏報與安全性 |
+| CI/CD 結構化輸出：LLM Action（GitHub 專案 + 部落格） | 以 Tool Schema（JSON Schema）把 LLM 變成「可編程資料」輸出，用於 code review/PR summary/issue 分類等，自動化工作流 | 可對接 OpenAI‑compatible 端點，含自架（Ollama/LocalAI/vLLM） | 依自架端點而定 | 明確指出痛點：LLM 回覆不結構化、難整合；結構化輸出可減少不穩定與 regex 地獄 | 需要同步解決：Prompt/Schema 版本化、重跑一致性、審計記錄與安全權限 | 形成「本地 LLM + CI」的可維運範式元件 |
+
+（繁中社群補充）在繁中社群中，對「個人裝置能跑多大模型」最常見的工程判準仍是記憶體容量與頻寬；例如 PTT 討論指出 GPU 高頻寬對於讀取巨大權重很關鍵，並以消費卡與行動 CPU 頻寬差距做推算提醒。 此類討論不等同產品案例，但能反映本地部署在社群端的共識瓶頸：**VRAM/頻寬/上下文長度**。
+
+## 基準測試與實務軟體開發效能的關聯與限制
+
+本地 LLM 選型若只看「排行榜」，很容易在軟體開發場景栽跟斗；原因在於：軟體開發不是單一問答或單次程式生成，而是「讀倉庫、定位、修改、多輪測試、整合」的流程。SWE‑bench 的設計正是用真實 GitHub issue/PR 流程來評估修復能力。 但即便如此，也仍需警惕其局限。
+
+### 常見 benchmarks 在軟體開發任務中的涵義
+
+MMLU：衡量廣泛學科知識與推理的多選題集合。 對「理解技術文件、API 概念、設計討論」有一定相關，但對「能否把 PR 修好、tests 是否通過」相關性有限。
+
+HumanEval：以 docstring 生成小段程式並用測試驗證 pass@k，源自 Codex 研究。 對「演算法題／函式級生成」有用，但對「跨檔案修改、依照專案風格、依賴框架」的覆蓋不足。
+
+MT‑Bench / AlpacaEval：以多輪對話與偏好評分衡量「chat quality」；MT‑Bench 以 LLM 當裁判的方式評估並研究其與人類偏好一致性。 對「對話式助理」有參考，但容易受到評審模型偏好、回覆長度偏差等影響，尤其在程式碼任務上需搭配可執行測試或靜態分析。
+
+SWE‑bench / SWE‑bench Verified：將真實 repo 的 issue → patch → tests 流程標準化，是相對貼近工程的 benchmark。 然而，已有研究指出 SWE‑bench Verified 可能受到訓練資料污染影響，導致分數不一定代表真實「泛化的修 bug 能力」。
+
+### 為何「跑分」與「實務效能」常失配
+
+第一個失配來源是「上下文與工具使用」：真實工程任務往往需要把大量 repo 資訊注入 prompt（或透過 RAG/索引取回），這會放大「長 input length」的成本。Qwen 官方 speed benchmark 清楚顯示，同模型在 input length 由 1 增至 30k 級距時，tokens/s 明顯下降且 VRAM 上升。 這意味著：即使 HumanEval 很高，若長上下文下吞吐與記憶體崩潰，仍難以支撐「大型 repo 的互動式除錯」。
+
+第二個失配來源是「服務形態」：單次互動與多併發 API 服務的最佳化路徑不同。GPU 併發服務需要 batching 與 KV cache 管理；這也是 vLLM 以 PagedAttention 主攻「KV cache 近零浪費、提升吞吐」的核心理由。 同樣的，TensorRT‑LLM 也將 in‑flight batching、paged KV caching、量化與 speculative decoding 作為推理加速的重點能力。
+
+第三個失配來源是「評測污染與可重現性」：SWE‑bench 類 benchmark 的結果常受到 scaffold（agent 框架、工具限制、max steps）影響，且存在資料污染疑慮。 因此，抄同一個榜單分數做選型，風險比想像大。
+
+本報告建議：把公開 benchmarks 當作**篩選候選模型**的第一關；真正要決策，必須再做「你的 repo / 你的 CI / 你的安全規範」下的內部評測（詳見最後一節的驗證流程）。
+
+## 工程面評估：本地部署的成本、開發週期與最適場景
+
+本地 LLM 的價值並非「免費」；它把成本從 API 轉移到硬體與工程。以下以工程視角拆解。
+
+### 成本結構與可擴展性
+
+硬體成本：消費級路線的優勢是「一次性資本支出」較低，且可直接融入開發機／工作站。以 RTX 5080 為例，官方公開了其 16GB 與 360W TGP 等規格。 但若你需要 32B/72B 模型的長 context 或多併發，VRAM 很快會成為天花板（Qwen2.5‑32B 在 input≈14k 時的官方顯存占用已接近 25GB）。
+
+電力成本：消費卡與資料中心卡的 TDP 差距明顯（例如 RTX 4090 TGP 450W。；H100 SXM 可到 700W。）。評估時可用「每月推理時數 × 平均功耗 × 電價」估算，並用「每 token 成本」或「每 PR 成本」去比較雲端 API。
+
+維運成本：自架意味著你要自己負責模型檔案治理（版本、量化版本、回滾）、服務監控（延遲/吞吐/錯誤率）、資安（權限、審計、供應鏈）與容量規劃（併發）。例如 Tabby 在 A100 上遇到併發延遲線性上升，凸顯「要達到 SaaS 的體感，推理服務工程很硬」。
+
+### 隱私／合規優勢與典型值得採用的場景
+
+隱私/合規：在醫療、金融、政府、或任何 IP 高敏感的團隊，「程式碼不能出網」往往是硬約束。本地推理能把資料控制在內網，CI 工具也可強調「無中介、零留存」。例如 Gito 明確宣稱程式碼直連自選 provider；若使用本地模型則程式碼不離網，且工具本身不保留資料。 同理，entity["company","AMD","semiconductor company"] 的工程文章也指出成本與隱私是 coding agents 的兩大挑戰，並以 on‑prem 方案作為解法方向。
+
+最值得本地化的開發場景（依本次研究歸納）：
+
+離線推理／內網服務：需要在封閉網路提供 chat + RAG（倉庫問答、內部技術文件助理），且成本可用固定硬體攤提。
+
+低延遲互動（IDE completion）：若你能接受 7B～14B 的品質，且重視「隨打隨補全」而非「最強推理」，本地部署能避免 API latency/resource limit；但要嚴控 context（例如只提供相關檔案片段）以免吞吐崩潰。
+
+高量、可規格化的 CI 任務：例如 PR 摘要、變更分類、issue labeling、基礎 lint/風險提示。這些任務天然適合用「結構化輸出」把 LLM 變成可編程元件，降低不穩定性。
+
+專有資料微調／指令微調：若你要讓模型熟悉內部框架、命名規範、或特定 SDK，微調（LoRA 等）在本地更易滿足資料治理；但要評估人力與 MLOps 成熟度。
+
+### 建議的部署流程與決策流程
+
+```mermaid
+flowchart TD
+  A[需求盤點：任務類型與約束] --> B{資料/程式碼可否出網?}
+  B -- 不可 --> C[本地/內網部署候選]
+  B -- 可 --> D[雲端SaaS或混合方案候選]
+
+  C --> E{互動? 或 批次/CI?}
+  E -- IDE互動 --> F[重點：TTFT/TPOT、上下文壓縮、7B~14B優先]
+  E -- CI批次 --> G[重點：結構化輸出、可重跑一致性、審計記錄]
+
+  F --> H{可用VRAM}
+  G --> H
+  H -- 16GB級 --> I[7B~14B Int4/Int8 或特定16GB可跑稀疏模型]
+  H -- 24GB級 --> J[32B Int4（需控context）/ Mixtral(視量化)]
+  H -- ≥80GB或多卡 --> K[72B/120B級 + 服務化併發]
+
+  I --> L[用內部任務集做評測：成功率/延遲/成本]
+  J --> L
+  K --> L
+  L --> M{達到SLO與輸出品質?}
+  M -- 否 --> N[調整：模型/量化/檢索策略/推理引擎/提示模板]
+  M -- 是 --> O[上線：監控、版本治理、紅隊測試與回滾機制]
+```
+
+此流程的關鍵精神是：先用「資料能否出網」切分，再用「互動 vs CI」切分，最後才進入「VRAM/量化/推理引擎」的具體選型。這與社群與工程案例反覆指向的痛點一致：上下文與併發工程往往比單純換模型更影響可用性。
+
+此外，供應鏈安全不可忽略：自架工具常需要高權限整合 IDE/系統，近期也出現利用熱門自架 AI 工具之名投放惡意擴充的案例，提醒團隊必須建立「來源驗證、簽章、最小權限與隔離環境」等防線。
+
+## 結論與建議
+
+### 消費級 GPU 情境的可行性總結與推薦
+
+硬體假設：以 RTX 5080（16GB）與 RTX 4090（24GB）為兩個常見上限區間。RTX 5080 16GB / 360W 等規格已可查證。 RTX 4090 24GB / 450W 亦可查證。
+
+可行性結論：16GB 級別可穩定部署的「主力模型」多落在 7B～14B（Int4/Int8），或少數經特定量化後可在 16GB 內運行的稀疏模型（如 gpt-oss-20b）。 24GB 級別可進一步嘗試 32B Int4，但必須把「最長上下文」當成硬性 SLO；官方數據顯示 32B 在 input≈14k 時，顯存可能接近或超過 24GB。
+
+推薦模型與配置（以「可部署、可維運」為核心）：
+
+16GB（RTX 5080/4080 級）建議：
+優先：gpt-oss-20b（官方明示 16GB 可跑，但要把 harmony format 納入工程成本）  
+實務通用：Qwen2.5‑7B/14B（Int4/Int8），並以官方 speed benchmark 的「input length 對 VRAM/吞吐」作為你們產品的 context 上限依據  
+中文與工具鏈：ChatGLM3‑6B（含 8k/32k/128k 版本公開；適合做中文對話與基礎助理，但商用條款需依其註冊/協議要求檢核）  
+（補充）若以 code completion 為主，優先選「coding 專門模型」勝於同等參數的一般模型，此點在 4090 使用者實測中也得到印證（Qwen2.5‑coder 32B 優於 llama3.1 70B q2 的缺陷偵測表現）。
+
+24GB（RTX 4090 級）建議：
+主力：Qwen2.5‑coder 32B（Int4，並嚴控 context）；社群實測顯示其作為 coding assistant 的實用性高。  
+策略：用 7B～14B 作為「低延遲互動」模型，32B 作為「需要更深 code reasoning/修bug」模型；並在 IDE/CI 層做路由（routing）。
+
+風險評估（消費級）：
+最大風險不是「模型跑不起來」，而是「跑得起來但體感很差」：長 prompt 造成吞吐下降、VRAM 逼近上限、以及多併發延遲崩潰。 第二風險是供應鏈與權限安全（IDE 外掛/自架 agent）。
+
+### 高階／AI 專用 GPU 情境的可行性總結與推薦
+
+可行性結論：進入 H100/H200 級別後，你獲得的是「更大模型選擇權」與「併發服務可用性」。例如 gpt-oss-120b 官方明示可在單張 80GB GPU 上運行。；Qwen2.5‑72B 在 Int4 下顯存約 40GB 級距，意味著 80GB 卡能提供更大的 context/併發餘裕。；而 GLM‑4.5 這類前沿 MoE 模型則明確要求多卡（H200×8 或 H100×16）。
+
+推薦方向：
+
+單卡 80GB（H100/H200 類）：
+若偏 agentic coding/高推理：gpt-oss-120b（需遵循 harmony format）  
+若要更高品質 dense 模型：Qwen2.5‑72B（特別適合以「更長 context + 更高品質」換取準確性，但仍需測試你們的 repo 任務）  
+服務化建議：優先採用 vLLM / TensorRT‑LLM 等具成熟 batching/KV cache 管理能力的引擎，以避免「單卡很強但併發服務仍卡」的落差。
+
+多卡（機房級）：
+若你真的需要 100B～300B+ 級 MoE（如 GLM‑4.5），請把部署當成「分散式系統」專案，成本包含：張量並行、網路互連、監控、壓測、回滾。官方 model card 已提示其 GPU 張數與系統記憶體/磁碟門檻。
+
+風險評估（高階）：
+高階 GPU 的主要風險是「工程與組織能力」：你買到硬體不代表能得到 SaaS 體感；併發、排程、快取、觀測性與安全仍是長期投資。Tabby 在 A100 80GB 上的併發延遲案例就是縮影。
+
+### 以本地模型取代雲端 SaaS 的關鍵指標與驗證步驟
+
+本地取代雲端建議用「可驗證的指標」而非感覺：
+
+任務成功率：以你們實際 repo 任務為準（PR review 找出真缺陷、修 bug 後 tests 通過、產出符合 lint/format）。若能，加入 SWE‑bench 類「可執行」評測流程作為參考，但必須警惕污染與 scaffold 差異。
+
+延遲 SLO：至少分成 TTFT（首 token）與 TPOT（每 token），並在「短 prompt」與「長 prompt」（例如 8k/16k/32k）下分別量測；官方 speed benchmark 類數據可作為建模的起點。
+
+成本：用「每月總擁有成本（硬體折舊+電力+人力維運）」換算「每 PR/每開發者」成本，再與雲端訂閱/用量做對照。GPU TDP 與機房成本是必要輸入。
+
+隱私與審計：確認資料不離網（若是硬需求），同時保留 prompt/輸出/模型版本的審計記錄，並建立「紅隊測試」與「敏感資訊外洩」檢測。
+
+工程化穩定性：CI 使用務必採結構化輸出（JSON Schema / tool schema），並將 prompt/規則版本化；LLM Action 的範式是可直接借鏡的工程方向。
+
+最後，一個務實的混合建議：以本地模型承擔「高頻、可規格化、需內網」的工作（PR 摘要、分類、基礎 review、文件整理）；把雲端前沿模型保留給「高風險／高複雜度」任務（深度架構設計、關鍵缺陷定位、長時間 agent 任務）。這與多個真實工作流回饋一致：本地可用，但在重度 coding 上仍常落後前沿雲端。
+
+<details>
+<summary>附件 / 推理流程</summary>
+
+Research activity
+
+Considering image use and tables
+We might include an image group, like a comparison between consumer GPUs and datacenter GPUs or diagrams for LLM deployment. It's not essential, but it could enhance clarity. For tables, I’ll create one for model specs and another for case comparisons, ensuring citations are outside the tables, not inline within bold or italics.
+
+Searching
+www.tomshardware.comwww.tomshardware.com
+www.pcgamer.comwww.pcgamer.com
+www.nvidia.comwww.nvidia.com
+www.reddit.comwww.reddit.com
+7 more
+Getting specs for RTX models and parameters
+We already have official specs for the RTX 5080, including 16GB GDDR7 memory and 960GB/s bandwidth, which is great! I'll make sure to cite this. Next, I need to gather VRAM specs for the RTX 4080 and 4090 from NVIDIA pages. I’ll also search for models, parameters, and quantization.
+
+Searching
+arxiv.orgarxiv.org
+huggingface.cohuggingface.co
+github.comgithub.com
+qwenlm.github.ioqwenlm.github.io
+3 more
+Gathering sources for models
+I have sources for the Llama2 paper, Mistral 7B paper, Qwen2.5 blog, and Falcon. Now I need to find sources for MPT, MiniMax, and GLM. I'll search for those to make sure everything's covered comprehensively.
+
+Searching
+www.databricks.comwww.databricks.com
+huggingface.cohuggingface.co
+github.comgithub.com
+medium.commedium.com
+9 more
+Searching for official sources
+I have some sources already, but I still need the official repo for ChatGLM3 and potentially GLM-4 open models. I’ve seen some news about GLM-4.5 on Reuters, but I'll look for more official sources like Zhipu on HuggingFace. I’ll also search for Minimax open source and maybe "gpt-oss".
+
+Searching
+huggingface.cohuggingface.co
+github.comgithub.com
+www.minimax.iowww.minimax.io
+en.wikipedia.orgen.wikipedia.org
+5 more
+Verifying specs and requirements for MoE models
+GPT-OSS exists, and I'll reference sources like HuggingFace for details on its open weights. MiniMax models have GitHub repos, and GLM-4.5 is available. I need to investigate the memory requirements and quantization formats for large MoE models. For latency and throughput, I'll estimate performance using frameworks like vLLM and exllama, accounting for GPUs.
+
+Checking GPT-OSS model details
+I need to delve into the official GPT-OSS model card on HuggingFace to verify the total parameter count. There might be 117B parameters in total, with only 21B potentially active. I'll also look for details about hardware requirements and quantization (like MXFP4 and 4-bit).
+
+Reviewing hardware details for models
+I found that the GPT-OSS model card (line 59) mentions it can run on a single 80GB GPU, like the H100 or MI300X, which is great. I'll also check the GLM-4.5 model card for GPU counts and context length, and review MiniMax models' hardware details on their GitHub or HuggingFace.
+
+Searching
+huggingface.cohuggingface.co
+github.comgithub.com
+Checking MiniMax hardware requirements
+MiniMax-Text-01 provides parameter sizes and context, but it may not list hardware requirements directly in the snippet. I need to check the README or config section for more details. I’ll search for terms like "H100" or "System Requirements" within the repository to get the relevant info.
+
+Checking MiniMax hardware requirements in model card
+The MiniMax-01 repo might include hardware details in the model card or a PDF. I’ll look for the "MiniMax-Text-01-Model-Card.md" or any PDF with "H100" or hardware specs. I’ll click on the file in the repo and check its contents for the necessary information.
+
+Evaluating model sizes and system requirements for different GPUs
+I’ve got the model card with evaluation numbers but no direct system requirements. The PDF might have those, so I’ll need to extract it using a screenshot tool. For now, I can estimate hardware needs based on model sizes and categories. For consumer GPUs, smaller 7B-32B models should work, but big models like 70B-120B MoE will need dedicated setups. I’ll list the relevant models like GPT-OSS, MiniMax, Llama 2, and others — along with latencies and memory/throughput estimates.
+
+Opening gpt-oss-20b model card
+I need to open the gpt-oss-20b model card to check for relevant details. This will help gather more context on memory, hardware requirements, and other important specifications for the model. I’ll go ahead and pull it up to get the needed info.
+
+Clicking the gpt-oss-20b model card
+From the collection page, it looks like link ID 19 corresponds to the gpt-oss-20b model card. I’ll go ahead and click that to open the details and gather the information I need about the model’s specs, hardware requirements, and any quantization or latency details.
+
+Searching
+huggingface.cohuggingface.co
+Defining GPU scenarios and citing hardware requirements
+The gpt-oss-20b model card indicates it requires 16GB of memory due to MXFP4 quantization, which we can apply to a consumer GPU scenario, like the RTX 5080 with up to 16GB or RTX 4090 with 24GB. For dedicated GPU scenarios, we’ll need higher VRAM, like 80GB for models such as gpt-oss-120b.
+
+Drafting model spec table and estimating memory requirements
+I’m thinking about creating a detailed model specification table. It will include columns like model family, parameters, quantization formats, and memory requirements for different inference engines. For example, a 7B model in FP16 requires at least 16GB of VRAM—quantized to 8-bit or 4-bit, it can fit within 7GB or 3.5GB.
+
+Estimating memory needs for different model sizes
+I’m estimating the memory requirements for different models. For example, a 13B model in FP16 needs more than 30GB, which doesn’t fit in 24GB VRAM. However, quantized to 4-bit, it fits fine in smaller memory. A 32B model needs around 64GB in FP16 or 18-20GB in 4-bit.
+
+Estimating GPU requirements for large models
+Models like 70B require 48GB or 2x24GB GPUs. A single 80GB GPU can handle the 120B MoE model, but larger models like 355B or 456B require multiple high-end GPUs, like the H100. For consumer GPUs, the 5080 (16GB) and 4090 (24GB) are typical choices. Next, I’ll search for inference performance benchmarks.
+
+Searching
+github.comgithub.com
+www.reddit.comwww.reddit.com
+blog.vllm.aiblog.vllm.ai
+developer.nvidia.comdeveloper.nvidia.com
+11 more
+Searching
+blog.vllm.aiblog.vllm.ai
+github.comgithub.com
+developer.nvidia.comdeveloper.nvidia.com
+Reviewing performance data and benchmarks
+I found some performance data: llama.cpp reports about 70 tokens/s for 13B Q4 on a 4080, which is helpful. For higher-end GPUs like the H200, TensorRT-LLM achieves 11,819 tokens/s on Llama2-13B, though that’s likely with batching. I’ll dig into the vLLM blog for more specific numbers.
+
+Gathering quantization data and model options
+The vLLM blog offers relative improvements, though no absolute figures, which might still be useful. I need model parameters and context lengths for Llama2, Qwen2.5, Mistral, GLM, etc. For quantization, I’ll mention formats like bitsandbytes and GGUF, and search for background on quantization types and memory throughput. Should I cite sources for precision memory?
+
+Starting practical case collection for Tabby
+I’m thinking of computing weight sizes, though we might not need citations for common claims. For deep research, we should definitely source everything not widely known. The user also prioritizes Chinese sources, like blogs and community posts. For practical examples, let’s gather details on Tabby’s corporate use, particularly in long-term deployment with CI and Kubernetes.
+
+Finding examples of self-hosted or enterprise-scale deployments
+I’m gathering practical cases to learn about projects using LLMs in production. For Tabby, I’m looking for real deployment and scaling cases in companies. I’ll also check the use of local models with platforms like Ollama, Aider (CLI tool), or tools like ReviewGPT in GitHub Actions.
+
+Searching
+github.comgithub.com
+www.tabbyml.comwww.tabbyml.com
+medium.commedium.com
+docs.clore.aidocs.clore.ai
+8 more
+Collecting practical example cases: scaling local LLMs
+I found real project cases with Tabby in GitHub issues, including large dataset indexing and scaling. Now, I need more concrete examples of local LLMs in CI/CD pipelines, like GitLab for code review, documentation summarization, or internal tools. These projects should show sustained integration, not just prototype demos. I'll gather 8-12 cases.
+
+Focusing on software development tools and examples
+I’m considering using OpenWebUI, Ollama, and Qwen2.5, but I need evidence that they’re used for actual internal knowledge bases. Since the user is asking about software development workshops, focusing on tools for code generation and debugging seems more relevant. I’ll also check if Sourcegraph is open-source before considering it.
+
+Searching
+arxiv.orgarxiv.org
+www.swebench.comwww.swebench.com
+github.comgithub.com
+www.reddit.comwww.reddit.com
+7 more
+Clarifying the relevant benchmarks
+I’ve got sources for SWE-bench, but I also need other benchmarks like MMLU, HumanEval, and MT-Bench. They want “benchmark results across quantization/hardware setups.” I know benchmark scores usually focus on language tasks, but hardware affects latency. I'll focus on both accuracy and inference performance benchmarks, while clarifying software development relations.
+
+Searching
+tatsu-lab.github.iotatsu-lab.github.io
+arxiv.orgarxiv.org
+github.comgithub.com
+lmsys.orglmsys.org
+7 more
+Searching
+arxiv.orgarxiv.org
+www.vellum.aiwww.vellum.ai
+github.comgithub.com
+www.communeify.comwww.communeify.com
+4 more
+Gathering additional benchmarks
+I've got HumanEval, MBPP, AlpacaEval, and MT-Bench covered. I’ll also need the original MMLU, and it could be useful to mention LLM-Score, possibly from Chinese sources. That should round out the set of relevant benchmarks for this project.
+
+Searching
+github.comgithub.com
+openreview.netopenreview.net
+ithelp.ithome.com.twithelp.ithome.com.tw
+www.vellum.aiwww.vellum.ai
+11 more
+Clarifying LLM-Score
+I found the MMLU original paper, but I couldn't locate LLM-Score. It might be an evaluation aggregator, or possibly tied to "OpenAI Evals" for certain tasks. There's also a chance that "LLM-Score" is a specific Chinese evaluation for local models. I’ll try searching for "LLM-Score benchmark" again.
+
+Clarifying ambiguous terms and sources
+It seems "LLM-Score" might refer to a text-to-image evaluation, or feature selection, which doesn’t apply here. The term could be referring to a scoring system used in Chinese sources for LLM evaluations. I'll clarify this and include relevant Chinese blog sources like Nvidia Taiwan and PTT posts on local LLM usage.
+
+Searching
+www.ptt.ccwww.ptt.cc
+Searching
+www.ptt.ccwww.ptt.cc
+www.mobile01.comwww.mobile01.com
+Finding relevant long-term development projects
+I found a PTT post about local LLM memory bandwidth; it’s relevant for discussion, but not a long-term dev project. I'll look for posts about using local LLMs for code assistance or CI, particularly in Chinese communities like Soft_Job or Mobile01. I'll focus on long-term development projects.
+
+Narrowing down relevant long-term projects
+I found a Mobile01 thread about AI agent OpenClaw using LLM, but it doesn’t seem to meet the "software development" focus. The requirement specifies open-source models applied in development. I'll focus on cases like OpenHands-LM 32B, Tabby, and SonarSource, looking for GitHub evidence for local models used in workflows.
+
+Collecting real deployment cases for local LLMs
+I’m considering the best sources for real experiences with deploying local LLMs in software development. I’ll focus on cases related to code assistance, scaling, and issues from GitHub forums or official blogs like those for Tabby, OpenDevin/OpenHands, and enterprise use cases for compliance.
+
+Searching for on-prem code assistant with Llama 3
+I’m going to search for instances where Llama 3 is used as a self-hosted, on-prem code assistant. This will help find relevant use cases in coding development where local models are deployed in production environments. Let’s see what I can find!
+
+Searching
+blog.premai.ioblog.premai.io
+medium.commedium.com
+blog.wu-boy.comblog.wu-boy.com
+github.comgithub.com
+9 more
+Evaluating the Gito Project for relevant usage
+I found the "Gito" AI code reviewer project on GitHub that integrates with GitHub Actions and supports local models like Ollama. This fits the CI/CD usage requirement. I need to verify if it's used long-term and actively in real development projects. GitHub projects can be open-source but may not always be clearly adopted. I'll keep looking for more details, like issues or stars, to strengthen the case.
+
+Clarifying potential case categories
+I can focus on several potential case categories: - Tabby’s use in company monorepo indexing and scaling. - OpenHands-LM 32B for coding agents, based on blog and hardware details. - GitHub Action LLM-action for integrating LLMs in actual workflows. - Gito AI Code Reviewer using GitHub Actions. - Internal company LLM adoption, if relevant details are available. We could also use a Reddit thread where developers describe the use of local models in continuous coding workflows.
+
+Gathering case studies from various communities
+I'll include at least one relevant case from each of the following sources: Reddit, Hacker News, X, and Chinese communities. This will ensure that the examples I draw from are diverse and come from different perspectives. Let's make sure we provide a variety of case studies for well-rounded insight.
+
+Searching
+www.reddit.comwww.reddit.com
+news.ycombinator.comnews.ycombinator.com
+x.comx.com
+www.techradar.comwww.techradar.com
+Gathering real case examples and workflows
+I’ve identified tools that might fit the user’s request: Tabby for company monorepos, Gito for GitHub actions in code reviews, LLM-action for integration (but looking for more evidence), OpenHands (possibly used by AMD), and Moltbot/Clawdbot for self-hosted tasks despite security issues. I’ll review relevant Hacker News threads for actual workflows and extract valuable comments for citations.
+
+Searching
+news.ycombinator.comnews.ycombinator.com
+www.reddit.comwww.reddit.com
+Gathering accessible project insights
+I found a Reddit post evaluating a model, which is good for our case. I need at least one case from X—perhaps posts from the vLLM project about setup. X might require a login, but a snippet may be enough. I’ll go with accessible posts for more information and open the vLLM tweet.
+
+Searching
+x.comx.com
+Accessing alternative sources for X content
+The content from X may be blocked behind a login, so I can’t fully rely on it. I’m considering using Nitter or other mirrored resources like "xcancel.com". If I find something accessible, I’ll cite it. Otherwise, I’ll mention the access limitations and consider the content as insufficient. Let’s search for these.
+
+Using available mirrors for X content
+I couldn't find "xcancel", and it seems citing X might be limited due to access restrictions. I'll mention that I attempted but couldn't access the content. Since the user wants as many sources as possible, I'll explore alternative sources like GitHub, Reddit, HN, and Chinese communities. I’ll also try fetching X content via a mirror like "r.jina.ai". Let’s see if that works.
+
+Searching for alternative resources
+Since I can’t open new URLs that aren't part of the previous results, I’ll try searching for “r.jina.ai http x.com/vllm_project...”. If I find matching results, I think I can open those, and it might solve the issue of accessing the content. Let's give that a try!
+
+Searching
+arxiv.orgarxiv.org
+Reporting access restrictions and next steps
+Since I couldn't retrieve any mirrored URL results, I'll mark that in the report. I'll note that access was restricted and provide the phrase "no accessible public details." Now, I need to focus on compiling benchmark results for selected models, like HumanEval, and choose representative ones.
+
+Searching
+arxiv.orgarxiv.org
+www.swebench.comwww.swebench.com
+qwenlm.github.ioqwenlm.github.io
+huggingface.cohuggingface.co
+8 more
+Compiling model performance data
+I have the performance reports and papers for models like Qwen2.5-Coder, GLM-4.5, Llama2, Mistral, Falcon, and MPT. I'll gather relevant metrics from model cards and papers, such as MMLU, HumanEval, and latency/throughput details where available. The user expects both quality metrics and hardware-specific performance data. I'll focus on the most reliable information for each model.
+
+Creating a model specification table
+I’m thinking of creating a model spec table with detailed info: family, parameters, architecture, context length, license, suggested quantizations, VRAM usage at 4- and 8-bit, example hardware (e.g., 5080, 4080, 4090, H100), and typical decode throughput. I'll include predicted token throughput ranges based on model size, providing sources and methodologies, as throughput info varies and it's hard to get exact values across different GPUs.
+
+Searching
+www.reddit.comwww.reddit.com
+blogs.nvidia.com.twblogs.nvidia.com.tw
+docs.nvidia.comdocs.nvidia.com
+github.comgithub.com
+9 more
+Considering memory usage and cost evaluation
+Cache memory can be several gigabytes, and on consumer GPUs, large contexts (like 32k tokens) might exceed memory limits, even if weights fit. It’s worth mentioning that KV cache may be at 8k tokens in FP16, but some frameworks support FP8 or int8 caching. I'll also include an approximation of hardware costs, like recent GPUs, though exact prices may vary. For example, the RTX 5080 might start at $999.
+
+Evaluating hardware cost and energy consumption
+The RTX 5080 has a masked MSRP, possibly region-specific, but we know its memory and bandwidth. For cost analysis, we can use typical values or PNY's TDP data. RTX 5080 is listed at 360W; H100 may be up to 700W. Energy costs can be computed with the assumption of 3 NTD/kWh, providing a general framework with assumptions for overall hardware, electricity, and operations.
+
+Providing cost and workflow insights
+For electricity costs, we can use general rates without being overly specific to Taiwan, focusing on relative values. We will include a formula for cost calculation: Electricity cost = power (kW) * hours * rate. Additionally, we need to present a decision-making flow, possibly with a mermaid diagram, covering deployment choices, model sizes, and pipelines.
+
+Estimating memory requirements for models
+We need to calculate memory needs for model weights and KV caches at different context lengths, such as 8k or 16k tokens for coding tasks. Some models, like Qwen2.5, support 32k tokens, but using long context requires substantial cache. Once we compute these, we can identify which GPUs are suitable for each scenario.
+
+Identifying models for consumer- and dedicated GPU scenarios
+For models that will run in consumer or dedicated scenarios, I’m looking at ones like Qwen2.5-Coder-7B, GLM-4-9B, and Llama2 (7B, 13B, 70B). Some bigger ones (e.g., Mixtral 8x7B or GLM-4.5) might need multi-GPU setups, so I’ll note those. I'll also check param counts and get sources for specifics.
+
+Searching
+github.comgithub.com
+Searching
+qwenlm.github.ioqwenlm.github.io
+huggingface.cohuggingface.co
+ollama.comollama.com
+Choosing sources for model benchmarking
+I noticed the ChatGLM3 README has great details like context lengths and evaluation results, which we can use for Chinese open models. For Qwen2.5 coder, the PDF is useful, but it'd be better to get benchmarks from the blog or model card on HuggingFace instead. We can still cite PDFs for methodology details.
+
+Looking for specific Qwen2.5 data
+The Qwen blog provides high-level benchmarks, but not exact figures. I can still cite broad results like "HumanEval 85+" but it's a bit rough. To get precise numbers, I might have to refer to the Qwen papers or model documentation. I'll check the link for memory and throughput details.
+
+Searching for Qwen2.5 speed benchmark
+The link returns a 404 error, likely because the path changed. So, I’ll search for Qwen2.5 speed benchmarks directly to find the info I need. Hopefully, I can track down relevant results that give precise details on performance and throughput.
+
+Searching
+qwen.readthedocs.ioqwen.readthedocs.io
+medium.commedium.com
+apxml.comapxml.com
+www.reddit.comwww.reddit.com
+7 more
+Parsing relevant data from Qwen speed benchmark
+The Qwen speed benchmark page is long, and I need to find the tables with data for specific models like "Qwen2.5-7B." I’ll search for those model names to locate the relevant lines and extract the information efficiently. This will help me gather the needed details.
+
+Extracting Qwen speed benchmark data
+The Qwen speed benchmark has the exact tokens and memory details for A100 80GB, which is useful. For the 14B model, I need to look beyond line 1333 to capture quantization info. I'll focus on the range between lines 1320-1340 to gather values for GPTQ int4.
+
+Finding 72B model specs
+The 14B table is good to go, and I can use data from the website for the 7B model. For Q4, the 32B table values are already captured. Now, I need to focus on the 72B model, as it likely requires multiple GPUs and more memory. Let’s find those specifics.
+
+Searching
+qwen.readthedocs.ioqwen.readthedocs.io
+Exploring workflows, cases, and benchmarks
+The IT Hub workflows mention LLM action, self-hosted solutions (like Ollama, LocalAI, etc.), and CI support, so we'll reference their documentation and project repo. For Case 6: OpenHands-LM 32B focuses on agentic code repair, with 37.2% SWE-bench verified, running on a single 3090. References will include their blog and SWE-bench. For Case 7, the AMD article about OpenHands and SWE-bench results also needs opening for hardware details.
+
+Searching
+www.amd.comwww.amd.com
+Considering Chinese community sources for CI and tools
+The "LLaMA-Factory" isn't fully going to meet the "real product development or CI/CD" need, but we could explore Chinese discussions like using local ChatGLM/CodeGeeX plugins for coding. We might check iTHome for articles on tools like MT-Bench or find a relevant Chinese blog on engineering evaluations to meet the "中文社群" requirement.
+
+Defining cases for coding workflows
+The server setup with gpt-oss-120b using llama.cpp is a strong example of local coding with a real workflow. We’ll treat this as a case and cite the relevant lines in the HN thread. To develop the table, I’ll list at least eight entries, starting with use cases like Tabby for code completion, concurrency scaling on the A100 GPU, and model comparisons like Qwen versus Llama3.
+
+Focusing on relevant coding cases
+I’m mulling over different cases to focus on, particularly for coding projects. Using HN comments about Aider and gpt-oss-120b makes sense for coding, and I'll cite that. Also, I could include OpenHands-LM 32B’s use in coding agents, alongside articles about GitHub integrations and CI workflows like Gito and LLM Action.
+
+Gathering details for case table
+I need to gather more information about each case for the table, focusing on hardware, models, feedback, and issues. I'll review Tabby issue 752 (dataset, RAM, and indexing time) and issue 889 (A100 80G, concurrency). I’ll check the Reddit evaluation, HN comment, and Gito repo for additional details.
+
+Searching
+github.comgithub.com
+blog.wu-boy.comblog.wu-boy.com
+Compiling test results and details
+Great, the GitHub project description provides usable features to cite. For gpt-oss and GLM-4.5, we already have system requirements and GPU details. For MiniMax models, we lack inference hardware specifics but can infer multi-GPU use due to their large context and model parameters. Now, I need to summarize benchmarks from Llama2, Mistral 7B, and Mixtral papers.
+
+Benchmark evaluation and limitations
+I’m considering benchmarks like MMLU, HumanEval, and SWE-bench. For example, the gpt-oss model card may include SWE-bench Verified results, and GLM-4.5 provides scores across benchmarks. But, I also need to address limitations, such as potential contamination issues with SWE-Bench and biases in LLM-based evaluations (MT-Bench, AlpacaEval).
+
+Evaluating cost, compliance, and recommendations
+I need to consider factors like cost (hardware, electricity, and operations), the development cycle, scalability, and privacy/compliance. There might be a mention of privacy regulations like the EU AI Act or models that emphasize compliance. For consumer GPUs (16GB), recommended models include gpt-oss-20b, Qwen2.5-Coder, ChatGLM3-6B, and Mistral 7B.
+
+Choosing models and inference engines for various GPUs
+For 24GB GPUs (like the 4090), I recommend using Qwen2.5-Coder 32B Q4, possibly Mixtral 8x7B Q4, or Llama 2 13B/34B. For local interactive use, consider inference engines like llama.cpp, Ollama, or exllama; for server-based throughput, use vLLM or SGLang. For dedicated GPUs, gpt-oss-120b on an 80GB H100 is recommended, or multi-GPU setups for larger models.
+
+Managing unique named entities
+For the report, each identifiable place, person, organization, or media source (like OpenAI, NVIDIA, Meta, Alibaba) must be wrapped the first time it's mentioned, but only once throughout the report. Though this could create restrictions due to multiple mentions, we're required to follow this rule accurately for mandatory entity wrapping.
+
+Handling entity wrapping for models and companies
+It's a bit tedious, but I have to be precise. Company names like "Meta" or "Meta AI" are entities that should be wrapped. However, models like "gpt-oss" are not entity types, so they don't require wrapping. While it's a bit repetitive, I can manage and ensure the correct approach.
+
+Wrapping entities and handling locale considerations
+So, "Hugging Face" is a company, and I'll use the entity type "company". For others like "GitHub", "Reddit", and "Hacker News", I'll classify them as companies or organizations as needed. I need to ensure the entity reference uses proper disambiguation, such as <32, and I’ll keep the name in the user's language, especially for entities like "NVIDIA" in Chinese.
+
+Wrapping entities and citations
+We should only wrap each entity like "Hugging Face" once, the first time it's mentioned. Even if "GitHub" is asked about in the context of "GitHub issues", it doesn’t need to be wrapped every time. Citations can link to the entity directly, so no need for multiple entity wrappers upon further mentions.
+
+Handling entity references
+If the user specifically asks for a source like "GitHub issues," we shouldn't wrap entity names (like GitHub) again, since it’s redundant. However, the system requires mandatory entity references, so we’ll follow those instructions. The key is balancing system requirements and the specific guidelines on redundancy.
+
+Reconciling entity wrapping rules
+The rule says not to wrap exact entity names the user asks for to avoid redundancy, so "GitHub," "Reddit," and others shouldn't be wrapped. However, "OpenAI" wasn't explicitly mentioned, so I would wrap that. The same goes for "NVIDIA" since "RTX" doesn’t directly reference it.
+
+Planning image inclusion in hardware section
+I should include an image group for comparing GPUs like RTX 5080, RTX 4090, H100, and H200. The instruction is clear—images shouldn’t appear at the start or end, so I’ll place them in the "硬體情境" section. I’ll ensure not to wrap anything inside code blocks though.
+
+Managing report structure and sub-sections
+I need to format the report with minimal bullet points and some tables. The key directive is that the number of sub-sections should be between four and eight. This likely means I should count all headings under the main title (including H2 and H3). I'll avoid too many sub-headings and limit H3s.
+
+Finalizing report structure and content organization
+I’ll limit the report to about 7 H2 headings and avoid H3 sub-headings. Instead, I’ll use paragraphs and bullet points within each section. For the model section, I can separate consumer vs dedicated scenarios with subheadings using bold text. I'll include two tables: one for model specs, one for cases. Citations will be placed outside of code blocks, and I'll incorporate "mermaid" code.
+
+Defining scenarios and model specifications
+I’ll define the consumer vs dedicated scenario and clarify assumptions like using the RTX 4080/4090 as comparisons if official specs for the RTX 5080 are unavailable (although we do have specs now). For VRAM, I’ll note the capacities and throughput for each model (RTX 5080, 4080, 4090, H100, H200). We’ll also list representative models for each scenario (like gpt-oss, minimax, and qwen). I'll emphasize GPUs with 16GB–24GB VRAM for consumer scenarios.
+
+Model recommendations for RTX 5080 and RTX 4090
+For RTX 5080 (16GB), models like gpt-oss-20b (MXFP4), Qwen2.5-Coder 7B/14B Q4, and Mistral 7B Q4/FP16 fit well. For RTX 4090 (24GB), Qwen2.5-Coder 32B Q4 and Mixtral 8x7B Q4 might work, though tight. However, FP16 with 8B models won't fit on 16GB cards, using 8-bit is preferred.
+
+Considering cost and price uncertainty
+The price of a consumer GPU, like the GeForce RTX 5080, might be listed around $999, but it's unclear since the page doesn't specify it directly. We could search for articles on sources like The Verge or NVIDIA for a more accurate pricing, though it may vary. I'll keep an eye out for reliable info.
+
+Searching
+www.tomshardware.comwww.tomshardware.com
+www.nvidia.comwww.nvidia.com
+www.tweaktown.comwww.tweaktown.com
+bestvaluegpu.combestvaluegpu.com
+7 more
+Searching
+www.nvidia.comwww.nvidia.com
+Referencing RTX 4090 specs
+I'll cite the official site for the price and availability of the RTX 4090, and also look for the "Total Graphics Power" (TGP) specification on Nvidia's page. This will help mention the 450W TDP and ensure we're covering key details while following the need for authoritative sources for tuning.
+
+Creating model spec table
+I’m working on a table that includes the key model specs, focusing on VRAM and memory requirements. For example, gpt-oss-20b uses BF16 weights and is trained with MXFP4 quantization, fitting within 16GB memory. Qwen2.5-7B-Instruct has BF16 memory usage of 14.38GB, and GPTQ-Int4 uses 5.52GB.
+
+Considering latency and throughput details
+For latency and throughput, I don’t have specific numbers for every model yet, but I can provide typical estimates for tokens per second and time to first token (TTFT). I can mention that TTFT is influenced by prompt size and is generally higher for larger prompts. I'll also refer to available sources like the vLLM blog on throughput improvements.
+
+Estimating latency and throughput
+Since I can't access the official docs, but the user wants latency info, I can use NVIDIA TensorRT-LLM's blog on throughput improvements and estimating TTFT. For typical consumer GPUs, TTFT tends to range from tens to hundreds of ms, depending on the prompt. I'll also reference other community benchmarks like Qwen speed.
+
+Discussing deployable value in software development
+The Qwen speed benchmark measured time to generate 2048 tokens, showing speed decreases with input length—this serves as a good proxy for latency. For TTFT, we might estimate based on the given data but lack explicit numbers. We'll also compare self-hosted options like Tabby and document them.
+
+Using reliable sources for Tabby citation
+It seems the GitHub page might be heavy or temporary, but we can use the Tabby website or official docs to cite the description of Tabby as a self-hosted AI coding assistant. Since the user prefers the official repo, I'll prioritize that and then consider using snippets if needed for clarity.
+
+Considering the cost vs benefits of local LLM vs cloud
+We’re exploring the benefits of using a local open LLM on a consumer GPU, like offline code assistance and testing, while noting limitations like VRAM restrictions. Plus, we need to highlight factors like data security, no API costs, fine-tuning, and licensing restrictions—important for deployment.
+
+Computing memory for model weights and context
+I need to compute the memory for weights and context for various models. I'll start by calculating the weight memory for different parameter sizes and precisions. Some models, like MoE (Mixture of Experts), require special handling, noting only active parameters. I will also point out models like ChatGLM that require commercial use registration.
+
+Compiling model parameter sizes and memory calculations
+I’m putting together a list of models with their parameters: - GPT-OSS: 21B, 117B - Qwen2.5: 7B, 14B, 32B, 72B - Llama2: 7B, 13B, 70B - Mixtral: 47B total active 13B - Minimax-Text: 456B total I’ll compute memory usage for FP16, 8-bit, 4-bit for these models, using standard calculations for weight sizes at different precision levels.
+
+Calculating memory fit for consumer GPUs
+For a 16GB GPU, Qwen2.5-7B BF16 (14.38GB) fits but is limited for KV, while larger models like Qwen2.5-14B BF16 (28GB) won’t fit. Qwen2.5-32B int4 needs 18.94GB, which fits 24GB but not 16GB. On larger GPUs, quantization helps fit models, though context length increases memory footprint.
+
+Clarifying memory usage for varying context lengths
+Including more VRAM or using techniques like KV cache quantization or CPU offload is important. From the Qwen docs, we can present a model spec table showing memory usage with context lengths at 1 and higher (like 6144 or 14336). I'll make columns for VRAM at different prompt lengths, ensuring clarity.
+
+Explaining throughput changes with larger prompts
+I see that throughput decreases with larger prompts, as seen with Qwen2.5-32B GPTQ-Int4, where tokens per second drop from 19.20 at input 1 to 9.48 at input 14336. For consumer GPUs, I could approximate tokens per second on an RTX 4090 using the ratio of memory bandwidth.
+
+Estimating tokens per second on consumer GPUs
+For Qwen tokens per second on a 4090, it might be about half of the A100, considering memory bandwidth differences. Community benchmarks show 28 tokens per second on a 3090 for Qwen2.5-coder 32B at 32K context. I'll use those numbers, along with Llama 13B Q4 on 4080, for more concrete data.
+
+Generated report on 本地開源大型語言模型在實務軟體開發的真實效能與可部署價值研究報告
+System requirements for various models
+For GLM-4.5, the requirements are H200 x8 or H100 x16, while for GLM-4.5-Air, it's H200 x1 or H100 x2. System memory needs to be at least 1TB, with 500GB of disk space. I might need to check MiniMax-M1's requirements, but it depends on how detailed we need to be.
+
+MiniMax model details
+MiniMax-Text-01 has 456B total parameters, with 45.9B active, and uses a training context of 1M with inference up to 4M. I'll include this, but no hardware specifics. For MiniMax-M1, its size might be smaller—I'm not sure, so checking the Hugging Face model card should help clarify this.
+
+Handling retrieval issue for MiniMax-M1
+There seems to be a temporary issue with the network, causing an internal error. I can use previous data for MiniMax, like the MiniMax-Text-01 model card and the M1 GitHub repo. But for MiniMax-M1, there may not be enough details. I'll try again later with a reduced load to retrieve more.
+
+Preparing for report generation and sourcing
+For the report, I aim for around 5000-8000 Chinese characters, making sure to avoid overly dense text and limit bullet lists. Tables are fine for support. Before generating, I’ll double-check all sources: RTX 5080 specs from Nvidia's page, and memory bandwidth from PNY page for GDDR7 details.
+
+Building the model spec table
+For the model specification table, I'll compare consumer GPUs vs. dedicated GPUs and include the following: - Model - Open source/weight license - Total vs active parameters - Max context length - Quantization options - Referenced VRAM for different contexts (including from Qwen) - Representative hardware and benchmark metrics - Referenced throughput and latency ranges This will align with providing citations for each key conclusion.
+
+Creating model table with GPU specs
+I’ll create a model table based on VRAM class: 16GB, 24GB, and 80GB+. I'll include columns for each GPU scenario, like whether it'll run on consumer GPUs (like RTX 5080/4080, 4090) or requires datacenter GPUs. I'll also use Qwen’s memory footprint numbers as a general guide for memory requirements.
+
+Filling out the spec table with specifics
+I need to complete the model spec table with values for each row, such as GPU requirements, memory capacities, and tokens. For models like Qwen2.5 and gpt-oss-20b, I’ll note GPU compatibility and memory. I’ll also include relevant long-term project cases, like Qwen being used widely for tasks like code assistance.
+
+Organizing project case table with clear categories
+I’m preparing a table with columns for case sources (GitHub, Reddit, etc.), usage (like code assistant or review), models and inference frameworks used, hardware setups, developer feedback, engineering issues/solutions, and final outcomes or decisions. I’ll mark models like Falcon or MPT with “no long-term cases” but include necessary disclaimers. This will make sure we're equitable, while managing the table's width.
+
+Searching for local LLM in coding discussions
+It seems like "RTX 5080效能解禁" may not be directly related to what I need. Maybe I can find posts on iT邦幫忙 about using local LLMs for coding. I’ll search for that to see if there are any discussions or relevant examples.
+
+Looking into relevant Chinese community cases
+The web tool might be unstable, but we might not need more sources. The user wanted cases from Chinese communities, so I'll consider including one from a PTT post. Also, there may be relevant threads on Bahamut or Mobile01 about local code assistants or AI agents like OpenClaw, even if it’s not strictly about software development.
+
+Reviewing Chinese community cases and hardware distinction
+The Mobile01 thread might be relevant for integrating AI agents with LLMs, but it’s not strictly about software dev, so I might exclude it. The PTT iOS thread also covers LLM analysis, but it’s not exactly what’s needed. I'll include at least one Chinese community case and consider the hardware distinction in "consumer vs high-end GPUs," including memory bandwidth for decoding.
+
+Creating the report and including necessary diagrams
+I'll include a mermaid diagram for scenarios like "Decision flow for choosing local model vs SaaS" and "deployment pipeline." These will fit into the engineering section. I'll ensure proper citations throughout, using (website) format. The final message will just contain the report, with no preface, and disclaimers about the data and methodology will be included. Let's get started!
+
+Finalizing GPU and model specifications with citations
+I'm noting that the RTX 5080 has 16GB, similar to the 4080. If no specs are provided, I can assume the user is referring to the 4080/4090. I'll make sure to include proper citations for GPT-OSS, mentioning the model card and how it uses Harmony format. I'll also check for any details on the Tabby concurrency issue.
+
+Finalizing output with image and citation guidelines
+I’m handling internal errors by relying on search snippets for citations. For issues 752 and 889, I’ll include the relevant info from the snippets. I’ll give an overview of Reddit, HN, and Mobile01 threads. I’ll avoid overloading bullet points, sticking to tables. Also, I’ll include images in the hardware section, aligned with text.
+
+Finalizing output with citations and formatting
+For the final output, I'll make sure image_group syntax is used correctly within the JSON format. We’re avoiding the carousel widget, sticking to image_group. I’ll reference citations for details like RTX 5080's 16GB and memory bandwidth, ensuring everything has proper sources like PNY for specs. I might need to check official memory bandwidth values for the 4090 for accuracy.
+
+Citing memory bandwidth correctly
+The web tool seems a bit unreliable at the moment, but we can still use the 1TB/s memory bandwidth claim from a PTT post, even if it's not official. I could cite PNY for the 5080's memory details, but for the 4090, I might have to skip the citation for memory bandwidth if I can't find an official source.
+
+Final output with bandwidth reference and disclaimers
+Okay, since bandwidth isn't a critical decision factor, I'll mention "roughly 1TB/s" as per the PTT post and cite it. The citations list is ready, and I'll make sure to include necessary disclaimers. Now, with everything in place, I’ll proceed to finalize the output.
+
+</details>
