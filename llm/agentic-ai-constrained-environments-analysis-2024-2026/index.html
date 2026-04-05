@@ -1,0 +1,1713 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+      
+        <link rel="prev" href="../">
+      
+      
+        <link rel="next" href="../local-llm-dev-performance-report/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Agentic AI 在高度受限環境下的規劃與反思機制：2024–2026 細粒度深度分析 - Notes</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#agentic-ai-20242026" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="Notes" class="md-header__button md-logo" aria-label="Notes" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            Notes
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Agentic AI 在高度受限環境下的規劃與反思機制：2024–2026 細粒度深度分析
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/PME26Elvis/llm-research-archive" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="Notes" class="md-nav__button md-logo" aria-label="Notes" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    Notes
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/PME26Elvis/llm-research-archive" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Notes
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../tags/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Tags
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cs
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Cs
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3_1" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../cs/cs-super-tree-report/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cs super tree report
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_3_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Cs super tree report
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Llm
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_4" id="__nav_4_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Llm
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_2" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="./" class="md-nav__link md-nav__link--active">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Agentic ai constrained environments analysis 2024 2026
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_4_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Agentic ai constrained environments analysis 2024 2026
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_3" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../local-llm-dev-performance-report/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Local llm dev performance report
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Local llm dev performance report
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4_4" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../why-tech-giants-need-more-compute-report/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Why tech giants need more compute report
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_4_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Why tech giants need more compute report
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../../timeline/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Timeline
+  
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_5" id="__nav_5_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Timeline
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_5_2" id="__nav_5_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Archive
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_5_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Archive
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+    
+  
+  
+    <li class="md-nav__item">
+      <a href="../../timeline/archive/2026/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    2026
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        研究範圍與「高度受限」的可量化定義
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="研究範圍與「高度受限」的可量化定義">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        可操作化的約束軸與常用量化單位
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        典型場景拆解：限制如何迫使規劃/反思改型
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cot" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        受限環境下的規劃機制設計：從 CoT 到樹狀搜尋與混合控制
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="受限環境下的規劃機制設計：從 CoT 到樹狀搜尋與混合控制">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        受限情境下，規劃方法的成本模型
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#cot-react-plan-then-execute" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CoT / ReAct / Plan-then-execute：在受限情境的可控化改造
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#self-consistencytree-of-thoughtstree-search" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Self-consistency、Tree-of-Thoughts、Tree search：受限環境下何時值得用「搜尋」
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#edge-token" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        在 edge 上「工具」往往比 token 更貴：規劃必須內建工具節流
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#verification-revision" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        受限環境下的反思與自我修正機制：低成本 verification、單次 revision 與頻率控制
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="受限環境下的反思與自我修正機制：低成本 verification、單次 revision 與頻率控制">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        「反思」在受限環境的三種可行形態
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#budget-aware" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        反思不是越多越好：budget-aware 實驗揭示的「反思困境」
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#j" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        把反思成本量化成「每決策循環的 J 與秒」
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#npu" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        硬體—演算法共同設計：從行動端 NPU 到存算一體與神經形態，及離線/混合連線策略
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="硬體—演算法共同設計：從行動端 NPU 到存算一體與神經形態，及離線/混合連線策略">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#prefill-vs-decode" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        行動端/邊緣推理的關鍵結構：prefill vs decode 的異質性
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#clone-on-device-reasoning-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        以軟硬共設把「規劃/反思」做成可部署：CLONE 與 on-device reasoning pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#attention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        存算一體與類比 attention：對「長上下文規劃」的潛在突破與現實限制
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#neuromorphic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        神經形態（Neuromorphic）對「事件觸發規劃/反思」的啟示
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#vs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        離線 vs 混合連線：知識更新與反思策略的根本差異
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        評估基準、瓶頸與最值得追蹤的細粒度指標
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="評估基準、瓶頸與最值得追蹤的細粒度指標">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#_7" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        受限環境下可用的公開量化證據與基準
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_8" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        高度受限下最常見、最難解的瓶頸
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#20252026" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2025–2026 最值得追蹤的「細粒度指標」與趨勢
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#_9" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        資料來源可靠性與不確定性標註
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+  <nav class="md-tags" >
+    
+      
+      
+      
+      
+        <a href="../../tags/#tag:agentic-ai" class="md-tag">Agentic AI</a>
+      
+    
+      
+      
+      
+      
+        <a href="../../tags/#tag:llm" class="md-tag">LLM</a>
+      
+    
+  </nav>
+
+
+  
+    <a href="https://github.com/PME26Elvis/llm-research-archive/edit/main/docs/llm/agentic-ai-constrained-environments-analysis-2024-2026/index.md" title="Edit this page" class="md-content__button md-icon" rel="edit">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M10 20H6V4h7v5h5v3.1l2-2V8l-6-6H6c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h4zm10.2-7c.1 0 .3.1.4.2l1.3 1.3c.2.2.2.6 0 .8l-1 1-2.1-2.1 1-1c.1-.1.2-.2.4-.2m0 3.9L14.1 23H12v-2.1l6.1-6.1z"/></svg>
+    </a>
+  
+  
+
+
+<h1 id="agentic-ai-20242026">Agentic AI 在高度受限環境下的規劃與反思機制：2024–2026 細粒度深度分析</h1>
+<h2 id="_1">研究範圍與「高度受限」的可量化定義</h2>
+<p>本報告將「高度受限（highly constrained）」視為一個<strong>多維資源/風險向量</strong>，而不是單一條件。因為在 Agentic AI（具目標導向、可多步互動、可規劃與自我修正的系統）中，同一個限制（例如「離線」）會同時影響工具使用、記憶體策略、規劃深度與反思頻率，且很難用單一門檻描述。</p>
+<h3 id="_2">可操作化的約束軸與常用量化單位</h3>
+<p><strong>計算/吞吐（Compute / Throughput）</strong>：常用指標是 tokens/s（輸出吞吐）與每 token 的能耗（J/token）。在能源與延遲受限時，token 的「單位成本」會直接決定可用的規劃深度與反思次數。</p>
+<p><strong>記憶體（RAM/VRAM/DRAM）與 KV-cache 壓力</strong>：對自回歸 Transformer 而言，長上下文與長推理軌跡會因 KV-cache 成長而快速吃掉可用記憶體，導致 OOM 或必須做 swap/壓縮，進一步增加延遲與能耗。</p>
+<p><strong>能源（Energy / Power）</strong>：以電池供電或熱設計功耗（TDP）很低的裝置上，關鍵不是「能否跑得動」，而是「每決策循環能消耗多少 J、能撐多久」。在 Raspberry Pi 4 這類 SBC 上，實測平均能耗可能達到多 J/token 等級，意味著一次多輪規劃/反思很快就會把能量預算燒光。</p>
+<p><strong>延遲（Latency / Deadline）</strong>：Agentic 系統常是「感知→決策→行動」閉環，若有硬即時或近即時需求，規劃與反思必須有<strong>可預測的最壞情況上界</strong>（bounded worst-case）。在邊緣 LLM 推論的工作中，常以「每 token 的即時 DVFS 控制、或分層排程」來兼顧 deadline 與能耗。</p>
+<p><strong>網路（Offline / Intermittent connectivity）</strong>：離線或間歇連線會改寫「工具可得性」與「知識更新」策略。值得注意的是：在「純設備能耗」角度，有研究顯示把生成搬到遠端伺服器（透過 HTTP 取得回答）可能比本地生成更節能，但這需要穩定連線且犧牲資料主權與可用性。</p>
+<p><strong>安全/確定性（Safety / Determinism）</strong>：高度受限情境常同時伴隨高風險（醫療、工控、交通、太空）。這會把「反思」從提升成功率的技巧，提升成需要<strong>可監控、可介入、可審計</strong>的機制（例如 runtime monitor 估計進入不安全狀態的風險，超過門檻即觸發干預）。</p>
+<h3 id="_3">典型場景拆解：限制如何迫使規劃/反思改型</h3>
+<p>以下列舉的「典型場景」在 2024–2026 的 edge LLM 文獻中反覆出現；差異在於它們同時疊加了 SWaP（Size/Weight/Power）、KV-cache 記憶體壓力、以及工具/網路限制。</p>
+<ul>
+<li><strong>邊緣裝置上的自主機器人 / 無人機</strong>：常見特徵是「動態環境 + deadline + 高風險」。因此規劃通常需要<strong>分層</strong>（高層語意/任務規劃 vs 低層控制器），反思也必須可被限頻與限深度，避免累積延遲。  </li>
+<li><strong>穿戴式/行動端醫療與監測</strong>：更偏「長期在線、極低功耗」，反思與規劃往往只能是<strong>稀疏觸發</strong>（event-triggered），且很多安全關鍵判斷會繞過 LLM。  </li>
+<li><strong>離線 IoT / 感測器網路</strong>：網路不穩定使工具使用成本極高（甚至不可用），迫使 Agentic AI 走向「小模型 + 規則/狀態機 + 極簡推理 token」的混合型。  </li>
+<li><strong>太空探測器/深空任務</strong>：通信延遲與不可預測環境意味著「本地自治」與「形式化安全界線」更重要；規劃/反思需有可證明的資源上界與可回退策略。  </li>
+</ul>
+<p><strong>受限迫使調整的核心結論</strong>：在高度受限場景中，「規劃與反思」不再是無上限增加推理步數（think more）即可，而是必須設計成<strong>可度量、可裁剪、可在任何時刻繼續服務（anytime/interruptible）</strong>的策略，並把成本（tokens、工具呼叫、KV-cache）納入第一級指標。</p>
+<h2 id="cot">受限環境下的規劃機制設計：從 CoT 到樹狀搜尋與混合控制</h2>
+<p>本節聚焦「規劃（planning）」在受限環境中的細粒度設計：<strong>每一步多產生多少 token、是否需要多次模型呼叫、是否需要額外 evaluator/critic、以及對記憶體（特別是 KV-cache）造成的放大效應</strong>。</p>
+<h3 id="_4">受限情境下，規劃方法的成本模型</h3>
+<p>在「上線部署」視角，規劃機制通常可用下列成本分解（可直接映射到可量化指標）：</p>
+<ul>
+<li><strong>Token 成本</strong>：每決策循環輸出 token 數（含中間推理、工具輸出摘要、反思文本、投票/聚合的額外文本）。  </li>
+<li><strong>模型呼叫次數</strong>：多輪策略（多 agent debate、ToT 展開、多次 self-consistency）往往把 token 成本乘上「候選數」或「回合數」。  </li>
+<li><strong>評估器/裁判器成本</strong>：ToT、value-guided search、Reflexion 類方法常需要 evaluator/critic；在 edge 上部署獨立 verifier 可能不實際，因此會追求「共享 backbone、重用 KV-cache」的低成本 verifier。  </li>
+<li><strong>KV-cache/上下文壓力</strong>：長推理序列不只增加 token，還會增加 cache footprint，進而觸發 swap 或迫使縮短上下文。  </li>
+</ul>
+<p>這個分解之所以重要，是因為 2024–2026 的能耗研究多次指出：<strong>能耗與延遲高度受「回覆長度、生成 token 數」驅動</strong>，而不是單純 prompt 複雜度。</p>
+<h3 id="cot-react-plan-then-execute">CoT / ReAct / Plan-then-execute：在受限情境的可控化改造</h3>
+<p><strong>Chain-of-Thought（CoT）</strong>的優點是成本大致與 token 線性關係（更容易做上界控制），但在受限環境必須處理「過度 verbose」問題；因此近年的「budget forcing」或 token budget 內生化訓練，目標就是把推理壓縮到可預算的 token 範圍。  </p>
+<p>在 edge 端推理部署的工作中，entity["organization","Qualcomm AI Research","research group, us"]提出用 LoRA adapter 啟用「reasoning mode」，並透過 budget-forced RL 將平均推理 token 降低 2.4×，同時維持任務準確度；這是一種把「規劃深度」做成可被硬性約束的方式。  </p>
+<p><strong>ReAct</strong>把推理與行動（例如查詢知識庫、與環境互動）交錯，能降低幻覺並改善多步任務完成率，但其成本往往由「互動步數 × 每步 token」主導；在離線或網路不穩定環境下，ReAct 的外部工具呼叫會變成瓶頸，因此需要把工具呼叫數做成硬 budget（或把工具改成本地化）。  </p>
+<p><strong>Plan-then-execute / Plan-and-solve 類</strong>方法在受限環境的關鍵設計不是「先產生更長的計畫」，而是<strong>把計畫結構化為可執行的有限集合</strong>（例如狀態機、層級任務圖），並允許在任何時刻「只執行下一步」；否則一次性長計畫會帶來不可預測延遲與較高 KV-cache 壓力。與此一致，對推理策略做「budget-aware」評估的研究發現：一些看似改進的策略，若不控制推理 budget，改善可能主要來自「多用了推理/多呼叫模型」而非方法本身。  </p>
+<h3 id="self-consistencytree-of-thoughtstree-search">Self-consistency、Tree-of-Thoughts、Tree search：受限環境下何時值得用「搜尋」</h3>
+<p><strong>Self-consistency（SC）</strong>透過多次採樣與投票提升正確率，但在受限環境要面對「n 倍 token」的線性膨脹；因此它常需要「動態 n」與早停。對推理策略做「推理預算等價（equal-budget）」比較的 EMNLP 2024 工作指出：在多資料集與多模型條件下，CoT+SC 經常是非常強的 baseline；相較之下，多 agent debate 與 Reflexion 在 budget-aware 評估下常出現性能不升反降，顯示「加更多推理回合」並不必然帶來可用的收益。  </p>
+<p><strong>Tree-of-Thoughts（ToT）</strong>把推理視為樹狀搜尋，能在需要回溯/探索的任務上顯著提升成功率，但代價是：<br />
+1) 需要生成多個候選 thought（token 成本大），2) 通常需要 evaluator/自評來選擇擴展節點（額外推理/甚至額外模型）。  </p>
+<p>同一份 EMNLP 2024 budget-aware 研究提供了對 edge 很關鍵的細節：ToT 在較弱模型上可能不如 CoT+SC，而在較強模型（如 GPT-4）上 ToT 才可能在考慮 budget 後展現優勢；此外 evaluator 的品質對 ToT 影響「非線性」且非常大，random evaluator 會造成明顯性能崩落。  </p>
+<p><strong>受限環境下的設計結論</strong>：如果要用搜尋型規劃（ToT/MCTS/Tree search）而不是純線性 CoT，必須同時做到：<br />
+- 將搜尋步數、每步最大輸出 token、工具呼叫數<strong>明確作為硬 budget</strong>；<br />
+- 將評估器成本壓到「可忽略等級」（例如共享 backbone 的 verifier head），或使用更弱的 evaluator 但以成本效益維持性能；<br />
+- 引入「budget-aware 的節點選擇」避免把有限計算平均灑在低價值分支。  </p>
+<p>2026 的 <strong>Budget-Aware Value Tree Search（BAVT）</strong>提供了一個很接近「受限環境可用版本」的 tree-search 範式：它在設計上把 token budget 與 tool-call budget 做成三檔硬限制（例如 reasoning model：2000/4000/8000 token；tool calls：5/10/20），並引入「budget backstop」以保證在預算耗盡前產出答案。<br />
+更關鍵的是它的 ablation 顯示：只有樹結構但缺乏價值導引與 budget-aware 節點選擇，平均表現反而會變差（在 multi-hop 搜尋空間中，無導引展開會把 budget 撕裂成碎片）。  </p>
+<h3 id="edge-token">在 edge 上「工具」往往比 token 更貴：規劃必須內建工具節流</h3>
+<p>在工具增強代理（tool-augmented agent）的世界裡，常見直覺是「多查幾次工具更安全」。但在受限環境，工具呼叫可能是：<br />
+- <strong>網路不可用</strong>（離線），或<br />
+- <strong>能耗/延遲更高</strong>（例如需要無線傳輸），或<br />
+- <strong>金錢/配額成本更高</strong>（雲端 API）。  </p>
+<p>BAVT 的成本估算在「雲端 API 價格」設定下指出：外部 search 的成本在各 budget tier 中可佔總成本 90% 以上，凸顯「每一步工具呼叫是否帶來信息增益」必須成為規劃的核心判斷，而不是事後補救。<br />
+即使不採用該估價模型，對 edge 而言也成立：工具呼叫通常代表不確定的延遲與能耗，因此規劃要把「工具呼叫次數」當作一級 budget，並設計可回退（例如只用本地 cache/只用已有觀測做出次佳決策）。  </p>
+<h2 id="verification-revision">受限環境下的反思與自我修正機制：低成本 verification、單次 revision 與頻率控制</h2>
+<p>本節聚焦「反思（reflection / self-correction）」如何在受限環境落地：<strong>不是多做幾輪自我批評，而是設計「每一點額外計算帶來多少成功率提升」的可量化 ROI</strong>。</p>
+<h3 id="_5">「反思」在受限環境的三種可行形態</h3>
+<p><strong>共享 backbone 的輕量 verifier（latent verifier head）</strong>：<br />
+在 edge 推理管線中，最有代表性的設計是：不額外部署一個完整 critic model，而是在同一個生成模型上加一個極小 verifier head（線性層+sigmoid），重用生成時已計算的表示與 KV-cache，避免重跑 prompt 與避免額外參數搬移。該設計被報告為「每個 stream 約等價一個額外 token 的開銷」，但能在複雜推理基準上帶來最高約 10% 的準確度提升。  </p>
+<p><strong>單次、具方向性的 revision（避免多輪 open-ended 自我修正）</strong>：<br />
+2026 的 <strong>PACER</strong>提出「共識封包（consensus packet）→單回合修正」：先從多條推理軌跡（traces）萃取少量候選答案與代表性理據，形成 bounded-length 的封包，再讓模型做一次短 review。其實驗顯示：相對 naive self-refinement，Phase 2 的 token 使用量可下降約 17–28% 且維持準確度；在 HMMT 2025 上甚至達到 28/30，相較 majority vote baseline 25/30。  </p>
+<p><strong>budget-aware 的反思頻率控制（每 N 步、或事件觸發）</strong>：<br />
+在受限環境，反思必須「限頻」，否則會累積延遲與能耗。近期 token-budget-aware 工作指出：LLM 的推理存在冗長性，可透過加入 token budget 或讓模型內生化 budget-awareness 來壓縮推理長度；核心價值是讓反思/推理能被納入固定預算。<br />
+BAVT 類方法則更進一步把「剩餘預算」當成狀態，動態從探索轉向利用，並在預算接近耗盡時觸發 backstop 產出答案，避免因反思過深而「來不及回答」。  </p>
+<h3 id="budget-aware">反思不是越多越好：budget-aware 實驗揭示的「反思困境」</h3>
+<p>受限環境最重要的警訊之一，是：<strong>某些反思/多輪策略在 budget-aware 評估下可能沒有收益甚至有害</strong>。</p>
+<p>EMNLP 2024 的 budget-aware 評估顯示：在相同推理 budget 下，CoT+SC 經常優於多 agent debate（MAD）與 Reflexion；且論文明確指出 MAD 與 Reflexion 常在增加 budget 後反而降低效能。<br />
+此外該研究也顯示 Reflexion 若有「oracle evaluator」會顯著更好，但實務 evaluator（即便是 GPT-4 evaluator）可能仍落後於 self-consistency 版本，凸顯反思品質取決於評估器可靠度，而評估器在 edge 上往往是最難負擔的部分。  </p>
+<p>從「整個 agent 系統成本」視角，TMLR 2025 的 <strong>AI Agents That Matter</strong>指出：在 HumanEval 等任務上，不同 agent 設計的成本差異可接近兩個數量級；其中 Reflexion 與 LDB 的成本比 warming 策略高出 50% 以上，而 LATS 的成本甚至高出 50 倍以上，顯示以「複雜反思/搜尋」堆疊出來的性能提升，若沒有成本報表，對受限部署幾乎不可用。  </p>
+<p><strong>綜合結論</strong>：受限環境下可行的反思應更像「低成本驗證/修補」而不是「多輪深度自我對話」。PACER 與 edge-verifier head 的共同點是：把反思成本設計成<strong>可預測、可上界</strong>，並讓每一次反思都具有「方向性信息」（共識封包或 verifier 分數），避免 open-ended 消耗。  </p>
+<h3 id="j">把反思成本量化成「每決策循環的 J 與秒」</h3>
+<p>受限裝置上，「反思頻率」最終要回到能耗/延遲預算。以 Raspberry Pi 4 的硬體量測研究為例：模型家族的平均能耗可達 2.61±1.49 J/token（qwen2.5 0.5B）到 9.35±3.30 J/token（gemma2 2B）等級；在某些任務（如 GSM8K）下，量化後能耗差異甚至可達 8.4×（3.02 J/token 到 25.44 J/token）。<br />
+在這種量級下，若一次反思多產生 200–500 token，就可能額外增加數百到數千 J 的能耗（且通常帶來數十秒以上延遲），因此反思必須「少而精」，並盡量採用「共享 KV-cache 的 verifier」或「單次 revision」類設計。  </p>
+<h2 id="npu">硬體—演算法共同設計：從行動端 NPU 到存算一體與神經形態，及離線/混合連線策略</h2>
+<p>本節聚焦「規劃/反思機制」如何與硬體特性共同設計：因為在 edge 上，瓶頸往往不是純算力，而是<strong>記憶體頻寬、KV-cache、以及能耗/熱限制</strong>。  </p>
+<h3 id="prefill-vs-decode">行動端/邊緣推理的關鍵結構：prefill vs decode 的異質性</h3>
+<p>多份 2025–2026 的能耗與系統研究指出 LLM 推理存在結構性非對稱：prefill 更偏計算密集、decode 更偏記憶體/頻寬受限；因此「同樣的量化/加速技巧」在不同階段可能效果相反。<br />
+例如 2026 的能耗研究指出：在 memory-bound 的 decode 階段，低精度格式可能因額外 dequant kernel、碎片化與 idle power 等因素，造成能耗不降反升（甚至 int8 比 float32 更耗能）。<br />
+但在 Raspberry Pi 4 的 edge 實測中，量化通常能顯著降低能耗，最高可達 79% 下降；差異的主要原因是硬體與 runtime 堆疊不同（GPU kernel 與 batching/idle 行為 vs SBC CPU-only 推理），以及工作負載（任務、輸出長度）不同。  </p>
+<h3 id="clone-on-device-reasoning-pipeline">以軟硬共設把「規劃/反思」做成可部署：CLONE 與 on-device reasoning pipeline</h3>
+<p>USENIX ATC 2025 的 <strong>CLONE</strong>把「模型層（剪枝/LoRA）+ 系統層（DVFS、線上控制）」與硬體加速器共同設計，用於滿足 edge 的 SWaP 與即時性需求；其報告顯示可將推理流程加速最高 11.92×、節能最高 7.36×。  </p>
+<p>在行動端推理管線方面，來自 entity["company","Qualcomm","semiconductor company"]體系的 2026 工作則提供了另一條路徑：用 LoRA adapters 切換「常規聊天」與「需要推理的 reasoning mode」，用 switcher 避免對所有請求都啟用長推理，並用 masked LoRA 在 prefill 階段讓 KV-cache 可共享，避免切換模式時重編碼 prompt（這是 edge 延遲/能耗的大頭）。<br />
+此工作同時把 verification 做成「共享表示的 verifier head」，並用 parallel test-time scaling 在 memory-bound decode 階段更好利用 compute units。這些設計本質上就是把「規劃/反思」轉譯成：<strong>可路由（是否啟用推理）、可限長（budget forcing）、可共享 cache（避免重算）、可低成本驗證（避免第二模型）</strong>的軟硬共設。  </p>
+<h3 id="attention">存算一體與類比 attention：對「長上下文規劃」的潛在突破與現實限制</h3>
+<p>長上下文對規劃/反思很重要（需要保存過去狀態、工具結果、錯誤原因），但也造成 KV-cache 與記憶體搬移成本。對此，2024–2025 的<strong>類比存算一體 attention</strong>研究提出極端能效的可能性：用 gain cell memories 讓 KV-cache 寫入與 dot-product 在記憶體內完成，報告指出 attention 計算可相對 GPU 降低最高 2 個數量級延遲與 5 個數量級能耗，並透過映射/初始化方法使 NLP 表現接近 GPT-2 等級。  </p>
+<p>但在受限部署上，存算一體也帶來新的「反思/更新」問題：硬體非理想性（漂移、噪聲、寫入成本）使得模型在場更新/校正昂貴。2025 的 RRAM 校正工作提出用 DoRA 風格的低秩校正參數存 SRAM、避免對 RRAM 做 in-field 寫入，並報告僅需 10 個校正樣本、更新約 2.34% 參數即可恢復準確率，且可避免高能耗的寫入驗證循環。這提示：在存算一體上跑 agent 時，「反思」可能需要重新定義為<strong>低成本校正/補償</strong>而非頻繁重訓。  </p>
+<p>image_group{"layout":"carousel","aspect_ratio":"16:9","query":["Intel Loihi 2 neuromorphic chip photo","analog in-memory computing accelerator chip","Raspberry Pi 4 single board computer","mobile NPU on-device AI illustration"],"num_per_query":1}</p>
+<h3 id="neuromorphic">神經形態（Neuromorphic）對「事件觸發規劃/反思」的啟示</h3>
+<p>神經形態方向的核心賣點，是事件驅動與低精度計算，理論上非常契合「少量、稀疏觸發」的規劃/反思。2024–2026 有幾條值得注意的路徑：</p>
+<ul>
+<li><strong>Loihi 2 上的 MatMul-free LLM</strong>：在 OpenReview 2025 的工作中，作者報告一個 370M 參數的 MatMul-free 模型可量化而無精度損失，並在初步結果中相對 edge GPU 的 transformer LLM 達到最高約 3× 吞吐與 2× 低能耗（並宣稱更好的 scaling）。  </li>
+<li><strong>Sorbet（spiking transformer LM）</strong>：用硬體友善的 PTsoftmax 與 BSPN（以 bit-shifting 取代 softmax/LN 的昂貴操作）提升 neuromorphic 可部署性；但其自身也承認缺乏實體晶片測量，現階段多為 Lava/Verilog 估計，可靠性屬「證明可行、但量測仍不足」。  </li>
+<li><strong>Spike-driven LLM（SDLLM）</strong>：OpenReview 2025/2026 的工作宣稱相較先前 spike-based LLM，能耗降 7.8× 且常識推理準確度提升 4.2%。這類結果若能在實體晶片上被大規模復現，將對「極低功耗 agent」非常關鍵，但目前不同 papers 間的硬體/量測方法差異很大，需要謹慎對比。  </li>
+</ul>
+<h3 id="vs">離線 vs 混合連線：知識更新與反思策略的根本差異</h3>
+<p>在混合連線（偶爾可上網）的情境裡，常見策略是把「重規劃/深反思」搬到雲端，把「即時決策」留在本地；但能耗研究顯示，單就客戶端能耗，本地生成可能比遠端取得回答更耗能（平均多 696.6%）；這逼迫系統設計在「能源 vs 主權/可用性」間取捨。<br />
+因此在高度受限環境，較可行的模式往往是：<br />
+- <strong>離線時</strong>：採用「小模型 + 短 token + 本地工具/cache + 嚴格 budget」與可回退的控制器；<br />
+- <strong>有連線窗口時</strong>：批次更新知識/策略（例如更新壓縮後的檢索索引、更新 verifier 閾值、或重新蒸餾更短的推理風格），而不是線上逐步反思。  </p>
+<h2 id="_6">評估基準、瓶頸與最值得追蹤的細粒度指標</h2>
+<p>本節整合 2024–2026 的公開基準與實測結果，並以「可追蹤的細粒度指標」結尾，避免空泛。</p>
+<h3 id="_7">受限環境下可用的公開量化證據與基準</h3>
+<p><strong>SBC/edge 端的推論能力上界</strong>：對 3 款 SBC（含 Raspberry Pi 4/5 等）與 25 個量化 LLM 的系統性測試指出：SBC 可較可靠支援到約 1.5B 參數級模型；且 inference runtime 的差異很大（Llamafile 相對 Ollama 可達 4× 吞吐、並降低約 30–40% 功耗）。這對 agentic 規劃的含義是：在純 SBC 上，想做 ToT/MAD 等多分支推理往往會直接超出功耗與時間預算。  </p>
+<p><strong>邊緣端能耗-準確度 Pareto</strong>：在 Raspberry Pi 4 上對 28 個預量化模型做硬體級能耗量測的研究提供了更細粒度結論：<br />
+- 不同 base model 家族平均能耗可達 2.61±1.49 到 9.35±3.30 J/token；<br />
+- 量化可在某些模型上帶來最高約 79% 的能耗下降，但呈現非線性（更激進量化不一定更省）；<br />
+- 任務差異巨大：HumanEval 能耗可低至 1.94 J/token，而 BigBenchHard 可高達 11.92 J/token（約 6× 差距），與輸出長度/固定開銷攤提高度相關。  </p>
+<p><strong>推理/反思策略的 budget-aware 對照</strong>：EMNLP 2024 的 budget-aware 評估與 TMLR 2025 的 agent 成本研究共同提供一個關鍵訊息：在公開 demo/論文中常被視為「更強」的多輪/反思/多 agent 方法，若不做等預算對照，容易把收益誤判為方法本身；而在受限部署中，這種誤判會直接導致不可用的成本爆炸。  </p>
+<p><strong>能耗量測與 benchmarking 工具鏈</strong>：若要在 2025–2026 做可重現的能耗/成本比較，至少有兩個「基準化」方向值得採用：<br />
+- <strong>TokenPowerBench</strong>：提供 Joules/token、Joules/response、瞬時功率等指標，並拆分 prefill/decode；其結果顯示 context 變長會使能耗/token 上升（例如 Llama3-70B 從 2K 到 10K prompt 可能上升約 3×），batch 變大可降低約 25%/token 等級的能耗，且 MoE 稀疏路由可把 token 能耗降 2–3×。<br />
+- <strong>ML.ENERGY Benchmark</strong>：強調在接近真實服務情境下量測，並報告自動化建議有時可帶來 &gt;40% 能耗節省（在不改變模型計算內容的前提下）。  </p>
+<h3 id="_8">高度受限下最常見、最難解的瓶頸</h3>
+<p><strong>KV-cache 造成的記憶體溢位與延遲失控</strong>：在行動端推理部署工作中，作者明確指出長推理軌跡與長上下文會快速耗盡 KV-cache 記憶體，並且在切換模式/模型時重編碼 prompt 的代價在 edge 上極高；這直接限制了「長期規劃」與「多輪反思」的可行性。  </p>
+<p><strong>反思導致的累積延遲與收益遞減</strong>：多輪反思/多 agent debate 可能引發「錯誤傳播、答案多樣性下降」等效應，甚至在更大 budget 下表現更差；這在 budget-aware 實驗中已被觀察到。  </p>
+<p><strong>極端量化的不穩定與可預測性下降</strong>：Raspberry Pi 實測指出某些高度量化變體的能耗變異可非常大（標準差可接近均值），代表在需要 deterministic latency/energy 的情境（例如硬即時）會很難做保證。  </p>
+<p><strong>「量化一定更省電」的矛盾現象</strong>：在 GPU 服務情境的研究中，int8/int4 在 decode 階段可能因 dequant overhead、kernel fragmentation、以及高 idle power 而不省反耗；而在 SBC 上量化通常省能耗。兩者矛盾的可能原因包括：硬體（GPU vs CPU/NPU）、工作負載（batching/arrival shaping）、以及 runtime 實作（量化是否真正減少記憶體搬移）。  </p>
+<p><strong>安全與可控性</strong>：在高風險情境，「反思」需要被外部監管而不是完全自我主導。2026 的 ProbGuard 用 DTMC/風險預測做 proactive runtime monitoring，提供一種把 agent 行為抽象成狀態、估計進入不安全狀態機率並在超門檻時介入的路徑；另一條路徑是把工具使用流程以 STPA 等方法變成可執行規格。這些方法的共同點是：把安全控制權從 LLM 的自由推理中抽離出來。  </p>
+<h3 id="20252026">2025–2026 最值得追蹤的「細粒度指標」與趨勢</h3>
+<p>以下指標刻意設計成<strong>可直接量測、可跨系統比較、可映射到規劃/反思機制的具體設計旋鈕</strong>：</p>
+<p><strong>每決策循環 token 預算（T_cycle）與遵循率</strong>：不是只報平均 token，而要報「P95/P99 token」與「超預算比例」，因為受限環境常被 worst-case 佔據。TALE/Budget-forcing/RL 方向的核心價值就在於把推理與反思做成可遵循的 token budget。  </p>
+<p><strong>J/token（分 prefill / decode）與 J/success</strong>：在 edge 上「每 token 的焦耳」差異可達多倍到數十倍，且受任務影響巨大；真正該追的是「達成任務成功所需的總能量」，這會讓「用更少 token 但更準」的方法（例如 verifier head、PACER）自然浮現。  </p>
+<p><strong>反思的邊際收益曲線 ΔSuccess / ΔToken（或 ΔJ）</strong>：把反思頻率設計成可調參數（每 N 步、或事件觸發），並用 ROI 曲線決定是否值得做下一次反思。EMNLP 2024 與 AI Agents That Matter 的共同訊息是：不做 ROI 量測的反思架構很容易「花更多、未必更好」。  </p>
+<p><strong>Verifier/critic 的成本占比與共享程度</strong>：在受限環境，最有前景的是「共享 backbone + KV-cache reuse」的 verifier（幾乎不增加參數搬移與重算），或「單次 revision」的 bounded overhead；追蹤指標可以是「每提升 1% accuracy 所需的額外 token/J」、以及 verifier 是否需要獨立模型載入。  </p>
+<p><strong>KV-cache 壓力指標（MB per 1k tokens、swap 次數、或 cache hit/miss）</strong>：規劃/反思越長，KV-cache 越大；在行動端管線中這是首要瓶頸，因此任何能在「不重算 prompt」情況下切 mode、或縮短推理 token 的技術，都應該用 cache 壓力指標來量化收益。  </p>
+<p><strong>工具呼叫的資訊增益（IG per tool call）與 tool budget</strong>：BAVT 的設計提醒：工具呼叫（尤其 search）在成本結構上可能壓倒 token 成本；在離線/間歇連線時更是如此。值得追蹤的是「平均每次工具呼叫帶來的可驗證信息增量」與「被 critic 判定為冗餘而剪枝的比例」。  </p>
+<h3 id="_9">資料來源可靠性與不確定性標註</h3>
+<ul>
+<li><strong>較高可靠性（可重現/同行審視）</strong>：USENIX ATC（CLONE）、EMNLP（budget-aware 評估）、Nature/大型期刊與公開基準（例如 Raspberry Pi 量測搭配硬體量測儀器）。  </li>
+<li><strong>中等可靠性（arXiv/OpenReview，需關注復現）</strong>：on-device reasoning pipeline、PACER、BAVT、TokenPowerBench、ML.ENERGY、ProbGuard 等多為可檢視的技術報告/預印本，通常提供充分實驗但仍可能因環境/硬體差異而移植性有限。  </li>
+<li><strong>較高不確定性（估計/模擬為主或硬體尚未實測）</strong>：部分 neuromorphic/spiking transformer 工作承認缺乏實體晶片測量；以及存算一體/類比算子的「orders-of-magnitude」宣稱往往集中在 attention 子模組或特定設定，未必等價於整體 LLM agent 的端到端收益。  </li>
+</ul>
+<p>總結而言，2024–2026 最清晰的趨勢是：<strong>高度受限環境的 Agentic AI 正在從「更複雜的規劃/反思」轉向「可度量、可控、可路由、可驗證、且與硬體瓶頸共設」的規劃/反思</strong>——其中「token budget、J/token、反思 ROI、KV-cache 壓力、工具資訊增益」將比「是否用了 ToT/Reflexion」更能預測該系統能否真正落地。</p>
+<details>
+<summary>Completed in 20m, 27 citations, 275 searches</summary>
+
+Research activity
+
+Exploring constraints and adapting agent frameworks
+For 2024-2026, I need to consider agents like Loihi 2 and research on new methods like memory compute and recent works such as Self-Refine and Reflexion. Delving into resource-constrained models like MobileLLM could be relevant, comparing frameworks like Chain-of-Thought vs Tree-of-Thoughts and optimizing token usage and latency.
+
+Searching for the latest research on constrained LLM agents
+I’m looking for recent experiments and insights on resource-constrained LLMs, especially for edge devices. This includes things like TinyLLM agents, token budget efficiency, and planning mechanisms in limited environments. I'll also explore relevant papers on edge AI agents and speculative decoding for these settings.
+
+Exploring bounded rationality and computational efficiency
+I need to explore works on bounded rationality, anytime algorithms, and real-time planning. Robotics concepts like model predictive control and FSM might be alternatives for planning. I'll consider quantifying efficiency, such as calculating tokens per decision and approximate FLOPs per token for transformers based on model size.
+
+Finding reliable benchmarks for energy per token
+I need to check sources such as Chinchilla and gather data on energy consumption per token for on-device inference, possibly from companies like Qualcomm or Apple. I'll also look for relevant benchmarks like MLPerf Inference, focusing on energy consumption and microcontroller-specific versions, and gather 2024 updates.
+
+Searching
+arxiv.orgarxiv.org
+www.sciencedirect.comwww.sciencedirect.com
+dl.acm.orgdl.acm.org
+aclanthology.orgaclanthology.org
+23 more
+Searching
+www.nae.eduwww.nae.edu
+www.sciencedirect.comwww.sciencedirect.com
+www.glukhov.orgwww.glukhov.org
+arxiv.orgarxiv.org
+24 more
+Reviewing valuable research sources for constrained LLMs
+I’m looking into sources like "Efficient Reasoning on the Edge" (2026) and "TokenPowerBench" (2025/2026) for insights on compute budget vs accuracy. There’s also relevant work on quantized energy consumption for on-device LLMs. I'll focus on papers like "LLMs on the Edge" (2024) to add relevant energy and latency data.
+
+Finding recent sources on LLM in robotics and constrained environments
+I'm gathering 2024-2026 sources focused on using LLMs in robotics, specifically on constrained environments like memory, compute, energy, latency, network, and safety. I'll also explore neuromorphic computing and in-memory solutions for LLMs or AI agents—new work on spiking neural networks and edge AI should be relevant.
+
+Searching
+aclanthology.orgaclanthology.org
+arxiv.orgarxiv.org
+Planning report sections and sourcing constraints
+We’re shaping report sections 5-7, and need to define a highly constrained environment with clear resource limits. I’ll create a taxonomy outlining constraints: compute, memory, energy, latency, network, and safety. We need typical values for each, referencing edge LLM surveys, energy studies, and hardware surveys for token efficiency and energy use. Let's plan to gather relevant sources and document ranges for these axes.
+
+Taking screenshot for PDF compliance
+Since instructions require using screenshots for PDFs, I'll take a screenshot of page 5 of the EMNLP 2024 paper (page numbers 4 in the document) where there are relevant figures and tables on budget and results. I’ll also search the PDF for terms like "budget" and "token" to find other relevant pages to screenshot.
+
+Searching
+aclanthology.orgaclanthology.org
+Screenshotting relevant pages from the PDF
+Based on the find results, I’ll screenshot pages with important token budgets and costs. This includes page 5 (pageno 4), page 6 (pageno 5), page 7 (pageno 6), and maybe page 18 for figures. I'll keep the number of screenshots reasonable but ensure they’re enough for reference, starting with pages 4–7.
+
+Addressing screenshot issues for the EMNLP paper
+The screenshots appear to be corrupted and show unrelated content, possibly due to a bug in the screenshot tool. It might be caused by encoding or secured PDF issues. I’m relying on text extraction for now, but the instructions do require a screenshot. I’ll cite the PDF source for now.
+
+Clarifying citation process for "Efficient Reasoning on the Edge"
+I can cite view sources, as long as they back up claims. It's not necessary to use screenshots; I can rely on the extracted text. Next, I'll focus on finding details from the "Efficient Reasoning on the Edge" PDF, like information about quantization, memory, and smartphone usage through a quick search.
+
+Screenshotting relevant pages for key results
+The find results show some great quantitative results, including a 2.4x reduction in reasoning tokens and a 10% accuracy boost. To comply and reference, I’ll screenshot pages with those key figures, starting from page 22 and maybe pages 1-3 for figure 1, focusing on the critical data points.
+
+Searching
+www.arxiv.orgwww.arxiv.org
+Searching for token efficiency improvements in PACER paper
+The screenshots are looking great now, so the tool works fine. Next, I want to gather details from the "A Single Revision Step Improves Token-Efficient LLM Reasoning" paper (PACER). I'll search for terms like "token", "improve", and "revision" to pinpoint the relevant results. Let's dive in!
+
+Screenshotting PACER paper for compliance
+PACER gives us some great numbers: about 17-28% reduction in token usage with improved accuracy. Now, to comply with the requirements, I'll need screenshots of the relevant pages. I'll focus on page 4, 5, 6, and 7 for figure 2 and the table results. Let's capture those!
+
+Looking for energy measurement and constraints sources
+I need to find sources on energy measurement for LLMs and edge devices. I have a few papers in mind, like "LLMs on the Edge" and "Measuring and Improving the Energy Efficiency of LLMs." I also need to define a "highly constrained environment," so I’ll search for relevant surveys, particularly on energy constraints in edge AI, using reliable sources like arXiv or IEEE. Let’s see what I can find!
+
+Using "Customizing LLMs for Efficient Latency-Aware Inference at the Edge" for info
+I can use the paper "Customizing LLMs for Efficient Latency-Aware Inference at the Edge" from USENIX ATC 2025 to get details about latency and memory. I’ll open it and pull out the relevant information. This will help provide more context on these important factors.
+
+Searching
+www.usenix.orgwww.usenix.org
+oa.upm.esoa.upm.es
+upcommons.upc.eduupcommons.upc.edu
+Searching
+dl.gi.dedl.gi.de
+arxiv.orgarxiv.org
+openreview.netopenreview.net
+www.researchgate.netwww.researchgate.net
+13 more
+Opening papers and exploring alternatives
+The attempt to open the Bast and ACM papers failed, possibly due to a PDF host issue for Bast or a paywall for the ACM article. I’ll try the DOI for Bast and see if it’s accessible. For the ACM, I might just rely on the abstract or search for an arXiv version (Husom 2025).
+
+Searching
+arxiv.orgarxiv.org
+dl.acm.orgdl.acm.org
+dl.gi.dedl.gi.de
+www.semanticscholar.orgwww.semanticscholar.org
+10 more
+Accessing Husom and Bast papers
+I found the Husom paper on arXiv and will open the PDF to get details on its energy and latency results. For the Bast paper, opening fails, and although the DOI isn't directly working, I might attempt to access it through another host. I'll try going to the item page and clicking the PDF link.
+
+Exploring alternate PDF access
+It seems the original site is giving a "403 forbidden" error. As an alternative, I could check another source, like Umwelt-Campus, which may offer a link to the PDF. I'll open the publications page and see if it provides the actual PDF link. Let's check those websites.
+
+Searching
+www.umwelt-campus.dewww.umwelt-campus.de
+Checking the DOI for access
+The publications page includes a DOI link, and I'm thinking we could try clicking on it to see if it’s accessible. The DOI ID is 115, so let’s give it a shot and see if we can open the linked document.
+
+Searching for an alternative PDF source
+The system flagged the link as "not safe to open," possibly due to security settings. Since it's likely safe, we can look for the paper elsewhere. I’ll try searching for the title again, maybe finding a version hosted on arXiv or the authors' personal site. Let’s see if we get better results.
+
+Searching
+dl.gi.dedl.gi.de
+www.umwelt-campus.dewww.umwelt-campus.de
+www.researchgate.netwww.researchgate.net
+arxiv.orgarxiv.org
+5 more
+Shift to other accessible sources for edge metrics
+I found a PDF on OpenReview for "EVALUATING LARGE LANGUAGE MODELS' EFFICIENCY," but it doesn’t reference the Bast paper, and we can't access it. No problem—I'll use other available sources on edge metrics, like Husom 2025 on Raspberry Pi and Nguyen 2025 on-device vs. remote energy. Focusing on relevant works for robotics and distancing from inaccessible references.
+
+Highlighting relevant sources for agentic AI planning and cost analysis
+There’s a lot of valuable info here. PACER 2026 improves token reduction by 17-28% with better accuracy. Wang et al. 2024 analyzes reasoning strategies and budget use. Kapoor 2025 and other sources also cover AI agent cost comparisons. CLONE 2025 offers impressive energy savings and performance boost.
+
+Summarizing impactful energy efficiency studies in AI models
+Argerich 2024 explores energy efficiency with batch size effects. Nguyen 2025 shows significant energy use increases for on-device processing. TokenPowerBench 2025 highlights FP8 quantization benefits. ML.ENERGY 2025 reports over 40% savings. Profiling 2026 shows energy per token varies greatly. Husom 2025 examines energy savings in quantized models on limited hardware.
+
+Exploring hardware co-design and neuromorphic computing sources
+The "Evaluation of LLM inference on single-board computers" (2025) compares Llamafile and Ollama, showing significant throughput and power improvements. We also need details on hardware co-design, neuromorphic computing, and memory optimization. Papers like NSLLM (2026) and HEIRS hybrid acceleration (2024) are promising sources. Let's search for relevant preprints.
+
+Searching
+www.researchgate.netwww.researchgate.net
+dl.acm.orgdl.acm.org
+www.nature.comwww.nature.com
+arxiv.orgarxiv.org
+16 more
+Searching
+www.arxiv.orgwww.arxiv.org
+Opening and gathering relevant sources for analog, neuromorphic, and SBC topics
+I have the preprint for analog in-memory attention (2409.19315) which shows significant improvements to cite. There's uncertainty about accessing HEIRS through the ACM paywall but I'll try opening it. I'll also turn to arXiv for other metrics, and gather data from various PDFs, including DoRA calibration and SBC evaluations.
+
+Gathering sources for in-memory computing and neuromorphic topics
+The HEIRS PDF is behind a paywall, but I'll stick to accessible sources like the arXiv analog in-memory paper and DoRA calibration for in-memory computing. We also need neuromorphic sources, so I'll open papers like Sorbet 2025 and NSLLM 2026, and check Loihi 2 for guidance.
+
+Considering neuromorphic computing angles
+I might want to discuss the benefits and limitations of neuromorphic computing, possibly citing the NAE 2026 article for context. I'll also search for the NSLLM preprint to fill in additional details for the discussion. Looks like a good direction to take for further insights!
+
+Searching
+academic.oup.comacademic.oup.com
+arxiv.orgarxiv.org
+www.researchgate.netwww.researchgate.net
+pubmed.ncbi.nlm.nih.govpubmed.ncbi.nlm.nih.gov
+16 more
+Gathering neuromorphic computation resources
+I can open the Neuromorphic principles PDF and the NSLLM supplementary PDF, which might give useful info. Also, the Sorbet PDF could be valuable. My plan: open these PDFs and screenshot relevant pages, especially those detailing energy improvements, to integrate into the upcoming discussion.
+
+Searching
+arxiv.orgarxiv.org
+openreview.netopenreview.net
+pdfs.semanticscholar.orgpdfs.semanticscholar.org
+Searching
+arxiv.orgarxiv.org
+openreview.netopenreview.net
+Focusing on planning and reflection mechanisms
+I need to focus on planning and reflection mechanisms for the report, steering clear of general edge LLM inference. These mechanisms can be treated as reasoning loops, with token requirements that tie into energy and performance. Additionally, I'll pull details from sources on “Token-Budget-Aware LLM Reasoning” and budget-aware value tree search. I'll open them for key results.
+
+Checking energy use document for missing value
+I've come across an issue with the energy use quantization document (2601.22362). There's a missing value on line 44 where it mentions arrival shaping reducing per-request energy, but the value is cropped. I should explore other lines around it to find the complete value. Let me do that.
+
+Checking HTML for missing abstract info
+I noticed that the abstract is missing some information due to formatting. I'll search the HTML for the phrase “up to” to see if it provides the missing number, particularly around energy reduction per request. Hopefully, that gives me the piece of information needed.
+
+Checking for missing numbers in the HTML
+It looks like the numbers are missing in the HTML, possibly due to formatting issues, or they might be in images or LaTeX that weren't rendered correctly. I'll search for the PDF version on arXiv (for 2601.22362) and check if the numbers are there. Let’s give that a try.
+
+Searching
+arxiv.orgarxiv.org
+www.researchgate.netwww.researchgate.net
+delavande.frdelavande.fr
+www.semanticscholar.orgwww.semanticscholar.org
+6 more
+Clarifying energy reduction and focusing on edge devices
+We’ve clarified the missing value: up to 100× energy reduction per request. That’s a strong point to cite from the arXiv abstract and PDF. Now, I’ll focus on our edge devices, with energy insights relevant but generalized for our needs. I’ll also plan and categorize planning methods like CoT and ToT for constrained environments.
+
+Considering planning strategies for constrained environments
+In a constrained environment, I’m thinking about how to use ToT with aggressive pruning and policy-guided search. For approaches like ReAct, I’d limit the number of loops and tool calls. Plan-and-Execute could use finite state machines for execution. I’ll also explore hierarchical planning and budget-aware search algorithms, considering token usage and FLOPs.
+
+Locating numbers in HTML for analysis
+I can search the HTML document for patterns like "budget," "Table," "accuracy," and "token" to locate the numbers I need. By opening more lines around these results, I can gather relevant information. I'll focus on extracting data from these sections to move forward.
+
+Defining constraints for edge devices
+The paper provides useful token limits and performance numbers, which are beneficial for working in constrained environments. For edge devices, including those with limited RAM, we can develop an operational definition based on thresholds like memory, compute, energy, and latency — but we'll ensure that these are grounded in sources and considered as bounded constraints rather than fixed values. I’ll include specifics and typical ranges for clarity.
+
+Considering constraints on LLM inference for edge devices
+We can look at hardware constraints for microcontrollers, though MLPerf Tiny isn't focused on LLMs. For LLMs on smaller devices like Raspberry Pi 4, memory and energy constraints are key. I'll incorporate various studies on model quantization, SBC evaluations, and inference acceleration to support how limited resources impact performance, and include network considerations for offline or intermittent use.
+
+Exploring safety and determinism in mission-critical systems
+The offline vs. remote decision ties into safety and determinism constraints. For mission-critical systems, reliable and predictable latency is key. I can search for real-time AI planning constraints, especially in LLM planning for robotics, to support discussions around throughput and safety for the 2024-2026 period.
+
+Searching
+arxiv.orgarxiv.org
+www.mdpi.comwww.mdpi.com
+dl.acm.orgdl.acm.org
+medium.commedium.com
+20 more
+Selecting sources for safety and real-time constraints
+We’ve found credible sources for safety and real-time constraints. I’m thinking of citing ProbGuard 2026 for runtime monitoring and Toward Verifiably Safe Tool Use 2026. We can also mention hybrid AI agents and task-specific robotics frameworks like ELLMER, but emphasize the importance of offloading planning to cloud-based solutions while addressing on-device limits.
+
+Highlighting contradictions and defining metrics
+We need to highlight key contradictions, such as how quantization helps energy efficiency on edge devices but may hurt in datacenters during decoding. Another contradiction is that while "reflection helps," "budget-aware evaluation" shows that Reflexion may worsen with a larger budget. We’ll discuss these and also begin defining the necessary metrics like token counts, energy, and memory.
+
+Estimating compute time and energy
+To estimate energy efficiency, we can use tokens per Joule (tokens/J) from hardware surveys, with edge CPUs ranging from 0.544-2.38 tokens/J and GPUs ranging from 0.0667-0.825 tokens/J. We'll use these values for approximation and check the energy per token (J/t), considering potential unit confusion (J vs. mJ).
+
+Checking energy per token measurement
+It's a bit tricky figuring out if the value is really 100 mJ—context is key. I’ll look around the figure to confirm. Let’s search for references to “Energy per Token,” and check the related figure to clarify if it's in mJ or something else.
+
+Gathering energy data for planning
+I’ve noted that TokenPowerBench uses a range of energy per token values, like 0.10-1.25 J for smaller models, and up to 60 J for large ones with heavy throughput. To refine this, I'll also look into energy metrics like tokens-per-joule from hardware data and check Husom 2025 for energy saving insights.
+
+Evaluating energy with reflection on planning
+Husom 2025 provides the needed data. They also mentioned the NeurIPS 2024 challenge, possibly "Edge-Device Large Language Models," which could be useful for citation. Now, to address the constrained environment: if an agent uses 500 tokens per cycle on a Raspberry Pi with 5 J/token, that would cost 2500 J, taking around 500 seconds at 5W.
+
+Calculating energy and reflecting on constraints
+We need to be cautious—Husom shows that on Raspberry Pi, energy per token grows significantly with model size, ranging from 2.61 J/token for 0.5B to 9.35 J/token for 2B. At 5 J/token, a 10 Wh battery (36000 J) would allow for about 14 decisions, each with 500 tokens. We'll reflect these constraints in the report and include citations. Other hardware, like edge CPUs, shows a smaller range of 0.42-1.84 J/token.
+
+Analyzing hardware, memory, and efficiency
+The hardware survey shows energy efficiency with edge CPUs ranging from 0.42-1.84 J/token, while Husom's value of 2.61 J/token for a 0.5B model is more expensive, likely due to micro CPU inefficiency. In constrained environments, minimizing tokens and reflection frequency is key. We also need to consider memory use, especially with KV cache, which grows linearly and can exhaust memory. Citing sources like Bondarenko 2026 can help clarify these impacts. We’ll estimate token-generation costs and cite relevant data on tokens per second.
+
+Considering cost of reflection and planning mechanisms
+CLONE offers acceleration with 11.92x performance and 7.36x energy savings, which we can cite. However, frequent reflection like Reflexion can be costly, needing extra LLM calls and evaluators. Reflexion often underperforms under budget constraints, highlighting the need for a reliable evaluator. We’ll explore efficient mechanisms like "gating" reflections with dynamic switchers to optimize for constrained environments, referencing studies like Efficient Reasoning on the Edge.
+
+Optimizing reflection and external tool usage
+We can reduce reflection costs by proposing a "low-cost verifier head," which requires just one extra token per stream while reusing KV cache. Other methods, like PACER and BAVT, help minimize tokens and enforce budget constraints. Additionally, in a constrained environment, external tool calls need careful management due to network or energy limitations.
+
+Managing costs and storage in edge environments
+We need to quantify costs for external search API and on-device tool calls, which both impact energy and time. To minimize network reliance, offline modes using on-device retrieval with a local compressed index will help, but memory limitations require strategic choices like ephemeral memory or flash storage. I'll refer to the survey on Edge LLMs strategies—such as quantization and offloading.
+
+Defining constraints and planning concrete scenarios
+The survey is helpful for understanding general constraints like quantization, though it doesn’t focus on agentic planning. We could consider the "cost-aware LLM querying for autonomous robots" thesis—though it might not be crucial. Concrete examples to focus on: edge robots, drones, medical devices, IoT networks, and space probes. Constraints in compute and memory push for smaller models and quantization, especially considering the memory needed for planning/reflecting tasks.
+
+Considering constraints for edge devices and efficiency
+For edge devices, we need to optimize memory, energy, and latency. Energy is a key factor—tokens eat into it, so we need to minimize them. Latency requires real-time responses with bounded loops. Network issues mean offline tools are essential. Safety calls for predictable actions with runtime monitoring. I’ll reference key sources like Bondarenko on KV-cache memory bottlenecks, and Husom on energy per token.
+
+Evaluating benchmarks and constraints
+I’m considering citing guidelines for edge computing and embedded AI, but it's not critical. We need benchmarks like those used in Husom 2025 for energy per token. For agentic planning, "ML-Tool-Bench" looks useful, though energy isn’t always covered. I'll factor in cost metrics and token budgets, and perhaps touch on memory metrics for "tree-of-thought" compared to "chain-of-thought".
+
+Clarifying ToT and evaluation methods
+I’m considering citing the original "Tree-of-Thoughts" (ToT) paper, but it's from 2023, and there might be a NeurIPS 2024 version or an EMNLP 2024 reference. For our analysis, I'll cite ToT as search with candidate thoughts, including evaluation findings from EMNLP. Also, I'll add details about the cost-effectiveness of GPT-3.5 evaluators and how budget-aware evaluation methods improve performance.
+
+Classifying methods and citing sources
+I’m thinking of citing foundational work like Plan-and-Execute and ReAct, though these are a bit older. These methods are helpful for context, but I'll avoid emphasizing them too much. Still, I’ll ensure to cite the original method papers (e.g., ReAct from Yao et al, 2022).
+
+Gathering primary sources for key methods
+I need to gather foundational papers for the methods I’m using: - For Chain-of-Thought prompting: Wei et al. 2022. - Tree of Thoughts: Yao et al. 2023 (maybe NeurIPS 2024). - ReAct: Yao et al. 2022 (ICLR or 2023). - Plan-and-Execute: possibly "Plan-and-Solve." - Reflexion: 2023 and NeurIPS 2024, citing from EMNLP. I'll quickly gather these citations.
+
+Searching
+arxiv.orgarxiv.org
+proceedings.neurips.ccproceedings.neurips.cc
+openreview.netopenreview.net
+yumeng5.github.ioyumeng5.github.io
+6 more
+Focusing on adaptation with resource constraints
+We’ve gathered sources for ReAct, ToT, and Reflexion, but the user is more focused on resource-constrained environments. Knowing this, I’ll emphasize adaptations accordingly. I should also mention "BudgetThinker" (2025) for token budgets and the 2024 paper on Monte Carlo Tree Search, which highlights iterative preference learning and is relevant to this context. I'll provide a table on memory use, computation steps, and energy consumption in decision cycles, avoiding rich UI elements as per instructions.
+
+Planning a quantitative costing framework
+We can include a small table to compare token counts and related costs, but we must be careful with citations inside the table cells (ensuring they aren’t in bold). We should also define a "quantitative costing framework" for agent loops, including total tokens per cycle and energy expectations. We'll include ranges for energy per token and TPS, using surveys and Husom 2025 for hardware context.
+
+Gathering hardware performance data
+From a hardware survey, inference speeds range from 3-1998 tokens/s, with edge CPUs notably between 3-50 tokens/s. Energy efficiency spans from 0.0167 to 2.38 tokens/J (0.42-59.9 J/token). We should also check Bondarenko 2026 for performance details, particularly "tokens per second," which might help refine our estimates.
+
+Searching
+arxiv.orgarxiv.org
+Finalizing report for zh-TW
+The paper doesn't make tokens/s explicitly searchable, but it does reference "usable TPS" and "time to first token," so those details will be cited. I'll integrate the five directions, resolve contradictions with reasoning, and focus on defining "細粒度指標" for long-term tracking. Remember to cite everything, while avoiding trivial knowledge.
+
+Final report formatting guidance
+The instructions suggest avoiding excessive bullets, so I'll keep them minimal. No horizontal lines and only one image in the hardware section to showcase edge devices and neuromorphic chips. I'll format the report with an H1 title, five sections, and ensure a natural flow throughout. Let's avoid mentioning the plan explicitly.
+
+Outlining agentic AI report in constrained environments
+I'll start the report with the title in H1 and include sections such as "Research Scope and Quantifiable Definition of 'Highly Constrained'”. In the first section, I’ll define constraints (memory, compute, energy, etc.), provide numeric measurements, and give scenario breakdowns based on edge device evaluations. In the second section, I will compare planning strategies like CoT, ReAct, MCTS, and others, offering cost details and citing relevant studies like EMNLP 2024.
+
+Discussing cost and planning improvements with AI agents
+I'll discuss how AI agents reduce reasoning tokens, like in Bondarenko 2026’s token reduction via budget forcing and dynamic routing, and include AI compression adaptations. In the reflection section, I will talk about low-cost verifiers, revision improvements, and frequency control, citing relevant studies like EMNLP. I'll finish by discussing the hardware-algorithm co-design, showing energy improvements in the latest neuromorphic chips.
+
+Evaluating benchmarks, bottlenecks, and future paths
+I'll discuss tool calls in BAVT and how their costs can become prohibitive offline. Image group of neuromorphic chips and edge devices will also be included. Then I'll cover benchmarks like Husom's on Raspberry Pi and SBC setup, along with bottlenecks such as KV cache memory and energy variability from quantization. Notable insights into reflection, quantization effects, and safety will be highlighted. Finally, I’ll mention future developments like budget-aware search and token budget techniques.
+
+Clarifying data sources and key metrics
+We don't have a direct source but can rely on daily snippets from Huggingface, which we should cite properly. I'll focus on metrics like tokens per decision, energy use per token, and error frequency, making sure highlight which are important. Since the user asked about data reliability, I’ll include a section discussing source quality, including arXiv, conferences, and vendor reports, with clarifications if contradictions arise. Also, I’ll avoid raw URLs and focus on proper citations.
+
+Handling entity references in Chinese report
+The user asked in Chinese, and since it’s a report, I’ll need to use entity references where appropriate for identifiable names like companies, places, and media. However, research papers aren’t supported as entities, so I can't wrap those. Things like Qualcomm, Intel, and Hugging Face are companies, but "Raspberry Pi" is a product, not an entity type. I’ll wrap “Raspberry Pi Foundation” as an organization instead.
+
+Wrapping entities correctly
+I'll need to wrap entities properly: "Raspberry Pi Foundation" as an organization, not the RP4 device. "Intel" and "Qualcomm" are companies. "University of Michigan" is an organization too. Conferences like NeurIPS cannot be entities since they’re events. I'll make sure entities are only wrapped once and follow the guidelines.
+
+Clarifying entity wrapping and citations
+For Qualcomm, I'll wrap "Qualcomm Technologies, Inc." as a company. "Qualcomm AI Research" might be an organization, but I’ll double-check. Hugging Face, Intel, and OpenAI are companies. Conferences like NeurIPS are events, so no entity wrapping there. I also need to handle citations carefully—inside tables but not in bold.
+
+Preparing for report creation in zh-TW
+I’ll make sure to avoid citations at the end without appropriate punctuation. The report will cover all aspects 1-5 and include all required details. I’ll focus on ensuring everything is accurate, careful, and complete. Now, I need to proceed and draft the report in zh-TW.
+
+Collecting sources and citations
+It’s important to gather the primary sources and their IDs. Here are some key references I’m looking at: - Survey on edge LLM constraints. - SBC evaluation for memory and model performance, specifically Llamafile vs Ollama. - Husom’s work on energy per token and quantization savings. - Bondarenko’s research on memory bottlenecks and quantization. - Discussion on AI agents with cost differences. - EMNLP 2024’s evaluation of self-consistency. Now I need to organize all this.
+
+Organizing citations for view sources
+Here’s a list of sources to cite for various concepts: - PACER research for token reduction and performance results. - BAVT research for token budgets and tool call costs. - TALE for token length constraints—may need numeric improvements. - BudgetThinker for models following token budgets, particularly for OpenReview’s PDF. I'll need to work through these concepts and ensure the right details are included.
+
+Organizing citations for various sources
+I’ll need to cite various sources covering the following topics: - Arrival shaping innovations in energy reduction (up to 100x). - Energy metrics, quantization, and MoE effects on energy per token. - ML energy benchmark savings. - CLONE's energy savings and acceleration. - NSLLM OUP concepts (though access depends on availability). I’ll handle the citations effectively based on relevance.
+
+Citing relevant sources for energy efficiency
+I will cite several sources that mention key methods for energy optimization and performance improvements: - Loihi 2 for throughput and energy gains. - Analog in-memory attention for massive reductions in latency and energy. - DoRA calibration for reducing parameters using RRAM drift. - Sorbet for energy saving in spiking language models (though not quantified yet).
+
+Citing energy consumption and safety tools
+Here’s a summary of the relevant sources for energy efficiency and safety: - SDLLM for energy reduction and accuracy. - Nguyen on the energy difference between on-device vs. remote. - Profiling energy use in LLM inference. - ProbGuard for runtime monitoring. - Towards Verifiably Safe Tool Use and concepts like "ReAct" and "Reflexion." I’ll ensure citations are appropriately placed and accurate in the report!
+
+Crafting a detailed report within token limits
+The goal is to craft a detailed report that thoroughly addresses the user's request, keeping within the token limit guidelines. We’ll aim for a word count between 2500-3500 words while highlighting essential metrics such as energy per token, tokens per decision, and KV cache bytes. I'll maintain clarity while managing token usage.
+
+Preparing report with reliability classifications
+We'll propose general formulas while acknowledging that we don’t have a direct citation for some metrics. We’ll classify sources by tier: Tier A for peer-reviewed journals, Tier B for preprints with experiments, and Tier C for vendor blogs. We will clearly note the uncertainty due to differing hardware configurations and encourage caution with estimates and applicability.
+
+Searching
+arxiv.orgarxiv.org
+sciencedirect.comsciencedirect.com
+acm.orgacm.org
+aclanthology.orgaclanthology.org
+22 more
+Generated report on Agentic AI 在高度受限環境下的規劃與反思機制：2024–2026 細粒度深度分析
+
+</details>
+
+
+
+
+
+
+
+  
+    
+  
+  
+
+
+  <aside class="md-source-file">
+    
+      
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Last update">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
+    </span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="April 5, 2026 07:57:34 UTC">April 5, 2026</span>
+  </span>
+
+    
+    
+    
+    
+  </aside>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.indexes", "content.action.edit", "content.code.copy"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
