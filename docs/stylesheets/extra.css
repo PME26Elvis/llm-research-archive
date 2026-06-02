@@ -1,0 +1,127 @@
+:root {
+  --notes-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 45%, #06b6d4 100%);
+  --notes-card-border: rgba(99, 102, 241, 0.18);
+  --notes-card-shadow: 0 1rem 2.5rem rgba(15, 23, 42, 0.08);
+}
+
+[data-md-color-scheme="slate"] {
+  --notes-card-border: rgba(125, 211, 252, 0.18);
+  --notes-card-shadow: 0 1rem 2.5rem rgba(0, 0, 0, 0.32);
+}
+
+.notes-hero {
+  position: relative;
+  overflow: hidden;
+  margin: 0 0 2rem;
+  padding: clamp(2rem, 5vw, 4rem);
+  border-radius: 1.4rem;
+  color: white;
+  background: var(--notes-gradient);
+  box-shadow: var(--notes-card-shadow);
+}
+
+.notes-hero::after {
+  position: absolute;
+  inset: auto -8rem -10rem auto;
+  width: 22rem;
+  height: 22rem;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.18);
+  content: "";
+  filter: blur(2px);
+}
+
+.notes-hero h1 {
+  margin: 0 0 0.75rem;
+  color: inherit;
+  font-size: clamp(2rem, 5vw, 4.25rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.notes-hero p {
+  max-width: 44rem;
+  margin: 0 0 1.3rem;
+  font-size: clamp(1rem, 2vw, 1.25rem);
+}
+
+.notes-hero .md-button {
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
+  border-color: rgba(255, 255, 255, 0.82);
+  color: white;
+}
+
+.notes-hero .md-button--primary {
+  border-color: white;
+  background: white;
+  color: #4f46e5;
+}
+
+.notes-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 1rem;
+  margin: 1.25rem 0 2rem;
+}
+
+.notes-card {
+  display: block;
+  height: 100%;
+  padding: 1.1rem;
+  border: 1px solid var(--notes-card-border);
+  border-radius: 1rem;
+  color: var(--md-typeset-color);
+  background: var(--md-default-bg-color);
+  box-shadow: 0 0.35rem 1.5rem rgba(15, 23, 42, 0.04);
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.notes-card:hover {
+  border-color: var(--md-accent-fg-color);
+  box-shadow: var(--notes-card-shadow);
+  transform: translateY(-3px);
+}
+
+.notes-card strong {
+  display: block;
+  margin-bottom: 0.4rem;
+  color: var(--md-primary-fg-color);
+  font-size: 1.05rem;
+}
+
+.notes-card span {
+  display: block;
+  color: var(--md-default-fg-color--light);
+  font-size: 0.85rem;
+  line-height: 1.55;
+}
+
+.notes-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: 1rem 0 0;
+}
+
+.notes-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.42);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.16);
+  color: white;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.md-typeset .admonition,
+.md-typeset details {
+  border-radius: 0.8rem;
+}
+
+.md-header,
+.md-tabs {
+  backdrop-filter: saturate(150%) blur(10px);
+}
