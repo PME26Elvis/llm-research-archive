@@ -5,6 +5,7 @@
 ## 目標
 
 - 讓「新增文章」從手動複製整理，變成可重複執行的 Codex 流程。
+- 文章只要有 `date` metadata，MkDocs build 時就會自動在文章頁顯示字數統計，並更新「文章字數總表」。
 - 預設採用單檔 markdown 上架，保持操作最簡單。
 - 標題、正式檔名（slug）、分類、日期、tags 等 metadata，除非使用者明確指定，均由 Codex 依文章內容自行決定最合適的值。
 - 只有在需要保留 research activity 或其他附件時，才使用資料夾模式。
