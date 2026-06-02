@@ -1,11 +1,12 @@
 # 新文章上架流程
 
-本文件定義之後透過 Codex 上架新研究文章時的標準流程。使用者只需要把 raw markdown 放到待處理資料夾，Codex 依此流程整理、清理 citation、建立正式文章路徑，最後移除已處理的 raw input。
+本文件定義之後透過 Codex 上架新研究文章時的標準流程。使用者可以把 raw markdown 放到待處理資料夾，或直接在對話中貼上完整文章；Codex 依此流程整理、清理 citation、建立正式文章路徑，最後移除已處理的 raw input（若有）。
 
 ## 目標
 
 - 讓「新增文章」從手動複製整理，變成可重複執行的 Codex 流程。
 - 預設採用單檔 markdown 上架，保持操作最簡單。
+- 標題、正式檔名（slug）、分類、日期、tags 等 metadata，除非使用者明確指定，均由 Codex 依文章內容自行決定最合適的值。
 - 只有在需要保留 research activity 或其他附件時，才使用資料夾模式。
 - 上架時先只強制移除 OpenAI citation marker；其他明顯不是給讀者閱讀的引用或工具 wrapper，由 Codex 依內容判斷是否移除或改寫。
 
@@ -40,13 +41,23 @@ _incoming/articles/<name>/
 
 ## Codex 上架輸入
 
-當使用者要求「根據本文件上架新文章」時，Codex 應先檢查 `_incoming/articles/`。
+當使用者要求「根據本文件上架新文章」時，Codex 應先判斷輸入來源。
 
-若只有一個待處理項目，直接處理該項目。若有多個待處理項目，除非使用者明確要求全部上架，否則應先列出候選項目並請使用者確認。
+### 來源一：`_incoming/articles/`
+
+Codex 應先檢查 `_incoming/articles/`。若只有一個待處理項目，直接處理該項目。若有多個待處理項目，除非使用者明確要求全部上架，否則應先列出候選項目並請使用者確認。
+
+### 來源二：對話直接貼上完整文章
+
+若使用者直接在對話中貼上完整文章、報告或 markdown 文件，Codex 不應因為 `_incoming/articles/` 沒有待處理檔案而卡住；應將該貼文視為 raw markdown 輸入，照同一套 metadata 推斷、citation 清理、正式路徑建立與檢查流程上架。
+
+直接貼文時沒有 raw input 檔案可刪除，因此「移除 raw input」步驟視為不適用並略過。
+
+若使用者同時貼上「報告」與 research activity/附件，Codex 可以把報告作為正式文章主文、把 research activity 依附件策略放入 `<details>`；但**絕對不能更動任何屬於報告本文或 research activity（作為附件）的文字**。Codex 只能新增 front matter、建立路徑、補分類輔助檔，或處理使用者明確允許修改的包裝性文字。
 
 ## 推斷 metadata
 
-Codex 應從 raw markdown 推斷下列資訊。
+Codex 應從 raw markdown 推斷下列資訊；除非使用者明確指定，標題、檔名/slug、分類與 tags 都由 Codex 自行決定最合適的值。
 
 ### title
 
@@ -164,6 +175,7 @@ re.compile(r'[ \t]*\uE200cite\uE202[^\uE201]*\uE201')
 - 若段落明顯是 research activity，而使用資料夾模式提供了 `research-activity.md`，可放入附件。
 - 若段落明顯是 research activity，但使用者沒有要求保留附件，預設可以移除，以維持正式文章可讀性。
 - 不要刪除正常 markdown 連結、表格、程式碼、Mermaid 圖或文章正文。
+- 若使用者明確要求保留報告本文或 research activity 原文（例如直接貼文並聲明不可更動），則該原文屬受保護文字；即使其中含有 citation marker、entity wrapper 或其他生成痕跡，也不得改寫或刪除，只能在檢查結果中註明是依使用者要求保留。
 
 ## 附件策略
 
@@ -272,5 +284,5 @@ Codex 應依序：
 5. 用 AI 判斷移除或改寫明顯不是給讀者閱讀的 citation、工具 wrapper 或 research activity 痕跡。
 6. 建立 `docs/<category>/<slug>/index.md`。
 7. 視需要加入 `<details>` 附件。
-8. 移除已處理的 raw input。
+8. 移除已處理的 raw input；若文章由對話直接貼上，則此步驟不適用。
 9. 執行檢查並回報新增路徑。
