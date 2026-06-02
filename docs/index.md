@@ -20,17 +20,17 @@
 
 <div class="notes-card-grid" markdown>
 
-<a class="notes-card" href="word-counts.md"><strong>文章字數總表</strong><span>查看每篇文章的字數、預估閱讀時間，並依字數由多至少排序。</span></a>
+<a class="notes-card" href="word-counts/"><strong>文章字數總表</strong><span>查看每篇文章的字數、預估閱讀時間，並依字數由多至少排序。</span></a>
 
-<a class="notes-card" href="tags.md"><strong>Tags</strong><span>用跨分類關鍵字快速找文章，也適合探索不同主題之間的交集。</span></a>
+<a class="notes-card" href="tags/"><strong>Tags</strong><span>用跨分類關鍵字快速找文章，也適合探索不同主題之間的交集。</span></a>
 
-<a class="notes-card" href="timeline/index.md"><strong>Timeline</strong><span>用時間軸與歸檔瀏覽文章，適合追蹤最近新增或更新的筆記。</span></a>
+<a class="notes-card" href="timeline/"><strong>Timeline</strong><span>用時間軸與歸檔瀏覽文章，適合追蹤最近新增或更新的筆記。</span></a>
 
-<a class="notes-card" href="llm/index.md"><strong>LLM</strong><span>模型、算力、agentic AI、在地開發效能與研究分析。</span></a>
+<a class="notes-card" href="llm/"><strong>LLM</strong><span>模型、算力、agentic AI、在地開發效能與研究分析。</span></a>
 
-<a class="notes-card" href="carbon/index.md"><strong>Carbon</strong><span>能源、碳排、再生能源容量與政策資料整理。</span></a>
+<a class="notes-card" href="carbon/"><strong>Carbon</strong><span>能源、碳排、再生能源容量與政策資料整理。</span></a>
 
-<a class="notes-card" href="cs/cs-super-tree-report/index.md"><strong>CS 文章</strong><span>資料結構、演算法與電腦科學主題的長文整理。</span></a>
+<a class="notes-card" href="cs/cs-super-tree-report/"><strong>CS 文章</strong><span>資料結構、演算法與電腦科學主題的長文整理。</span></a>
 
 </div>
 

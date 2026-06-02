@@ -65,6 +65,10 @@
   margin: 1.25rem 0 2rem;
 }
 
+.notes-card-grid > p {
+  margin: 0;
+}
+
 .notes-card {
   display: block;
   height: 100%;
@@ -77,10 +81,16 @@
   transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
 }
 
-.notes-card:hover {
+.notes-card:hover,
+.notes-card:focus-visible {
   border-color: var(--md-accent-fg-color);
   box-shadow: var(--notes-card-shadow);
   transform: translateY(-3px);
+}
+
+.notes-card:focus-visible {
+  outline: 0.12rem solid var(--md-accent-fg-color);
+  outline-offset: 0.18rem;
 }
 
 .notes-card strong {
