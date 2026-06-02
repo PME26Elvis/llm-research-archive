@@ -12,15 +12,13 @@ theme:
     repo: fontawesome/brands/github
   favicon: assets/images/favicon.svg
   palette:
-    - media: "(prefers-color-scheme: light)"
-      scheme: default
+    - scheme: default
       primary: indigo
       accent: deep purple
       toggle:
         icon: material/weather-night
         name: 切換至深色模式
-    - media: "(prefers-color-scheme: dark)"
-      scheme: slate
+    - scheme: slate
       primary: indigo
       accent: cyan
       toggle:
