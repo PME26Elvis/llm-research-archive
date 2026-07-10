@@ -10,19 +10,19 @@ related-adrs:
 
 | ID | Status | Verification |
 | --- | --- | --- |
-| FR-001 | implemented | packages/application/src/index.test.ts, apps/desktop-electron/e2e/source.spec.ts |
+| FR-001 | implemented | packages/application/src/index.test.ts, apps/desktop-electron/e2e/source.spec.ts, scripts/packaged-smoke.mjs |
 | FR-002 | planned | planned |
 | FR-003 | implemented | packages/content-engine/src/index.test.ts |
 | FR-004 | planned | planned |
 | FR-005 | planned | planned |
 | FR-006 | planned | planned |
 | FR-007 | implemented | packages/search-engine/src/index.test.ts, apps/desktop-electron/e2e/source.spec.ts |
-| FR-008 | implemented | apps/desktop-electron/e2e/source.spec.ts |
+| FR-008 | implemented | apps/desktop-electron/e2e/source.spec.ts, scripts/packaged-smoke.mjs |
 | FR-009 | implemented | packages/content-engine/src/index.test.ts |
-| FR-010 | implemented | packages/content-engine/src/index.test.ts |
+| FR-010 | planned | planned |
 | FR-011 | implemented | packages/platform-contracts/src/index.test.ts, apps/desktop-electron/tests/security.spec.ts |
-| FR-012 | implemented | packages/renderer-ui/src/index.test.ts |
-| FR-013 | implemented | packages/renderer-ui/src/index.test.ts |
+| FR-012 | planned | planned |
+| FR-013 | planned | planned |
 | FR-014 | planned | planned |
 | FR-015 | planned | planned |
 | FR-016 | planned | planned |
@@ -31,23 +31,23 @@ related-adrs:
 | FR-019 | planned | planned |
 | FR-020 | planned | planned |
 | FR-021 | planned | planned |
-| FR-022 | implemented | apps/desktop-electron/src/renderer/renderer.tsx |
-| FR-023 | implemented | .github/workflows/desktop-ci.yml |
-| FR-024 | implemented | .github/workflows/desktop-ci.yml |
+| FR-022 | planned | planned |
+| FR-023 | implemented-pending-ci | scripts/release-assets.mjs, scripts/packaged-smoke.mjs |
+| FR-024 | implemented-pending-ci | scripts/release-assets.mjs, scripts/packaged-smoke.mjs |
 | FR-025 | planned | planned |
-| FR-026 | implemented | scripts/release-assets.mjs |
+| FR-026 | planned | planned |
 | FR-027 | planned | planned |
 | FR-028 | planned | planned |
 | FR-029 | implemented | scripts/node-smoke.mjs |
 | FR-030 | implemented | project-docs/migration/mkdocs-feature-parity-matrix.md |
-| NFR-001 | implemented | apps/desktop-electron/src/main/main.ts |
+| NFR-001 | implemented | apps/desktop-electron/e2e/source.spec.ts |
 | NFR-002 | implemented | apps/desktop-electron/tests/security.spec.ts |
 | NFR-003 | implemented | apps/desktop-electron/tests/security.spec.ts |
-| NFR-004 | implemented | apps/desktop-electron/tests/security.spec.ts |
+| NFR-004 | implemented | apps/desktop-electron/e2e/source.spec.ts |
 | NFR-005 | implemented | packages/platform-contracts/src/index.test.ts |
-| NFR-006 | implemented | apps/desktop-electron/src/renderer/index.html |
+| NFR-006 | implemented | apps/desktop-electron/tests/security.spec.ts |
 | NFR-007 | implemented | apps/desktop-electron/tests/security.spec.ts |
-| NFR-008 | planned | planned |
+| NFR-008 | implemented | apps/desktop-electron/tests/asset-path.spec.ts |
 | NFR-009 | implemented | packages/content-engine/src/index.test.ts |
 | NFR-010 | planned | planned |
 | NFR-011 | planned | planned |
@@ -62,6 +62,6 @@ related-adrs:
 | NFR-020 | implemented | scripts/validate-architecture.mjs |
 | NFR-021 | implemented | scripts/validate-traceability.mjs |
 | NFR-022 | implemented | apps/desktop-electron/e2e/source.spec.ts |
-| NFR-023 | implemented | apps/desktop-electron/src/renderer/index.html |
-| NFR-024 | implemented | project-docs/product/desktop-product-spec.md |
-| NFR-025 | implemented | packages/application/src/index.test.ts |
+| NFR-023 | implemented | apps/desktop-electron/e2e/source.spec.ts |
+| NFR-024 | implemented | apps/desktop-electron/e2e/source.spec.ts |
+| NFR-025 | planned | planned |

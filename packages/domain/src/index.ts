@@ -10,6 +10,7 @@ export interface ArticleLink {
   href: string;
   label: string;
   internal: boolean;
+  targetArticleId?: ArticleId;
 }
 export interface ArticleHeading {
   depth: number;

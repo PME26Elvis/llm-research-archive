@@ -8,7 +8,6 @@
     "skipLibCheck": true,
     "declaration": true,
     "outDir": "dist",
-    "baseUrl": ".",
     "paths": {
       "@research-observatory/domain": ["packages/domain/src/index.ts"],
       "@research-observatory/content-engine": ["packages/content-engine/src/index.ts"],
@@ -18,7 +17,9 @@
       "@research-observatory/renderer-ui": ["packages/renderer-ui/src/index.ts"]
     },
     "types": ["node", "vitest/globals"],
-    "jsx": "react-jsx"
+    "jsx": "react-jsx",
+    "baseUrl": ".",
+    "ignoreDeprecations": "5.0"
   },
   "include": ["packages/**/*.ts", "apps/**/*.ts", "apps/**/*.tsx", "vitest.config.ts"]
 }

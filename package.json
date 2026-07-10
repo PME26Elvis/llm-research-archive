@@ -7,7 +7,7 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "electron-forge start",
+    "dev": "electron-forge start -- --no-sandbox",
     "build": "npm run content:manifest && electron-forge package",
     "lint": "node scripts/validate-architecture.mjs",
     "lint:fix": "npm run lint",
@@ -33,25 +33,26 @@
     "make:linux": "npm run content:manifest && electron-forge make --platform linux --arch x64 && node scripts/release-assets.mjs linux",
     "release:assets": "node scripts/release-assets.mjs all",
     "benchmark": "node --import tsx scripts/node-smoke.mjs --benchmark",
-    "verify": "npm run format:check && npm run lint && npm run typecheck && npm run validate:traceability && npm run test && npm run test:security && npm run test:compatibility && npm run build",
+    "verify": "npm run format:check && npm run lint && npm run typecheck && npm run validate:traceability && npm run validate:generated && npm run test && npm run test:security && npm run test:compatibility && npm run build",
     "smoke:packaged": "node scripts/packaged-smoke.mjs",
-    "format:write": "prettier --write \"{package.json,tsconfig*.json,vitest.config.ts,scripts/**/*.{mjs,js},packages/**/*.{ts,json},apps/**/*.{ts,tsx,mjs,json,html},.github/workflows/desktop-*.yml}\""
+    "format:write": "prettier --write \"{package.json,tsconfig*.json,vitest.config.ts,scripts/**/*.{mjs,js},packages/**/*.{ts,json},apps/**/*.{ts,tsx,mjs,json,html},.github/workflows/desktop-*.yml}\"",
+    "validate:generated": "node scripts/validate-generated-clean.mjs"
   },
   "devDependencies": {
-    "@electron-forge/cli": "^7.4.0",
-    "@electron-forge/maker-deb": "^7.4.0",
-    "@electron-forge/maker-rpm": "^7.4.0",
+    "@electron-forge/cli": "^7.11.2",
+    "@electron-forge/maker-deb": "^7.11.2",
+    "@electron-forge/maker-rpm": "^7.11.2",
     "@electron-forge/maker-squirrel": "^7.11.2",
-    "@electron-forge/maker-zip": "^7.4.0",
+    "@electron-forge/maker-zip": "^7.11.2",
     "@electron-forge/plugin-vite": "^7.11.2",
     "@playwright/test": "^1.61.1",
     "@types/markdown-it": "^14.1.2",
-    "@types/node": "^20.14.10",
+    "@types/node": "^24.0.0",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@types/sanitize-html": "^2.16.1",
     "@vitejs/plugin-react": "^4.3.1",
-    "electron": "^31.2.1",
+    "electron": "43.1.0",
     "gray-matter": "^4.0.3",
     "js-yaml": "^4.1.0",
     "markdown-it": "^14.3.0",
@@ -63,10 +64,14 @@
     "typescript": "^5.5.3",
     "vite": "^5.3.3",
     "vitest": "^1.6.0",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "electron-squirrel-startup": "^1.0.1"
   },
   "main": ".vite/build/main.js",
   "productName": "Research Observatory",
   "description": "Offline Research Observatory desktop archive reader",
-  "license": "MIT"
+  "license": "MIT",
+  "author": {
+    "name": "PME26Elvis"
+  }
 }

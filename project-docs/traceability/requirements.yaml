@@ -13,6 +13,7 @@
     tests:
     - packages/application/src/index.test.ts
     - apps/desktop-electron/e2e/source.spec.ts
+    - scripts/packaged-smoke.mjs
   status: implemented
 - id: FR-002
   title: FR-002
@@ -115,6 +116,7 @@
   verification:
     tests:
     - apps/desktop-electron/e2e/source.spec.ts
+    - scripts/packaged-smoke.mjs
   status: implemented
 - id: FR-009
   title: FR-009
@@ -143,9 +145,8 @@
     - packages/content-engine
     - apps/desktop-electron
   verification:
-    tests:
-    - packages/content-engine/src/index.test.ts
-  status: implemented
+    tests: []
+  status: planned
 - id: FR-011
   title: FR-011
   priority: P2
@@ -174,9 +175,8 @@
     - packages/content-engine
     - apps/desktop-electron
   verification:
-    tests:
-    - packages/renderer-ui/src/index.test.ts
-  status: implemented
+    tests: []
+  status: planned
 - id: FR-013
   title: FR-013
   priority: P2
@@ -189,9 +189,8 @@
     - packages/content-engine
     - apps/desktop-electron
   verification:
-    tests:
-    - packages/renderer-ui/src/index.test.ts
-  status: implemented
+    tests: []
+  status: planned
 - id: FR-014
   title: FR-014
   priority: P2
@@ -316,9 +315,8 @@
     - packages/content-engine
     - apps/desktop-electron
   verification:
-    tests:
-    - apps/desktop-electron/src/renderer/renderer.tsx
-  status: implemented
+    tests: []
+  status: planned
 - id: FR-023
   title: FR-023
   priority: P2
@@ -332,8 +330,9 @@
     - apps/desktop-electron
   verification:
     tests:
-    - .github/workflows/desktop-ci.yml
-  status: implemented
+    - scripts/release-assets.mjs
+    - scripts/packaged-smoke.mjs
+  status: implemented-pending-ci
 - id: FR-024
   title: FR-024
   priority: P2
@@ -347,8 +346,9 @@
     - apps/desktop-electron
   verification:
     tests:
-    - .github/workflows/desktop-ci.yml
-  status: implemented
+    - scripts/release-assets.mjs
+    - scripts/packaged-smoke.mjs
+  status: implemented-pending-ci
 - id: FR-025
   title: FR-025
   priority: P2
@@ -375,9 +375,8 @@
     - packages/content-engine
     - apps/desktop-electron
   verification:
-    tests:
-    - scripts/release-assets.mjs
-  status: implemented
+    tests: []
+  status: planned
 - id: FR-027
   title: FR-027
   priority: P2
@@ -444,11 +443,12 @@
     section: NFR-001
   implementation:
     packages:
+    - packages/application
+    - packages/content-engine
     - apps/desktop-electron
-    - packages/platform-contracts
   verification:
     tests:
-    - apps/desktop-electron/src/main/main.ts
+    - apps/desktop-electron/e2e/source.spec.ts
   status: implemented
 - id: NFR-002
   title: NFR-002
@@ -458,8 +458,9 @@
     section: NFR-002
   implementation:
     packages:
+    - packages/application
+    - packages/content-engine
     - apps/desktop-electron
-    - packages/platform-contracts
   verification:
     tests:
     - apps/desktop-electron/tests/security.spec.ts
@@ -472,8 +473,9 @@
     section: NFR-003
   implementation:
     packages:
+    - packages/application
+    - packages/content-engine
     - apps/desktop-electron
-    - packages/platform-contracts
   verification:
     tests:
     - apps/desktop-electron/tests/security.spec.ts
@@ -486,11 +488,12 @@
     section: NFR-004
   implementation:
     packages:
+    - packages/application
+    - packages/content-engine
     - apps/desktop-electron
-    - packages/platform-contracts
   verification:
     tests:
-    - apps/desktop-electron/tests/security.spec.ts
+    - apps/desktop-electron/e2e/source.spec.ts
   status: implemented
 - id: NFR-005
   title: NFR-005
@@ -500,8 +503,9 @@
     section: NFR-005
   implementation:
     packages:
+    - packages/application
+    - packages/content-engine
     - apps/desktop-electron
-    - packages/platform-contracts
   verification:
     tests:
     - packages/platform-contracts/src/index.test.ts
@@ -514,11 +518,12 @@
     section: NFR-006
   implementation:
     packages:
+    - packages/application
+    - packages/content-engine
     - apps/desktop-electron
-    - packages/platform-contracts
   verification:
     tests:
-    - apps/desktop-electron/src/renderer/index.html
+    - apps/desktop-electron/tests/security.spec.ts
   status: implemented
 - id: NFR-007
   title: NFR-007
@@ -528,8 +533,9 @@
     section: NFR-007
   implementation:
     packages:
+    - packages/application
+    - packages/content-engine
     - apps/desktop-electron
-    - packages/platform-contracts
   verification:
     tests:
     - apps/desktop-electron/tests/security.spec.ts
@@ -542,11 +548,13 @@
     section: NFR-008
   implementation:
     packages:
+    - packages/application
+    - packages/content-engine
     - apps/desktop-electron
-    - packages/platform-contracts
   verification:
-    tests: []
-  status: planned
+    tests:
+    - apps/desktop-electron/tests/asset-path.spec.ts
+  status: implemented
 - id: NFR-009
   title: NFR-009
   priority: P2
@@ -555,8 +563,9 @@
     section: NFR-009
   implementation:
     packages:
+    - packages/application
+    - packages/content-engine
     - apps/desktop-electron
-    - packages/platform-contracts
   verification:
     tests:
     - packages/content-engine/src/index.test.ts
@@ -569,8 +578,9 @@
     section: NFR-010
   implementation:
     packages:
+    - packages/application
+    - packages/content-engine
     - apps/desktop-electron
-    - packages/platform-contracts
   verification:
     tests: []
   status: planned
@@ -582,8 +592,9 @@
     section: NFR-011
   implementation:
     packages:
+    - packages/application
+    - packages/content-engine
     - apps/desktop-electron
-    - packages/platform-contracts
   verification:
     tests: []
   status: planned
@@ -595,8 +606,9 @@
     section: NFR-012
   implementation:
     packages:
+    - packages/application
+    - packages/content-engine
     - apps/desktop-electron
-    - packages/platform-contracts
   verification:
     tests: []
   status: planned
@@ -608,8 +620,9 @@
     section: NFR-013
   implementation:
     packages:
+    - packages/application
+    - packages/content-engine
     - apps/desktop-electron
-    - packages/platform-contracts
   verification:
     tests: []
   status: planned
@@ -621,8 +634,9 @@
     section: NFR-014
   implementation:
     packages:
+    - packages/application
+    - packages/content-engine
     - apps/desktop-electron
-    - packages/platform-contracts
   verification:
     tests: []
   status: planned
@@ -634,8 +648,9 @@
     section: NFR-015
   implementation:
     packages:
+    - packages/application
+    - packages/content-engine
     - apps/desktop-electron
-    - packages/platform-contracts
   verification:
     tests: []
   status: planned
@@ -647,8 +662,9 @@
     section: NFR-016
   implementation:
     packages:
+    - packages/application
+    - packages/content-engine
     - apps/desktop-electron
-    - packages/platform-contracts
   verification:
     tests: []
   status: planned
@@ -660,8 +676,9 @@
     section: NFR-017
   implementation:
     packages:
+    - packages/application
+    - packages/content-engine
     - apps/desktop-electron
-    - packages/platform-contracts
   verification:
     tests: []
   status: planned
@@ -673,8 +690,9 @@
     section: NFR-018
   implementation:
     packages:
+    - packages/application
+    - packages/content-engine
     - apps/desktop-electron
-    - packages/platform-contracts
   verification:
     tests: []
   status: planned
@@ -686,8 +704,9 @@
     section: NFR-019
   implementation:
     packages:
+    - packages/application
+    - packages/content-engine
     - apps/desktop-electron
-    - packages/platform-contracts
   verification:
     tests: []
   status: planned
@@ -699,8 +718,9 @@
     section: NFR-020
   implementation:
     packages:
+    - packages/application
+    - packages/content-engine
     - apps/desktop-electron
-    - packages/platform-contracts
   verification:
     tests:
     - scripts/validate-architecture.mjs
@@ -713,8 +733,9 @@
     section: NFR-021
   implementation:
     packages:
+    - packages/application
+    - packages/content-engine
     - apps/desktop-electron
-    - packages/platform-contracts
   verification:
     tests:
     - scripts/validate-traceability.mjs
@@ -727,8 +748,9 @@
     section: NFR-022
   implementation:
     packages:
+    - packages/application
+    - packages/content-engine
     - apps/desktop-electron
-    - packages/platform-contracts
   verification:
     tests:
     - apps/desktop-electron/e2e/source.spec.ts
@@ -741,11 +763,12 @@
     section: NFR-023
   implementation:
     packages:
+    - packages/application
+    - packages/content-engine
     - apps/desktop-electron
-    - packages/platform-contracts
   verification:
     tests:
-    - apps/desktop-electron/src/renderer/index.html
+    - apps/desktop-electron/e2e/source.spec.ts
   status: implemented
 - id: NFR-024
   title: NFR-024
@@ -755,11 +778,12 @@
     section: NFR-024
   implementation:
     packages:
+    - packages/application
+    - packages/content-engine
     - apps/desktop-electron
-    - packages/platform-contracts
   verification:
     tests:
-    - project-docs/product/desktop-product-spec.md
+    - apps/desktop-electron/e2e/source.spec.ts
   status: implemented
 - id: NFR-025
   title: NFR-025
@@ -769,9 +793,9 @@
     section: NFR-025
   implementation:
     packages:
+    - packages/application
+    - packages/content-engine
     - apps/desktop-electron
-    - packages/platform-contracts
   verification:
-    tests:
-    - packages/application/src/index.test.ts
-  status: implemented
+    tests: []
+  status: planned

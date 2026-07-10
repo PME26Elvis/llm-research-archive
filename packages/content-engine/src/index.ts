@@ -64,6 +64,17 @@ export function isArticlePath(sourcePath: string, data: unknown): boolean {
 export function titleFromMarkdown(markdown: string, fallback: string): string {
   return cleanInline(markdown.match(/^#\s+(.+?)\s*$/m)?.[1] || fallback).trim();
 }
+export function resolveInternalArticleId(fromSourcePath: string, href: string): any {
+  const clean = href.split('#')[0];
+  if (!clean || /^(https?:|mailto:|javascript:|data:|file:)/i.test(clean)) return undefined;
+  const fromDir = path.posix.dirname(fromSourcePath);
+  let target = path.posix.normalize(path.posix.join(fromDir, clean));
+  if (target.endsWith('/')) target += 'index.md';
+  if (!target.endsWith('.md')) target = path.posix.join(target, 'index.md');
+  const parts = target.split('/');
+  if (parts.length >= 3 && parts.at(-1) === 'index.md') return `${parts[0]}/${parts[1]}`;
+  return undefined;
+}
 export function parseArticle(file: string, root: string): Article | undefined {
   const raw = fs.readFileSync(file, 'utf8');
   const parsed = matter(raw);
@@ -88,11 +99,16 @@ export function parseArticle(file: string, root: string): Article | undefined {
     text: cleanInline(m[2]).trim(),
     slug: slugify(m[2]),
   }));
-  const links = [...markdown.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)].map((m) => ({
-    label: m[1],
-    href: m[2],
-    internal: !/^https?:/i.test(m[2]),
-  }));
+  const links = [...markdown.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)].map((m) => {
+    const href = m[2];
+    const internal = !/^(https?:|mailto:|javascript:|data:|file:)/i.test(href);
+    return {
+      label: m[1],
+      href,
+      internal,
+      targetArticleId: internal ? resolveInternalArticleId(rel, href) : undefined,
+    };
+  });
   const date =
     data.date instanceof Date
       ? data.date.toISOString().slice(0, 10)

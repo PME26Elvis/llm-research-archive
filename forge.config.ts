@@ -4,7 +4,7 @@ const config: ForgeConfig = {
   packagerConfig: { asar: true, executableName: 'llm-research-archive-desktop', extraResource: ['apps/desktop-electron/resources/archive-manifest.json', 'docs'] },
   rebuildConfig: {},
   makers: [
-    { name: '@electron-forge/maker-squirrel', config: { name: 'research_observatory', setupExe: 'research-observatory-0.1.0-windows-x64-setup.exe' } },
+    { name: '@electron-forge/maker-squirrel', config: { name: 'research_observatory', authors: 'PME26Elvis', exe: 'llm-research-archive-desktop.exe', setupExe: 'research-observatory-0.1.0-windows-x64-setup.exe' } },
     { name: '@electron-forge/maker-zip', platforms: ['win32', 'linux'], config: {} },
     { name: '@electron-forge/maker-deb', config: { options: { name: 'research-observatory', productName: 'Research Observatory' } } },
     { name: '@electron-forge/maker-rpm', config: { options: { name: 'research-observatory', productName: 'Research Observatory' } } }

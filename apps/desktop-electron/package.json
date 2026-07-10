@@ -12,9 +12,13 @@
     "@research-observatory/platform-contracts": "0.1.0",
     "@research-observatory/renderer-ui": "0.1.0",
     "@research-observatory/search-engine": "0.1.0",
-    "@electron-forge/plugin-vite": "^7.10.2"
+    "@electron-forge/plugin-vite": "^7.11.2",
+    "electron-squirrel-startup": "^1.0.1"
   },
   "devDependencies": {},
   "description": "Offline Research Observatory desktop archive reader",
-  "license": "MIT"
+  "license": "MIT",
+  "author": {
+    "name": "PME26Elvis"
+  }
 }

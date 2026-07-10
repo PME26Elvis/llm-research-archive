@@ -5,10 +5,21 @@ const input = process.argv[2] || 'dist/release-assets';
 const out = process.argv[3] || 'dist/aggregate-release';
 fs.rmSync(out, { recursive: true, force: true });
 fs.mkdirSync(out, { recursive: true });
+const expected = [
+  /^research-observatory-.+-windows-x64-setup\.exe$/,
+  /^research-observatory-.+-windows-x64-portable\.zip$/,
+  /^research-observatory-.+-linux-x64-portable\.zip$/,
+  /^research-observatory-.+-linux-x64\.deb$/,
+  /^research-observatory-.+-linux-x64\.rpm$/,
+];
 const files = fs.readdirSync(input).filter((f) => /\.(exe|zip|deb|rpm)$/.test(f));
+if (files.length !== 5)
+  throw new Error(`expected exactly 5 binary artifacts, got ${files.length}: ${files.join(', ')}`);
+for (const re of expected)
+  if (!files.some((f) => re.test(f))) throw new Error(`missing expected artifact ${re}`);
 const names = new Set();
 const artifacts = [];
-for (const f of files) {
+for (const f of files.sort()) {
   if (names.has(f)) throw new Error(`duplicate artifact ${f}`);
   names.add(f);
   fs.copyFileSync(path.join(input, f), path.join(out, f));
@@ -19,31 +30,9 @@ for (const f of files) {
     sha256: crypto.createHash('sha256').update(buf).digest('hex'),
   });
 }
-if (!artifacts.length) throw new Error('no artifacts to aggregate');
 fs.writeFileSync(
   path.join(out, 'SHA256SUMS.txt'),
   artifacts.map((a) => `${a.sha256}  ${a.name}`).join('\n') + '\n',
 );
 fs.writeFileSync(path.join(out, 'release-manifest.json'), JSON.stringify({ artifacts }, null, 2));
-fs.writeFileSync(
-  path.join(out, 'sbom.cdx.json'),
-  JSON.stringify(
-    {
-      bomFormat: 'CycloneDX',
-      specVersion: '1.5',
-      metadata: { component: { type: 'application', name: 'Research Observatory' } },
-      components: Object.keys(
-        JSON.parse(fs.readFileSync('package-lock.json', 'utf8')).packages || {},
-      )
-        .filter(Boolean)
-        .map((p) => ({
-          type: 'library',
-          name: p.replace(/^node_modules\//, ''),
-          version: 'locked',
-        })),
-    },
-    null,
-    2,
-  ),
-);
 console.log(`aggregated ${artifacts.length} artifacts`);
