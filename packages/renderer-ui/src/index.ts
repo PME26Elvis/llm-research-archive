@@ -1,6 +1,9 @@
 import MarkdownIt from 'markdown-it';
 import sanitizeHtml from 'sanitize-html';
 import { HeadingSlugger } from '@research-observatory/domain';
+
+export * from './browse';
+
 const md = new MarkdownIt({ html: true, linkify: true, typographer: true });
 export function renderMarkdown(markdown: string): string {
   const slugger = new HeadingSlugger();

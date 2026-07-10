@@ -1,7 +1,12 @@
 import './style.css';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { renderMarkdown } from '@research-observatory/renderer-ui';
+import {
+  buildArchiveBrowseModel,
+  filterArticlesByBrowse,
+  renderMarkdown,
+  type BrowseMode,
+} from '@research-observatory/renderer-ui';
 import type {
   AppInfoDto,
   ArticleDto,
@@ -20,12 +25,21 @@ declare global {
     };
   }
 }
+
+const browseModes: { mode: BrowseMode; label: string }[] = [
+  { mode: 'all', label: '全部' },
+  { mode: 'category', label: '分類' },
+  { mode: 'tag', label: '標籤' },
+  { mode: 'timeline', label: '時間軸' },
+];
+
 function rewriteAssetLinks(markdown: string, assetRoot: string): string {
   return markdown.replace(
     /!\[([^\]]*)\]\((?!https?:|data:)([^)]+)\)/g,
     (_m, alt, src) => `![${alt}](app-asset:///${assetRoot}/${src})`,
   );
 }
+
 function hrefParts(href: string) {
   const hash = href.indexOf('#');
   if (hash < 0) return { path: href, fragment: '' };
@@ -37,6 +51,7 @@ function hrefParts(href: string) {
     return { path, fragment: rawFragment };
   }
 }
+
 function AboutModal({ info, onClose }: { info: AppInfoDto; onClose: () => void }) {
   const dialogRef = useRef<HTMLElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
@@ -96,23 +111,40 @@ function AboutModal({ info, onClose }: { info: AppInfoDto; onClose: () => void }
           <dt>Content manifest hash</dt>
           <dd>{info.contentManifestHash || 'Unavailable'}</dd>
         </dl>
-        <button ref={closeRef} onClick={onClose}>
+        <button ref={closeRef} type="button" onClick={onClose}>
           關閉
         </button>
       </section>
     </div>
   );
 }
+
 function App() {
   const [articles, setArticles] = useState<ArticleSummaryDto[]>([]);
   const [shown, setShown] = useState<(ArticleSummaryDto | SearchResultDto)[]>([]);
   const [query, setQuery] = useState('');
+  const [browseMode, setBrowseMode] = useState<BrowseMode>('all');
+  const [selectedFacet, setSelectedFacet] = useState('');
   const [selected, setSelected] = useState<ArticleDto | null>(null);
   const [pendingFragment, setPendingFragment] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [about, setAbout] = useState<AppInfoDto | null>(null);
   const aboutButtonRef = useRef<HTMLButtonElement>(null);
+  const browseModel = useMemo(() => buildArchiveBrowseModel(articles), [articles]);
+  const filteredArticles = useMemo(
+    () => filterArticlesByBrowse(articles, browseMode, selectedFacet),
+    [articles, browseMode, selectedFacet],
+  );
+  const facets =
+    browseMode === 'category'
+      ? browseModel.categories
+      : browseMode === 'tag'
+        ? browseModel.tags
+        : browseMode === 'timeline'
+          ? browseModel.timeline
+          : [];
+
   useEffect(() => {
     window.observatory
       .listArticles()
@@ -123,20 +155,22 @@ function App() {
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false));
   }, []);
+
   useEffect(() => {
     const q = query.trim();
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       if (!q) {
-        setShown(articles);
+        setShown(filteredArticles);
         return;
       }
       window.observatory
         .search(q)
-        .then(setShown)
+        .then((results) => setShown(filterArticlesByBrowse(results, browseMode, selectedFacet)))
         .catch((e) => setError(String(e)));
     }, 150);
-    return () => clearTimeout(t);
-  }, [query, articles]);
+    return () => clearTimeout(timer);
+  }, [query, filteredArticles, browseMode, selectedFacet]);
+
   useEffect(() => {
     if (!pendingFragment) return;
     requestAnimationFrame(() => {
@@ -146,6 +180,7 @@ function App() {
       setPendingFragment('');
     });
   }, [selected, pendingFragment]);
+
   async function open(id: string, fragment = '') {
     setError('');
     setPendingFragment('');
@@ -157,6 +192,7 @@ function App() {
       setError(`文章載入失敗：${String(e)}`);
     }
   }
+
   async function openInternalLink(id: string, href: string, fragment = '') {
     setError('');
     setPendingFragment('');
@@ -168,6 +204,7 @@ function App() {
       setError(`找不到內部文章連結：${href}`);
     }
   }
+
   function scrollCurrentArticleToFragment(fragment: string) {
     setError('');
     setPendingFragment('');
@@ -177,10 +214,12 @@ function App() {
       else setError(`找不到標題片段：${fragment}`);
     });
   }
+
   function closeAbout() {
     setAbout(null);
     requestAnimationFrame(() => aboutButtonRef.current?.focus());
   }
+
   async function openAbout() {
     setError('');
     try {
@@ -189,6 +228,12 @@ function App() {
       setError(`About 資訊載入失敗：${String(e)}`);
     }
   }
+
+  function selectBrowseMode(mode: BrowseMode) {
+    setBrowseMode(mode);
+    setSelectedFacet('');
+  }
+
   function onArticleClick(e: React.MouseEvent<HTMLElement>) {
     const a = (e.target as HTMLElement).closest('a');
     if (!a) return;
@@ -222,6 +267,7 @@ function App() {
       setError(`找不到內部文章連結：${href}`);
     }
   }
+
   return (
     <main className="app" data-testid="app-ready" data-article-count={articles.length}>
       <aside>
@@ -235,15 +281,61 @@ function App() {
           搜尋文章
           <input aria-label="搜尋文章" value={query} onChange={(e) => setQuery(e.target.value)} />
         </label>
+        <nav className="browse-tabs" aria-label="瀏覽文章">
+          {browseModes.map(({ mode, label }) => (
+            <button
+              key={mode}
+              type="button"
+              aria-pressed={browseMode === mode}
+              data-testid={`browse-${mode}`}
+              onClick={() => selectBrowseMode(mode)}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
+        {browseMode !== 'all' && (
+          <section
+            className="facet-panel"
+            aria-label={`${browseModes.find((x) => x.mode === browseMode)?.label}篩選`}
+          >
+            <div className="facet-heading">
+              <strong>
+                {selectedFacet
+                  ? `已篩選 ${shown.length} 篇`
+                  : `選擇${browseModes.find((x) => x.mode === browseMode)?.label}`}
+              </strong>
+              {selectedFacet && (
+                <button type="button" className="clear-filter" onClick={() => setSelectedFacet('')}>
+                  清除
+                </button>
+              )}
+            </div>
+            <div className="facet-list" data-testid="facet-list">
+              {facets.map((facet) => (
+                <button
+                  key={facet.key}
+                  type="button"
+                  aria-label={`${facet.label}（${facet.count} 篇）`}
+                  aria-pressed={selectedFacet === facet.key}
+                  onClick={() => setSelectedFacet(facet.key)}
+                >
+                  <span>{facet.label}</span>
+                  <small>{facet.count}</small>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
         {loading && <p>載入中…</p>}
         {!loading && !shown.length && <p data-testid="empty-results">沒有符合的文章</p>}
-        <ul data-testid="article-list">
+        <ul className="article-list" data-testid="article-list">
           {shown.map((a) => (
             <li key={a.id}>
-              <button onClick={() => open(a.id)}>
+              <button type="button" onClick={() => open(a.id)}>
                 {a.title}
                 <small>
-                  {a.date} · 約 {a.readingStats.estimatedMinutes} 分鐘
+                  {a.category} · {a.date} · 約 {a.readingStats.estimatedMinutes} 分鐘
                 </small>
               </button>
             </li>
@@ -276,4 +368,5 @@ function App() {
     </main>
   );
 }
+
 createRoot(document.getElementById('root')!).render(<App />);
