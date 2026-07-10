@@ -1,0 +1,40 @@
+name: Desktop Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_ref:
+        description: Desktop source branch, tag, or commit SHA
+        required: true
+        default: app-main
+      requested_version:
+        description: Optional; blank uses package.json version from target_ref
+        required: false
+        default: ''
+      channel:
+        description: Release channel
+        required: true
+        type: choice
+        options:
+          - prerelease
+          - stable
+        default: prerelease
+      publish:
+        description: Publish after verification; false leaves a draft
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    uses: PME26Elvis/llm-research-archive/.github/workflows/desktop-release-reusable.yml@app-main
+    with:
+      target_ref: ${{ inputs.target_ref }}
+      requested_version: ${{ inputs.requested_version }}
+      channel: ${{ inputs.channel }}
+      publish: ${{ inputs.publish }}
