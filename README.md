@@ -48,6 +48,7 @@
 │   ├── stylesheets/extra.css
 │   └── javascripts/extra.js
 ├── hooks/word_counts.py          # MkDocs hook：字數統計與閱讀時間
+├── tools/publish_article.py      # 從 _incoming/articles/ 無腦上架文章
 ├── tools/new_note.py             # 互動式建立新文章骨架
 ├── tools/remove_citations.py     # 清理 Deep Research / ChatGPT citation marker
 ├── _incoming/articles/           # 待上架文章暫存區與格式說明
@@ -84,26 +85,82 @@ mkdocs build --strict
 
 `hooks/word_counts.py` 會在 build 過程中掃描有 `date` front matter 的文章，更新 `docs/word-counts.md`，並在文章頁顯示字數與預估閱讀時間。
 
-## 新增文章
+## 新增文章（無腦上架流程）
 
-### 方式一：使用工具建立骨架
+你不需要手動建立 `docs/<category>/<slug>/index.md`、複製內文、挑 tags 或清 citation。最推薦的流程是：**把 raw markdown 丟進 `_incoming/articles/`，然後叫 Codex 依本 README 或 `docs/article-publishing-workflow.md` 上架。**
+
+### 最短操作
+
+1. 把新文章原始 Markdown 存成單一檔案：
+
+   ```text
+   _incoming/articles/my-new-report.md
+   ```
+
+2. 對 Codex 說：
+
+   > 請根據 README 的無腦上架流程，把 `_incoming/articles/` 裡的新文章上架。
+
+3. Codex 會完成：
+   - 讀取 raw markdown。
+   - 從 H1 / 內容推斷標題、分類、英文 kebab-case slug、日期與 tags。
+   - 清理 Deep Research / ChatGPT citation marker、entity wrapper、無實際資產的 image placeholder。
+   - 建立正式路徑 `docs/<category>/<slug>/index.md` 與 `assets/`。
+   - 若 raw input 來自 `_incoming/articles/`，上架成功後移除該 raw input。
+   - 執行檢查（至少確認檔案、front matter、citation marker；可行時執行 `mkdocs build --strict`）。
+
+### AI 上架工具
+
+repo 內提供 `tools/publish_article.py` 給 Codex 或維護者使用。當 `_incoming/articles/` 只有一篇待上架文章時，可直接執行：
 
 ```bash
-python tools/new_note.py
+python tools/publish_article.py
 ```
 
-依提示輸入標題、分類與 tags 後，工具會建立：
+如果有多篇或需要指定資訊，可明確帶參數：
+
+```bash
+python tools/publish_article.py _incoming/articles/my-new-report.md \
+  --category llm \
+  --slug my-new-report \
+  --tags "LLM,Agentic AI"
+```
+
+工具會：
+
+- 支援單檔模式：`_incoming/articles/<name>.md`。
+- 支援資料夾模式：`_incoming/articles/<name>/article.md`、選用 `research-activity.md`、選用 `assets/`。
+- 自動加上 YAML front matter：`date` 與 `tags`。
+- 若文章沒有 H1，依檔名 / 參數補 H1。
+- 拒絕覆蓋已存在的正式文章。
+- 預設移除已處理的 raw input；若要保留可加 `--keep-raw`。
+
+> `tools/publish_article.py` 是「機械化上架」工具；分類、slug、tags 若 AI 判斷得更準，Codex 可以在執行時補上參數，或在建立後做必要微調。
+
+### 上架邏輯
+
+正式文章固定放在：
 
 ```text
-docs/<category>/<slug>/index.md
-docs/<category>/<slug>/assets/
+docs/<category>/<english-kebab-case-slug>/index.md
 ```
 
-### 方式二：從 `_incoming/articles/` 上架
+分類邏輯：
 
-若有待上架文章，可先放入 `_incoming/articles/`，再依 `docs/article-publishing-workflow.md` 的流程整理 metadata、分類、slug、附件與 citation 清理。
+- LLM / AI / agent / model / inference / compute / GPU / benchmark：放 `docs/llm/`。
+- Computer Science / programming / software engineering / data structure / algorithm / taxonomy：放 `docs/cs/`。
+- 健康、醫療、營養、睡眠、運動：放 `docs/health/`。
+- 碳排、能源、再生能源、環境、氣候：放 `docs/carbon/`。
+- 無法明確判斷時，Codex 應先詢問，不要硬塞分類。
 
-建議正式文章格式：
+metadata 邏輯：
+
+- `title`：優先使用文章第一個 H1；沒有 H1 才補標題。
+- `slug`：用英文 kebab-case，短、可讀、可從 URL 理解主題。
+- `date`：使用上架當日 `YYYY-MM-DD`。
+- `tags`：至少一個分類 tag（例如 `LLM` / `CS` / `Carbon` / `Health`），再加 1–3 個主題 tag。
+
+正式文章開頭應長這樣：
 
 ```yaml
 ---
@@ -116,15 +173,12 @@ tags:
 # 文章標題
 ```
 
-文章路徑建議固定為：
-
-```text
-docs/<category>/<english-kebab-case-slug>/index.md
-```
+詳細 SOP、Codex 行為規則、附件策略與檢查清單請看 `docs/article-publishing-workflow.md`。
 
 ## 實用工具
 
-- `python tools/new_note.py`：建立新文章目錄、`index.md` 與 `assets/`。
+- `python tools/publish_article.py`：從 `_incoming/articles/` 將 raw markdown 上架成正式文章，自動補 front matter、清理 AI citation marker，並移除 raw input。
+- `python tools/new_note.py`：互動式建立新文章目錄、`index.md` 與 `assets/`；適合只想先開空白骨架時使用。
 - `python tools/remove_citations.py`：掃描 `docs/**/*.md`，移除 OpenAI Deep Research / ChatGPT citation marker。
 - `mkdocs build --strict`：嚴格建置網站，同時觸發字數統計 hook。
 

@@ -42,11 +42,26 @@ _incoming/articles/<name>/
 
 ## Codex 上架輸入
 
-當使用者要求「根據本文件上架新文章」時，Codex 應先判斷輸入來源。
+當使用者要求「根據本文件上架新文章」時，Codex 應先判斷輸入來源。若 raw input 已經在檔案系統中，優先使用 `tools/publish_article.py` 做機械化上架；需要更精準的分類、slug 或 tags 時，Codex 應在執行工具時補上參數，或在工具產生後微調正式文章。
 
 ### 來源一：`_incoming/articles/`
 
 Codex 應先檢查 `_incoming/articles/`。若只有一個待處理項目，直接處理該項目。若有多個待處理項目，除非使用者明確要求全部上架，否則應先列出候選項目並請使用者確認。
+
+只有一個待處理項目時，最短命令是：
+
+```bash
+python tools/publish_article.py
+```
+
+若 Codex 已判斷出更好的 metadata，應明確傳入參數，例如：
+
+```bash
+python tools/publish_article.py _incoming/articles/my-new-report.md \
+  --category llm \
+  --slug my-new-report \
+  --tags "LLM,Agentic AI"
+```
 
 ### 來源二：對話直接貼上完整文章
 
@@ -145,13 +160,14 @@ tags:
 
 上架前必須先清理 OpenAI Deep Research / ChatGPT 產生的 citation marker。
 
-目前既有工具是：
+目前有兩個相關工具：
 
 ```bash
+python tools/publish_article.py
 python tools/remove_citations.py
 ```
 
-但 `tools/remove_citations.py` 會掃描整個 `docs/`。若只處理單篇新文章，Codex 可以使用相同核心 regex 對新文章內容做局部清理：
+`tools/publish_article.py` 會在上架單篇新文章時先做局部清理；`tools/remove_citations.py` 則會掃描整個 `docs/`，適合批次清理既有正式文章。若只處理單篇新文章，Codex 可以使用相同核心 regex 對新文章內容做局部清理：
 
 ```python
 re.compile(r'[ \t]*\uE200cite\uE202[^\uE201]*\uE201')
@@ -281,9 +297,10 @@ Codex 應依序：
 1. 找出 `_incoming/articles/` 中的待處理項目。
 2. 讀取 raw markdown。
 3. 推斷 title、category、slug、date、tags。
-4. 清理 OpenAI citation marker。
-5. 用 AI 判斷移除或改寫明顯不是給讀者閱讀的 citation、工具 wrapper 或 research activity 痕跡。
-6. 建立 `docs/<category>/<slug>/index.md`。
-7. 視需要加入 `<details>` 附件。
-8. 移除已處理的 raw input；若文章由對話直接貼上，則此步驟不適用。
-9. 執行檢查並回報新增路徑。
+4. 優先用 `python tools/publish_article.py ...` 建立正式文章；必要時帶上 `--category`、`--slug`、`--tags`。
+5. 清理 OpenAI citation marker。
+6. 用 AI 判斷移除或改寫明顯不是給讀者閱讀的 citation、工具 wrapper 或 research activity 痕跡。
+7. 建立或確認 `docs/<category>/<slug>/index.md`。
+8. 視需要加入 `<details>` 附件。
+9. 移除已處理的 raw input；若文章由對話直接貼上，則此步驟不適用。
+10. 執行檢查並回報新增路徑。
