@@ -19,7 +19,7 @@ related-adrs:
 | Dark mode | CSS | renderer | planned | planned | Current styling is fixed dark reader. |
 | Code copy | JS | renderer | planned | planned | Code rendering exists; copy action is not implemented. |
 | Syntax highlighting | MkDocs | renderer | planned | planned | Sanitized code blocks exist; highlighting is later. |
-| Image lightbox | JS/CSS | renderer | planned | planned | Images can render; lightbox is later. |
+| Image lightbox | JS/CSS | renderer | implemented | apps/desktop-electron/e2e/source.spec.ts | Local article images are keyboard focusable, lazy-loaded, and open in an accessible modal with Escape and focus restoration. |
 | Mermaid | MkDocs | renderer | planned | planned | Rendered as safe text/fence only. |
 | Footnotes | Markdown | renderer | planned | planned | Markdown-it default coverage only. |
 | Internal links | Markdown | application/renderer | implemented | packages/content-engine/src/index.test.ts; apps/desktop-electron/e2e/source.spec.ts | Same-page and cross-article Unicode fragments remain inside the app shell. |
