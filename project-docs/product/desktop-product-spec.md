@@ -10,7 +10,7 @@ related-adrs:
 
 ## Current P1 Offline Reader Scope
 
-This PR implements only the offline bundled reader slice: secure Electron shell, content parsing, search, sanitized reading, packaging commands, and smoke tests. Requirements not covered by concrete tests remain planned.
+The current implementation provides the offline bundled reader, secure Electron shell, content parsing, search, sanitized reading, native packaging, and a verified draft-release pipeline. Requirements without concrete code and verification artifacts remain planned.
 
 ## FR-001
 
@@ -110,19 +110,19 @@ Status: `implemented`. Verification: .github/workflows/desktop-ci.yml, scripts/r
 
 ## FR-025
 
-Status: `planned`. Verification: planned for a later PR.
+Status: `implemented`. Verification: .github/workflows/desktop-release-reusable.yml, scripts/workflow-release.test.ts, project-docs/release/verification-run-29113199684.md.
 
 ## FR-026
 
-Status: `planned`. Verification: planned for a later PR.
+Status: `implemented`. Verification: scripts/aggregate-release.mjs, scripts/verify-release-assets.mjs, project-docs/release/verification-run-29113199684.md.
 
 ## FR-027
 
-Status: `planned`. Verification: planned for a later PR.
+Status: `implemented`. Verification: .github/workflows/desktop-release-reusable.yml, scripts/workflow-release.test.ts, project-docs/release/verification-run-29113199684.md.
 
 ## FR-028
 
-Status: `planned`. Verification: planned for a later PR.
+Status: `implemented`. Verification: .github/workflows/desktop-release-reusable.yml, scripts/workflow-release.test.ts, project-docs/release/verification-run-29113199684.md.
 
 ## FR-029
 
@@ -190,19 +190,19 @@ Status: `planned`. Verification: planned for a later PR.
 
 ## NFR-015
 
-Status: `planned`. Verification: planned for a later PR.
+Status: `implemented`. Verification: .github/workflows/desktop-ci.yml, scripts/packaged-smoke.mjs, project-docs/release/verification-run-29113199684.md.
 
 ## NFR-016
 
-Status: `planned`. Verification: planned for a later PR.
+Status: `implemented`. Verification: .github/workflows/desktop-ci.yml, .github/workflows/desktop-release-reusable.yml, scripts/workflow-release.test.ts.
 
 ## NFR-017
 
-Status: `planned`. Verification: planned for a later PR.
+Status: `implemented`. Verification: .github/workflows/desktop-ci.yml, .github/workflows/desktop-release-reusable.yml, scripts/workflow-release.test.ts.
 
 ## NFR-018
 
-Status: `planned`. Verification: planned for a later PR.
+Status: `implemented`. Verification: .github/workflows/desktop-release-reusable.yml, scripts/release-scripts.test.ts, scripts/workflow-release.test.ts, project-docs/release/verification-run-29113199684.md.
 
 ## NFR-019
 
@@ -231,4 +231,3 @@ Status: `implemented`. Verification: project-docs/product/desktop-product-spec.m
 ## NFR-025
 
 Status: `planned`. Verification: planned for a later PR.
-

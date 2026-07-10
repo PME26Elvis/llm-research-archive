@@ -8,4 +8,20 @@ related-adrs:
 
 # Artifact Manifest
 
-Release artifacts include Windows zip/setup, Linux deb/rpm/zip where maker support is available, SHA256SUMS.txt, release-manifest.json and sbom.cdx.json.
+A complete desktop draft release contains exactly eight assets.
+
+## Native binaries
+
+- `research-observatory-<version>-windows-x64-setup.exe`
+- `research-observatory-<version>-windows-x64-portable.zip`
+- `research-observatory-<version>-linux-x64-portable.zip`
+- `research-observatory-<version>-linux-x64.deb`
+- `research-observatory-<version>-linux-x64.rpm`
+
+## Verification metadata
+
+- `SHA256SUMS.txt`
+- `release-manifest.json`
+- `sbom.cdx.json`
+
+`release-manifest.json` records the version, release tag, immutable target commit, artifact names, byte sizes, SHA-256 values, and signing state. The release verifier rejects missing, extra, duplicate, or zero-byte assets, mismatched sizes, and a release target that differs from the resolved source commit.

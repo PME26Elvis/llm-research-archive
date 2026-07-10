@@ -19,7 +19,7 @@ for (const match of productSpec.matchAll(sectionRe)) {
   productStatuses.set(match[1], status[1]);
 }
 const validVerification =
-  /(__tests__|\.test\.|\.spec\.|e2e\/|scripts\/(node-smoke|packaged-smoke|validate-[^/]+|release-assets|aggregate-release)\.mjs|project-docs\/migration\/mkdocs-feature-parity-matrix\.md|\.github\/workflows\/desktop-ci\.yml)/;
+  /(__tests__|\.test\.|\.spec\.|e2e\/|scripts\/(node-smoke|packaged-smoke|validate-[^/]+|release-assets|aggregate-release|verify-release-assets)\.mjs|project-docs\/migration\/mkdocs-feature-parity-matrix\.md|project-docs\/release\/verification-run-\d+\.md|\.github\/workflows\/desktop-(ci|release-reusable)\.yml)/;
 for (const r of req) {
   if (ids.has(r.id)) throw new Error(`duplicate ${r.id}`);
   ids.add(r.id);
