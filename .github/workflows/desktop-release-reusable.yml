@@ -125,16 +125,8 @@ jobs:
         run: |
           set -euo pipefail
           if gh release view "$TAG" --json isDraft,targetCommitish,assets >/tmp/release-before.json 2>/dev/null; then
-            node - <<'NODE'
-            const r=require('/tmp/release-before.json');
-            if(!r.isDraft){console.error(`release ${process.env.TAG} is already published`); process.exit(1);}
-            if(r.targetCommitish !== process.env.TARGET_SHA){console.error(`draft ${process.env.TAG} targets ${r.targetCommitish}, expected ${process.env.TARGET_SHA}`); process.exit(1);}
-            NODE
-            node - <<'NODE' >/tmp/delete-assets.sh
-            const r=require('/tmp/release-before.json');
-            for (const a of r.assets) console.log(`gh release delete-asset ${JSON.stringify(process.env.TAG)} ${JSON.stringify(a.name)} -y`);
-            NODE
-            bash /tmp/delete-assets.sh
+            node -e 'const r=require("/tmp/release-before.json"); if(!r.isDraft){console.error(`release ${process.env.TAG} is already published`); process.exit(1);} if(r.targetCommitish !== process.env.TARGET_SHA){console.error(`draft ${process.env.TAG} targets ${r.targetCommitish}, expected ${process.env.TARGET_SHA}`); process.exit(1);}'
+            node -e 'const { spawnSync }=require("node:child_process"); const r=require("/tmp/release-before.json"); for(const a of r.assets){const result=spawnSync("gh",["release","delete-asset",process.env.TAG,a.name,"-y"],{stdio:"inherit"}); if(result.status!==0) process.exit(result.status ?? 1);}'
           else
             gh release create "$TAG" --draft --target "$TARGET_SHA" --title "$TAG" --notes "Desktop release $TAG"
           fi
