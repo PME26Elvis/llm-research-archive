@@ -13,9 +13,9 @@ related-adrs:
 | FR-001 | implemented | packages/application/src/index.test.ts, apps/desktop-electron/e2e/source.spec.ts, scripts/packaged-smoke.mjs |
 | FR-002 | planned | planned |
 | FR-003 | implemented | packages/content-engine/src/index.test.ts |
-| FR-004 | planned | planned |
-| FR-005 | planned | planned |
-| FR-006 | planned | planned |
+| FR-004 | implemented | packages/renderer-ui/src/browse.test.ts, apps/desktop-electron/e2e/source.spec.ts |
+| FR-005 | implemented | packages/renderer-ui/src/browse.test.ts, apps/desktop-electron/e2e/source.spec.ts |
+| FR-006 | implemented | packages/renderer-ui/src/browse.test.ts, apps/desktop-electron/e2e/source.spec.ts |
 | FR-007 | implemented | packages/search-engine/src/index.test.ts, apps/desktop-electron/e2e/source.spec.ts |
 | FR-008 | implemented | apps/desktop-electron/e2e/source.spec.ts, scripts/packaged-smoke.mjs |
 | FR-009 | implemented | packages/content-engine/src/index.test.ts |
