@@ -13,6 +13,7 @@ import {
   SearchRequestSchema,
   SearchResponseSchema,
   ExternalUrlSchema,
+  AppInfoResponseSchema,
 } from '@research-observatory/platform-contracts';
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
@@ -103,12 +104,19 @@ ipcMain.handle('diagnostics:get', (event) => {
 });
 ipcMain.handle('app:info', (event) => {
   validateSender(event.sender, event.senderFrame);
-  return {
+  const manifest = core.manifest();
+  return AppInfoResponseSchema.parse({
+    productName: app.getName(),
     version: app.getVersion(),
     commit: process.env.GITHUB_SHA || 'local',
     platform: process.platform,
     packaged: app.isPackaged,
-  };
+    electronVersion: process.versions.electron,
+    chromiumVersion: process.versions.chrome,
+    nodeVersion: process.versions.node,
+    contentArticleCount: manifest.articles.length,
+    contentManifestHash: manifest.contentHash,
+  });
 });
 ipcMain.handle('external:open', (event, url) => {
   validateSender(event.sender, event.senderFrame);

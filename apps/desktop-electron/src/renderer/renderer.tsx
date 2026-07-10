@@ -1,8 +1,9 @@
 import './style.css';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { renderMarkdown } from '@research-observatory/renderer-ui';
 import type {
+  AppInfoDto,
   ArticleDto,
   ArticleSummaryDto,
   SearchResultDto,
@@ -14,6 +15,7 @@ declare global {
       listArticles(): Promise<ArticleSummaryDto[]>;
       getArticle(id: string): Promise<ArticleDto>;
       search(query: string): Promise<SearchResultDto[]>;
+      appInfo(): Promise<AppInfoDto>;
       openExternal(url: string): Promise<void>;
     };
   }
@@ -24,13 +26,60 @@ function rewriteAssetLinks(markdown: string, assetRoot: string): string {
     (_m, alt, src) => `![${alt}](app-asset:///${assetRoot}/${src})`,
   );
 }
+function hrefParts(href: string) {
+  const [path, fragment] = href.split('#');
+  return { path, fragment: fragment ? decodeURIComponent(fragment) : '' };
+}
+function AboutModal({ info, onClose }: { info: AppInfoDto; onClose: () => void }) {
+  const closeRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    closeRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  return (
+    <div className="modal-backdrop" role="presentation">
+      <section className="modal" role="dialog" aria-modal="true" aria-labelledby="about-title">
+        <h2 id="about-title">關於 Research Observatory</h2>
+        <dl>
+          <dt>Product name</dt>
+          <dd>{info.productName}</dd>
+          <dt>Version</dt>
+          <dd data-testid="about-version">{info.version}</dd>
+          <dt>Commit SHA</dt>
+          <dd>{info.commit}</dd>
+          <dt>Platform</dt>
+          <dd data-testid="about-platform">{info.platform}</dd>
+          <dt>Mode</dt>
+          <dd>{info.packaged ? 'Packaged' : 'Development'}</dd>
+          <dt>Electron</dt>
+          <dd>{info.electronVersion}</dd>
+          <dt>Chromium</dt>
+          <dd>{info.chromiumVersion}</dd>
+          <dt>Node</dt>
+          <dd>{info.nodeVersion}</dd>
+          <dt>Content article count</dt>
+          <dd>{info.contentArticleCount}</dd>
+          <dt>Content manifest hash</dt>
+          <dd>{info.contentManifestHash || 'Unavailable'}</dd>
+        </dl>
+        <button ref={closeRef} onClick={onClose}>
+          關閉
+        </button>
+      </section>
+    </div>
+  );
+}
 function App() {
   const [articles, setArticles] = useState<ArticleSummaryDto[]>([]);
   const [shown, setShown] = useState<(ArticleSummaryDto | SearchResultDto)[]>([]);
   const [query, setQuery] = useState('');
   const [selected, setSelected] = useState<ArticleDto | null>(null);
+  const [pendingFragment, setPendingFragment] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [about, setAbout] = useState<AppInfoDto | null>(null);
   useEffect(() => {
     window.observatory
       .listArticles()
@@ -55,12 +104,30 @@ function App() {
     }, 150);
     return () => clearTimeout(t);
   }, [query, articles]);
-  async function open(id: string) {
+  useEffect(() => {
+    if (!pendingFragment) return;
+    requestAnimationFrame(() => {
+      const target = document.getElementById(pendingFragment);
+      if (target) target.scrollIntoView();
+      else setError(`找不到標題片段：${pendingFragment}`);
+      setPendingFragment('');
+    });
+  }, [selected, pendingFragment]);
+  async function open(id: string, fragment = '') {
     setError('');
     try {
+      setPendingFragment(fragment);
       setSelected(await window.observatory.getArticle(id));
     } catch (e) {
       setError(`文章載入失敗：${String(e)}`);
+    }
+  }
+  async function openAbout() {
+    setError('');
+    try {
+      setAbout(await window.observatory.appInfo());
+    } catch (e) {
+      setError(`About 資訊載入失敗：${String(e)}`);
     }
   }
   function onArticleClick(e: React.MouseEvent<HTMLElement>) {
@@ -77,21 +144,27 @@ function App() {
       setError('已阻擋不安全連結');
       return;
     }
+    const { fragment } = hrefParts(href);
     const link = selected?.links.find((l) => l.href === href && l.targetArticleId);
     if (link?.targetArticleId) {
       e.preventDefault();
-      open(link.targetArticleId);
+      open(link.targetArticleId, fragment);
       return;
     }
     if (href) {
       e.preventDefault();
-      setError('找不到內部文章連結');
+      setError(`找不到內部文章連結：${href}`);
     }
   }
   return (
     <main className="app" data-testid="app-ready" data-article-count={articles.length}>
       <aside>
-        <h1>Research Observatory</h1>
+        <div className="app-header">
+          <h1>Research Observatory</h1>
+          <button type="button" onClick={openAbout}>
+            關於
+          </button>
+        </div>
         <label>
           搜尋文章
           <input aria-label="搜尋文章" value={query} onChange={(e) => setQuery(e.target.value)} />
@@ -133,6 +206,7 @@ function App() {
           <p>請選擇文章</p>
         )}
       </article>
+      {about && <AboutModal info={about} onClose={() => setAbout(null)} />}
     </main>
   );
 }

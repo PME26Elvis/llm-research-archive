@@ -33,10 +33,11 @@
     "make:linux": "npm run content:manifest && electron-forge make --platform linux --arch x64 && node scripts/release-assets.mjs linux",
     "release:assets": "node scripts/release-assets.mjs all",
     "benchmark": "node --import tsx scripts/node-smoke.mjs --benchmark",
-    "verify": "npm run format:check && npm run lint && npm run typecheck && npm run validate:traceability && npm run validate:generated && npm run test && npm run test:security && npm run test:compatibility && npm run build",
+    "verify": "npm run format:check && npm run lint && npm run typecheck && npm run validate:traceability && npm run validate:generated && npm run validate:release-assets && npm run test && npm run test:security && npm run test:compatibility && npm run build",
     "smoke:packaged": "node scripts/packaged-smoke.mjs",
     "format:write": "prettier --write \"{package.json,tsconfig*.json,vitest.config.ts,scripts/**/*.{mjs,js},packages/**/*.{ts,json},apps/**/*.{ts,tsx,mjs,json,html},.github/workflows/desktop-*.yml}\"",
-    "validate:generated": "node scripts/validate-generated-clean.mjs"
+    "validate:generated": "node scripts/validate-generated-clean.mjs",
+    "validate:release-assets": "node scripts/validate-release-assets.mjs"
   },
   "devDependencies": {
     "@electron-forge/cli": "^7.11.2",

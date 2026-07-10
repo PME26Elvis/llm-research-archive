@@ -1,8 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { artifactNames } from './release-version.mjs';
 const root = process.cwd();
 const version = JSON.parse(fs.readFileSync('package.json', 'utf8')).version;
+const [windowsSetup, windowsPortable, linuxPortable, linuxDeb, linuxRpm] = artifactNames(version);
 const platform = process.argv[2] || (process.platform === 'win32' ? 'windows' : 'linux');
 const out = path.join(root, 'dist/release-assets');
 fs.rmSync(out, { recursive: true, force: true });
@@ -20,18 +22,18 @@ const files = walk(forgeOut);
 const specs =
   platform === 'windows'
     ? [
-        { match: /Setup\.exe$/i, name: `research-observatory-${version}-windows-x64-setup.exe` },
+        { match: /Setup\.exe$/i, name: windowsSetup },
         {
           match: /win32-x64.*\.zip$/i,
-          name: `research-observatory-${version}-windows-x64-portable.zip`,
+          name: windowsPortable,
         },
       ]
     : [
-        { match: /\.deb$/i, name: `research-observatory-${version}-linux-x64.deb` },
-        { match: /\.rpm$/i, name: `research-observatory-${version}-linux-x64.rpm` },
+        { match: /\.deb$/i, name: linuxDeb },
+        { match: /\.rpm$/i, name: linuxRpm },
         {
           match: /linux-x64.*\.zip$/i,
-          name: `research-observatory-${version}-linux-x64-portable.zip`,
+          name: linuxPortable,
         },
       ];
 const artifacts = [];

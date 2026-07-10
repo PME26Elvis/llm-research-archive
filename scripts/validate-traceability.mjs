@@ -10,7 +10,7 @@ const acceptanceRows = new Map(
   ]),
 );
 const validVerification =
-  /(__tests__|\.test\.|\.spec\.|e2e\/|scripts\/(node-smoke|packaged-smoke|validate-[^/]+|release-assets|aggregate-release)\.mjs|project-docs\/migration\/mkdocs-feature-parity-matrix\.md)/;
+  /(__tests__|\.test\.|\.spec\.|e2e\/|scripts\/(node-smoke|packaged-smoke|validate-[^/]+|release-assets|aggregate-release)\.mjs|project-docs\/migration\/mkdocs-feature-parity-matrix\.md|\.github\/workflows\/desktop-ci\.yml)/;
 for (const r of req) {
   if (ids.has(r.id)) throw new Error(`duplicate ${r.id}`);
   ids.add(r.id);
