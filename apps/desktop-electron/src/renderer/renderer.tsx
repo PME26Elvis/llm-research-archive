@@ -295,9 +295,16 @@ function App() {
           ))}
         </nav>
         {browseMode !== 'all' && (
-          <section className="facet-panel" aria-label={`${browseModes.find((x) => x.mode === browseMode)?.label}篩選`}>
+          <section
+            className="facet-panel"
+            aria-label={`${browseModes.find((x) => x.mode === browseMode)?.label}篩選`}
+          >
             <div className="facet-heading">
-              <strong>{selectedFacet ? `已篩選 ${shown.length} 篇` : `選擇${browseModes.find((x) => x.mode === browseMode)?.label}`}</strong>
+              <strong>
+                {selectedFacet
+                  ? `已篩選 ${shown.length} 篇`
+                  : `選擇${browseModes.find((x) => x.mode === browseMode)?.label}`}
+              </strong>
               {selectedFacet && (
                 <button type="button" className="clear-filter" onClick={() => setSelectedFacet('')}>
                   清除
