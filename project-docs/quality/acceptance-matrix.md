@@ -45,7 +45,7 @@ related-adrs:
 | NFR-003 | implemented | apps/desktop-electron/tests/security.spec.ts |
 | NFR-004 | implemented | apps/desktop-electron/e2e/source.spec.ts |
 | NFR-005 | implemented | packages/platform-contracts/src/index.test.ts |
-| NFR-006 | implemented | apps/desktop-electron/src/renderer/index.html |
+| NFR-006 | implemented | apps/desktop-electron/tests/security.spec.ts |
 | NFR-007 | implemented | apps/desktop-electron/tests/security.spec.ts |
 | NFR-008 | implemented | apps/desktop-electron/tests/asset-path.spec.ts |
 | NFR-009 | implemented | packages/content-engine/src/index.test.ts |
@@ -62,6 +62,6 @@ related-adrs:
 | NFR-020 | implemented | scripts/validate-architecture.mjs |
 | NFR-021 | implemented | scripts/validate-traceability.mjs |
 | NFR-022 | implemented | apps/desktop-electron/e2e/source.spec.ts |
-| NFR-023 | implemented | apps/desktop-electron/src/renderer/index.html |
-| NFR-024 | implemented | project-docs/product/desktop-product-spec.md |
+| NFR-023 | implemented | apps/desktop-electron/e2e/source.spec.ts |
+| NFR-024 | implemented | apps/desktop-electron/e2e/source.spec.ts |
 | NFR-025 | planned | planned |
