@@ -174,3 +174,46 @@ test('browses the archive by category, tag, and month without leaving the app sh
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('opens a local article image in an accessible keyboard lightbox', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'observatory-image-e2e-'));
+  const articleRoot = path.join(root, 'images', 'sample');
+  writeArticle(
+    root,
+    path.join('images', 'sample'),
+    `---\ndate: 2026-03-01\ntags: [image]\n---\n# Image Article\n\n![Test diagram](diagram.png)\n`,
+  );
+  fs.writeFileSync(
+    path.join(articleRoot, 'diagram.png'),
+    Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lY1ZVQAAAABJRU5ErkJggg==',
+      'base64',
+    ),
+  );
+
+  const app = await launch({ ARCHIVE_CONTENT_ROOT: root });
+  try {
+    const page = await app.firstWindow();
+    await expect(page.getByTestId('app-ready')).toBeVisible({ timeout: 30000 });
+    await page.getByRole('button', { name: /Image Article/ }).click();
+
+    const image = page.getByRole('button', { name: '放大圖片：Test diagram' });
+    await expect(image).toBeVisible();
+    await expect(image).toHaveAttribute('loading', 'lazy');
+    await image.focus();
+    await page.keyboard.press('Enter');
+
+    const dialog = page.getByRole('dialog', { name: '圖片預覽：Test diagram' });
+    await expect(dialog).toBeVisible();
+    await expect(page.getByTestId('lightbox-image')).toHaveAttribute('alt', 'Test diagram');
+    await expect(page.locator(':focus')).toHaveText('關閉圖片');
+    await page.keyboard.press('Tab');
+    await expect(page.locator(':focus')).toHaveText('關閉圖片');
+    await page.keyboard.press('Escape');
+    await expect(dialog).toHaveCount(0);
+    await expect(image).toBeFocused();
+  } finally {
+    await app.close();
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
