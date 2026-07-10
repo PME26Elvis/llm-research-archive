@@ -9,6 +9,9 @@ import {
   asArticleId,
   asCategoryId,
   ReadingStats,
+  HeadingSlugger,
+  baseHeadingSlug,
+  cleanHeadingText,
 } from '@research-observatory/domain';
 
 const excludedSourcePaths = new Set([
@@ -27,16 +30,8 @@ const metadataSchema = z
     updated: z.union([z.string(), z.date()]).optional(),
   })
   .passthrough();
-const cleanInline = (text: string) =>
-  text
-    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
-    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
-    .replace(/[`*_~>#|]/g, ' ');
-const slugify = (s: string) =>
-  s
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-|-$/g, '') || 'article';
+const cleanInline = cleanHeadingText;
+const slugify = baseHeadingSlug;
 export function readingStats(markdown: string): ReadingStats {
   const text = cleanInline(
     markdown
@@ -94,11 +89,11 @@ export function parseArticle(file: string, root: string): Article | undefined {
         );
   const markdown = parsed.content.trim();
   const title = titleFromMarkdown(markdown, data.title || path.basename(path.dirname(file)));
-  const headings = [...markdown.matchAll(/^(#{1,6})\s+(.+)$/gm)].map((m) => ({
-    depth: m[1].length,
-    text: cleanInline(m[2]).trim(),
-    slug: slugify(m[2]),
-  }));
+  const headingSlugger = new HeadingSlugger();
+  const headings = [...markdown.matchAll(/^(#{1,6})\s+(.+)$/gm)].map((m) => {
+    const text = cleanInline(m[2]).trim();
+    return { depth: m[1].length, text, slug: headingSlugger.slug(text) };
+  });
   const links = [...markdown.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)].map((m) => {
     const href = m[2];
     const internal = !/^(https?:|mailto:|javascript:|data:|file:)/i.test(href);

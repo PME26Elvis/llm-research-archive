@@ -18,6 +18,7 @@ import {
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
 declare const MAIN_WINDOW_VITE_NAME: string;
+declare const __OBSERVATORY_BUILD_COMMIT__: string;
 
 if (squirrelStartup) app.quit();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -108,7 +109,7 @@ ipcMain.handle('app:info', (event) => {
   return AppInfoResponseSchema.parse({
     productName: app.getName(),
     version: app.getVersion(),
-    commit: process.env.GITHUB_SHA || 'local',
+    commit: __OBSERVATORY_BUILD_COMMIT__ || 'local',
     platform: process.platform,
     packaged: app.isPackaged,
     electronVersion: process.versions.electron,

@@ -27,20 +27,52 @@ function rewriteAssetLinks(markdown: string, assetRoot: string): string {
   );
 }
 function hrefParts(href: string) {
-  const [path, fragment] = href.split('#');
-  return { path, fragment: fragment ? decodeURIComponent(fragment) : '' };
+  const hash = href.indexOf('#');
+  if (hash < 0) return { path: href, fragment: '' };
+  const path = href.slice(0, hash);
+  const rawFragment = href.slice(hash + 1);
+  try {
+    return { path, fragment: rawFragment ? decodeURIComponent(rawFragment) : '' };
+  } catch {
+    return { path, fragment: rawFragment };
+  }
 }
 function AboutModal({ info, onClose }: { info: AppInfoDto; onClose: () => void }) {
+  const dialogRef = useRef<HTMLElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     closeRef.current?.focus();
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key !== 'Tab' || !dialogRef.current) return;
+      const focusable = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
   return (
     <div className="modal-backdrop" role="presentation">
-      <section className="modal" role="dialog" aria-modal="true" aria-labelledby="about-title">
+      <section
+        ref={dialogRef}
+        className="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="about-title"
+      >
         <h2 id="about-title">關於 Research Observatory</h2>
         <dl>
           <dt>Product name</dt>
@@ -48,7 +80,7 @@ function AboutModal({ info, onClose }: { info: AppInfoDto; onClose: () => void }
           <dt>Version</dt>
           <dd data-testid="about-version">{info.version}</dd>
           <dt>Commit SHA</dt>
-          <dd>{info.commit}</dd>
+          <dd data-testid="about-commit">{info.commit}</dd>
           <dt>Platform</dt>
           <dd data-testid="about-platform">{info.platform}</dd>
           <dt>Mode</dt>
@@ -80,6 +112,7 @@ function App() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [about, setAbout] = useState<AppInfoDto | null>(null);
+  const aboutButtonRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
     window.observatory
       .listArticles()
@@ -115,12 +148,38 @@ function App() {
   }, [selected, pendingFragment]);
   async function open(id: string, fragment = '') {
     setError('');
+    setPendingFragment('');
     try {
+      const article = await window.observatory.getArticle(id);
+      setSelected(article);
       setPendingFragment(fragment);
-      setSelected(await window.observatory.getArticle(id));
     } catch (e) {
       setError(`文章載入失敗：${String(e)}`);
     }
+  }
+  async function openInternalLink(id: string, href: string, fragment = '') {
+    setError('');
+    setPendingFragment('');
+    try {
+      const article = await window.observatory.getArticle(id);
+      setSelected(article);
+      setPendingFragment(fragment);
+    } catch {
+      setError(`找不到內部文章連結：${href}`);
+    }
+  }
+  function scrollCurrentArticleToFragment(fragment: string) {
+    setError('');
+    setPendingFragment('');
+    requestAnimationFrame(() => {
+      const target = document.getElementById(fragment);
+      if (target) target.scrollIntoView();
+      else setError(`找不到標題片段：${fragment}`);
+    });
+  }
+  function closeAbout() {
+    setAbout(null);
+    requestAnimationFrame(() => aboutButtonRef.current?.focus());
   }
   async function openAbout() {
     setError('');
@@ -144,11 +203,18 @@ function App() {
       setError('已阻擋不安全連結');
       return;
     }
-    const { fragment } = hrefParts(href);
-    const link = selected?.links.find((l) => l.href === href && l.targetArticleId);
+    const { path, fragment } = hrefParts(href);
+    if (!path && fragment) {
+      e.preventDefault();
+      scrollCurrentArticleToFragment(fragment);
+      return;
+    }
+    const link = selected?.links.find(
+      (l) => l.targetArticleId && (l.href === href || hrefParts(l.href).path === path),
+    );
     if (link?.targetArticleId) {
       e.preventDefault();
-      open(link.targetArticleId, fragment);
+      openInternalLink(link.targetArticleId, href, fragment);
       return;
     }
     if (href) {
@@ -161,7 +227,7 @@ function App() {
       <aside>
         <div className="app-header">
           <h1>Research Observatory</h1>
-          <button type="button" onClick={openAbout}>
+          <button ref={aboutButtonRef} type="button" onClick={openAbout}>
             關於
           </button>
         </div>
@@ -206,7 +272,7 @@ function App() {
           <p>請選擇文章</p>
         )}
       </article>
-      {about && <AboutModal info={about} onClose={() => setAbout(null)} />}
+      {about && <AboutModal info={about} onClose={closeAbout} />}
     </main>
   );
 }

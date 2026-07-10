@@ -1,22 +1,17 @@
 import MarkdownIt from 'markdown-it';
 import sanitizeHtml from 'sanitize-html';
+import { HeadingSlugger } from '@research-observatory/domain';
 const md = new MarkdownIt({ html: true, linkify: true, typographer: true });
-function slugify(s: string) {
-  return (
-    s
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/^-|-$/g, '') || 'article'
-  );
-}
-md.renderer.rules.heading_open = (tokens, idx, options, _env, self) => {
-  const inline = tokens[idx + 1];
-  const text = inline?.type === 'inline' ? inline.content : '';
-  tokens[idx].attrSet('id', slugify(text));
-  return self.renderToken(tokens, idx, options);
-};
 export function renderMarkdown(markdown: string): string {
-  return sanitizeHtml(md.render(markdown), {
+  const slugger = new HeadingSlugger();
+  const env = { slugger };
+  md.renderer.rules.heading_open = (tokens, idx, options, currentEnv, self) => {
+    const inline = tokens[idx + 1];
+    const text = inline?.type === 'inline' ? inline.content : '';
+    tokens[idx].attrSet('id', (currentEnv.slugger as HeadingSlugger).slug(text));
+    return self.renderToken(tokens, idx, options);
+  };
+  return sanitizeHtml(md.render(markdown, env), {
     allowedTags: sanitizeHtml.defaults.allowedTags.concat([
       'img',
       'details',

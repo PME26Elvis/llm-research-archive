@@ -48,11 +48,11 @@ test('internal article links stay in app shell, support fragments, and block fil
   fs.mkdirSync(path.join(root, 'alpha', 'target'), { recursive: true });
   fs.writeFileSync(
     path.join(root, 'alpha', 'source', 'index.md'),
-    `---\ndate: 2026-01-01\ntags: [test]\n---\n# Source Article\n\n[Go Target](../target/index.md#deep-heading)\n\n[Broken](../missing/)\n\n[Bad](file:///etc/passwd)\n`,
+    `---\ndate: 2026-01-01\ntags: [test]\n---\n# Source Article\n\n## 同頁結論\n\nSame page body.\n\n[Go Target](../target/index.md#結論)\n\n[Go Duplicate](../target/index.md#模型-1)\n\n[Same Page](#同頁結論)\n\n[Missing Fragment](#%E0%A4%A)\n\n[Broken](../missing/)\n\n[Bad](file:///etc/passwd)\n`,
   );
   fs.writeFileSync(
     path.join(root, 'alpha', 'target', 'index.md'),
-    `---\ndate: 2026-01-02\ntags: [test]\n---\n# Target Article\n\nIntro\n\n## Deep Heading\n\nFragment body.\n`,
+    `---\ndate: 2026-01-02\ntags: [test]\n---\n# Target Article\n\nIntro\n\n## 結論\n\nChinese fragment body.\n\n## 模型\n\nFirst model.\n\n## 模型\n\nSecond model.\n`,
   );
   const app = await launch({ ARCHIVE_CONTENT_ROOT: root });
   try {
@@ -63,11 +63,29 @@ test('internal article links stay in app shell, support fragments, and block fil
     await page.getByRole('link', { name: 'Go Target' }).click();
     await expect(page).toHaveURL(before);
     await expect(page.locator('article header h2')).toHaveText('Target Article');
-    await expect(page.locator('#deep-heading')).toBeInViewport();
+    await expect(page.locator('#結論')).toBeInViewport();
+    await page.getByRole('button', { name: /Source Article/ }).click();
+    await page.getByRole('link', { name: 'Go Duplicate' }).click();
+    await expect(page.locator('article header h2')).toHaveText('Target Article');
+    await expect(page.locator('#模型-1')).toBeInViewport();
+    await page.getByRole('button', { name: /Source Article/ }).click();
+    await page.getByRole('link', { name: 'Same Page' }).click();
+    await expect(page).toHaveURL(before);
+    await expect(page.locator('article header h2')).toHaveText('Source Article');
+    await expect(page.locator('#同頁結論')).toBeInViewport();
+    await page.getByRole('link', { name: 'Missing Fragment' }).click();
+    await expect(page.getByRole('alert')).toContainText('找不到標題片段');
     await page.getByRole('button', { name: /Source Article/ }).click();
     await page.getByRole('link', { name: 'Broken' }).click();
-    await expect(page.getByRole('alert')).toContainText('找不到內部文章連結');
-    await page.locator('a', { hasText: 'Bad' }).click();
+    await expect(page.getByRole('alert')).toContainText('找不到內部文章連結：../missing/');
+    await expect(page.locator('article header h2')).toHaveText('Source Article');
+    await page.evaluate(() => {
+      const a = document.createElement('a');
+      a.href = 'file:///etc/passwd';
+      a.textContent = 'Injected bad file link';
+      document.querySelector('[data-testid="reader"]')?.append(a);
+      a.click();
+    });
     await expect(page.getByRole('alert')).toContainText('已阻擋不安全連結');
     await expect(page).toHaveURL(before);
   } finally {
@@ -88,10 +106,16 @@ test('about modal shows build information without exposing Node globals', async 
       require('../../../package.json').version,
     );
     await expect(page.getByTestId('about-platform')).not.toHaveText('');
+    await expect(page.getByTestId('about-commit')).not.toHaveText('');
+    await expect(page.getByTestId('about-commit')).not.toHaveText('local');
+    await expect(page.locator(':focus')).toHaveText('關閉');
+    await page.keyboard.press('Tab');
+    await expect(page.locator(':focus')).toHaveText('關閉');
     await expect(page.evaluate(() => Reflect.has(window, 'require'))).resolves.toBe(false);
     await expect(page.evaluate(() => Reflect.has(window, 'process'))).resolves.toBe(false);
     await page.keyboard.press('Escape');
     await expect(page.getByRole('dialog')).toHaveCount(0);
+    await expect(page.locator(':focus')).toHaveText('關於');
   } finally {
     await app.close();
   }

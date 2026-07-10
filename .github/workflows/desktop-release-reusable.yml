@@ -7,7 +7,7 @@ on:
       channel: { type: string, required: false, default: prerelease }
       publish: { type: boolean, required: false, default: false }
 concurrency:
-  group: desktop-release-${{ inputs.target_ref }}-${{ inputs.requested_version || 'package-json' }}
+  group: desktop-release
   cancel-in-progress: false
 permissions:
   contents: read
@@ -23,39 +23,41 @@ jobs:
         with: { ref: '${{ inputs.target_ref }}' }
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with: { node-version: '24', cache: npm }
+      - run: npm ci
       - id: release
         shell: bash
+        env:
+          REQUESTED_VERSION: ${{ inputs.requested_version }}
+          CHANNEL: ${{ inputs.channel }}
         run: |
-          sha=$(git rev-parse HEAD)
-          package_version=$(node -p 'require("./package.json").version')
-          requested='${{ inputs.requested_version }}'
-          version="$package_version"
-          if [ -n "$requested" ]; then
-            node -e "const v=process.argv[1]; if(!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?$/.test(v)) { console.error('requested_version is not valid SemVer: '+v); process.exit(1); }" "$requested"
-            if [ "$requested" != "$package_version" ]; then
-              echo "requested_version ($requested) does not match package.json version ($package_version)" >&2
-              exit 1
-            fi
-            version="$requested"
-          fi
-          echo "sha=$sha" >> "$GITHUB_OUTPUT"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "tag=v$version" >> "$GITHUB_OUTPUT"
-      - run: npm ci
+          node - <<'NODE' >> "$GITHUB_OUTPUT"
+          const semver = require('semver');
+          const { execSync } = require('node:child_process');
+          const pkg = require('./package.json');
+          const sha = execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim();
+          const requested = process.env.REQUESTED_VERSION || '';
+          const channel = process.env.CHANNEL || '';
+          if (!['stable', 'prerelease'].includes(channel)) throw new Error(`channel must be stable or prerelease: ${channel}`);
+          if (!semver.valid(pkg.version)) throw new Error(`package.json version is not valid SemVer: ${pkg.version}`);
+          if (requested) {
+            if (!semver.valid(requested)) throw new Error(`requested_version is not valid SemVer: ${requested}`);
+            if (requested !== pkg.version) throw new Error(`requested_version (${requested}) does not match package.json version (${pkg.version})`);
+          }
+          if (channel === 'stable' && semver.prerelease(pkg.version)) throw new Error(`stable channel cannot release prerelease version: ${pkg.version}`);
+          console.log(`sha=${sha}`);
+          console.log(`version=${pkg.version}`);
+          console.log(`tag=v${pkg.version}`);
+          NODE
       - run: npm run verify
+        env:
+          RELEASE_TARGET_COMMIT: ${{ steps.release.outputs.sha }}
       - run: |
-          test '${{ inputs.channel }}' != stable || node -e "process.exit('${{ steps.release.outputs.version }}'.includes('-') ? 1 : 0)"
-      - run: |
-          if gh release view '${{ steps.release.outputs.tag }}' --json isDraft >/tmp/release.json 2>/dev/null; then
-            node -e "const r=require('/tmp/release.json'); if(!r.isDraft){console.error('release ${{ steps.release.outputs.tag }} is already published'); process.exit(1)}"
+          if gh release view "$TAG" --json isDraft >/tmp/release.json 2>/dev/null; then
+            node -e "const r=require('/tmp/release.json'); if(!r.isDraft){console.error('release ' + process.env.TAG + ' is already published'); process.exit(1)}"
           fi
-        env: { GH_TOKEN: '${{ github.token }}' }
-      - run: |
-          {
-            echo '# Desktop Release'; echo; echo 'Version: ${{ steps.release.outputs.version }}'; echo 'Tag: ${{ steps.release.outputs.tag }}';
-            echo 'Target ref: ${{ inputs.target_ref }}'; echo 'Resolved SHA: ${{ steps.release.outputs.sha }}';
-            echo 'Channel: ${{ inputs.channel }}'; echo 'Publish requested: ${{ inputs.publish }}';
-          } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
   build:
     needs: preflight
     strategy:
@@ -74,6 +76,8 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y fakeroot rpm xvfb libgtk-3-0 libnss3 libasound2t64 libatk-bridge2.0-0 libxss1
       - run: npm ci
       - run: npm run make:${{ matrix.platform }}
+        env:
+          RELEASE_TARGET_COMMIT: ${{ needs.preflight.outputs.sha }}
       - if: runner.os == 'Linux'
         run: xvfb-run -a npm run smoke:packaged
       - if: runner.os == 'Windows'
@@ -105,37 +109,92 @@ jobs:
     runs-on: ubuntu-latest
     permissions: { contents: write }
     steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with: { ref: '${{ needs.preflight.outputs.sha }}' }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: { node-version: '24', cache: npm }
+      - run: npm ci
       - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
         with: { name: aggregate-release-assets, path: dist/aggregate-release }
       - name: Create or refresh draft release assets
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.preflight.outputs.tag }}
+          TARGET_SHA: ${{ needs.preflight.outputs.sha }}
         run: |
           set -euo pipefail
-          tag='${{ needs.preflight.outputs.tag }}'
-          if gh release view "$tag" --json isDraft >/tmp/release.json 2>/dev/null; then
-            node -e "const r=require('/tmp/release.json'); if(!r.isDraft){console.error('release $tag is already published'); process.exit(1)}"
-            for f in dist/aggregate-release/*; do gh release delete-asset "$tag" "$(basename "$f")" -y || true; done
+          if gh release view "$TAG" --json isDraft,targetCommitish,assets >/tmp/release-before.json 2>/dev/null; then
+            node - <<'NODE'
+            const r=require('/tmp/release-before.json');
+            if(!r.isDraft){console.error(`release ${process.env.TAG} is already published`); process.exit(1);}
+            if(r.targetCommitish !== process.env.TARGET_SHA){console.error(`draft ${process.env.TAG} targets ${r.targetCommitish}, expected ${process.env.TARGET_SHA}`); process.exit(1);}
+            NODE
+            node - <<'NODE' >/tmp/delete-assets.sh
+            const r=require('/tmp/release-before.json');
+            for (const a of r.assets) console.log(`gh release delete-asset ${JSON.stringify(process.env.TAG)} ${JSON.stringify(a.name)} -y`);
+            NODE
+            bash /tmp/delete-assets.sh
           else
-            gh release create "$tag" --draft --target '${{ needs.preflight.outputs.sha }}' --title "$tag" --notes "Desktop release $tag"
+            gh release create "$TAG" --draft --target "$TARGET_SHA" --title "$TAG" --notes "Desktop release $TAG"
           fi
-          gh release upload "$tag" dist/aggregate-release/* --clobber
-        env: { GH_TOKEN: '${{ github.token }}' }
+          gh release upload "$TAG" dist/aggregate-release/* --clobber
       - name: Verify GitHub release assets
         run: |
-          gh release view '${{ needs.preflight.outputs.tag }}' --json assets,targetCommitish,isDraft > /tmp/release.json
+          gh release view "$TAG" --json assets,targetCommitish,isDraft > /tmp/release-after.json
           node - <<'NODE'
-          const r=require('/tmp/release.json'); const m=require('./dist/aggregate-release/release-manifest.json');
-          if(r.targetCommitish !== '${{ needs.preflight.outputs.sha }}') throw new Error(`target commit mismatch: ${r.targetCommitish}`);
-          const names=r.assets.map(a=>a.name); const dup=names.find((n,i)=>names.indexOf(n)!==i); if(dup) throw new Error(`duplicate asset ${dup}`);
-          const expected=[...m.artifacts.map(a=>a.name),'SHA256SUMS.txt','release-manifest.json','sbom.cdx.json'];
-          for (const n of expected) if(!names.includes(n)) throw new Error(`missing release asset ${n}`);
-          for (const a of r.assets) if(a.size===0) throw new Error(`zero-byte asset ${a.name}`);
-          for (const x of m.artifacts) { const y=r.assets.find(a=>a.name===x.name); if(!y || y.size!==x.size) throw new Error(`asset size mismatch ${x.name}`); }
+          (async () => {
+            const { verifyExactReleaseAssets } = await import('./scripts/verify-release-assets.mjs');
+            const r=require('/tmp/release-after.json');
+            const m=require('./dist/aggregate-release/release-manifest.json');
+            if(!r.isDraft) throw new Error('release was published before verification completed');
+            verifyExactReleaseAssets({ assets: r.assets, manifest: m, version: process.env.VERSION, targetCommit: process.env.TARGET_SHA, releaseTarget: r.targetCommitish });
+          })().catch((error) => { console.error(error); process.exit(1); });
           NODE
-        env: { GH_TOKEN: '${{ github.token }}' }
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.preflight.outputs.tag }}
+          VERSION: ${{ needs.preflight.outputs.version }}
+          TARGET_SHA: ${{ needs.preflight.outputs.sha }}
       - if: inputs.publish
-        run: gh release edit '${{ needs.preflight.outputs.tag }}' --draft=false --prerelease=${{ inputs.channel == 'prerelease' }}
-        env: { GH_TOKEN: '${{ github.token }}' }
+        run: gh release edit "$TAG" --draft=false --prerelease=$PRERELEASE
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.preflight.outputs.tag }}
+          PRERELEASE: ${{ inputs.channel == 'prerelease' }}
       - run: |
-          echo '## Result' >> "$GITHUB_STEP_SUMMARY"
-          if [ '${{ inputs.publish }}' = 'true' ]; then echo 'Release published' >> "$GITHUB_STEP_SUMMARY"; else echo 'Draft created' >> "$GITHUB_STEP_SUMMARY"; fi
+          node - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
+          const m=require('./dist/aggregate-release/release-manifest.json');
+          console.log('# Desktop Release\n');
+          console.log(`Version: ${process.env.VERSION}`);
+          console.log(`Tag: ${process.env.TAG}`);
+          console.log(`Target ref: ${process.env.TARGET_REF}`);
+          console.log(`Resolved SHA: ${process.env.TARGET_SHA}`);
+          console.log(`Channel: ${process.env.CHANNEL}`);
+          console.log(`Publish requested: ${process.env.PUBLISH}\n`);
+          console.log('## Build verification');
+          console.log('- Quality gate: passed');
+          console.log('- Windows make: passed');
+          console.log('- Windows packaged smoke: passed');
+          console.log('- Linux make: passed');
+          console.log('- Linux packaged smoke: passed\n');
+          console.log('## Artifacts');
+          console.log('| Name | Size | SHA-256 |');
+          console.log('| --- | ---: | --- |');
+          for (const a of m.artifacts) console.log(`| ${a.name} | ${a.size} | ${a.sha256} |`);
+          console.log('\n## GitHub Release verification');
+          console.log('- Exact eight-asset set: passed');
+          console.log('- No duplicate assets: passed');
+          console.log('- No zero-byte assets: passed');
+          console.log('- Binary sizes match manifest: passed');
+          console.log('- Target commit matches: passed\n');
+          console.log('## Result');
+          console.log(process.env.PUBLISH === 'true' ? 'Release published' : 'Draft created');
+          NODE
+        env:
+          VERSION: ${{ needs.preflight.outputs.version }}
+          TAG: ${{ needs.preflight.outputs.tag }}
+          TARGET_REF: ${{ inputs.target_ref }}
+          TARGET_SHA: ${{ needs.preflight.outputs.sha }}
+          CHANNEL: ${{ inputs.channel }}
+          PUBLISH: ${{ inputs.publish }}

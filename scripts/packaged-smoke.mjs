@@ -29,7 +29,15 @@ try {
   if (h2 !== title) throw new Error(`unexpected reader title ${h2}`);
   if (await page.evaluate(() => Reflect.has(window, 'require') || Reflect.has(window, 'process')))
     throw new Error('renderer exposes Node globals');
-  console.log(`packaged smoke ok: ${exe}; articles=${count}; title=${h2}`);
+  await page.getByRole('button', { name: '關於' }).click();
+  await page.waitForSelector('[role="dialog"]');
+  const commit = await page.locator('[data-testid="about-commit"]').innerText();
+  const version = await page.locator('[data-testid="about-version"]').innerText();
+  const expectedVersion = JSON.parse(fs.readFileSync('package.json', 'utf8')).version;
+  if (!commit || commit === 'local') throw new Error(`packaged About commit is invalid: ${commit}`);
+  if (version !== expectedVersion)
+    throw new Error(`packaged About version ${version} does not match ${expectedVersion}`);
+  console.log(`packaged smoke ok: ${exe}; articles=${count}; title=${h2}; commit=${commit}`);
 } finally {
   await app.close();
 }
