@@ -1,14 +1,8 @@
 - id: FR-001
   title: FR-001
   priority: P1
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-001
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-001 }
+  implementation: { packages: &desktop_packages [packages/application, packages/content-engine, apps/desktop-electron] }
   verification:
     tests:
     - packages/application/src/index.test.ts
@@ -18,28 +12,15 @@
 - id: FR-002
   title: FR-002
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-002
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
-  verification:
-    tests: []
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-002 }
+  implementation: { packages: *desktop_packages }
+  verification: { tests: [] }
   status: planned
 - id: FR-003
   title: FR-003
   priority: P1
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-003
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-003 }
+  implementation: { packages: *desktop_packages }
   verification:
     tests:
     - packages/content-engine/src/index.test.ts
@@ -47,56 +28,29 @@
 - id: FR-004
   title: FR-004
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-004
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
-  verification:
-    tests: []
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-004 }
+  implementation: { packages: *desktop_packages }
+  verification: { tests: [] }
   status: planned
 - id: FR-005
   title: FR-005
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-005
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
-  verification:
-    tests: []
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-005 }
+  implementation: { packages: *desktop_packages }
+  verification: { tests: [] }
   status: planned
 - id: FR-006
   title: FR-006
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-006
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
-  verification:
-    tests: []
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-006 }
+  implementation: { packages: *desktop_packages }
+  verification: { tests: [] }
   status: planned
 - id: FR-007
   title: FR-007
   priority: P1
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-007
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-007 }
+  implementation: { packages: *desktop_packages }
   verification:
     tests:
     - packages/search-engine/src/index.test.ts
@@ -105,14 +59,8 @@
 - id: FR-008
   title: FR-008
   priority: P1
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-008
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-008 }
+  implementation: { packages: *desktop_packages }
   verification:
     tests:
     - apps/desktop-electron/e2e/source.spec.ts
@@ -121,14 +69,8 @@
 - id: FR-009
   title: FR-009
   priority: P1
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-009
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-009 }
+  implementation: { packages: *desktop_packages }
   verification:
     tests:
     - packages/content-engine/src/index.test.ts
@@ -136,14 +78,8 @@
 - id: FR-010
   title: FR-010
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-010
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-010 }
+  implementation: { packages: *desktop_packages }
   verification:
     tests:
     - apps/desktop-electron/e2e/source.spec.ts
@@ -151,14 +87,8 @@
 - id: FR-011
   title: FR-011
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-011
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-011 }
+  implementation: { packages: *desktop_packages }
   verification:
     tests:
     - packages/platform-contracts/src/index.test.ts
@@ -167,154 +97,78 @@
 - id: FR-012
   title: FR-012
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-012
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
-  verification:
-    tests: []
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-012 }
+  implementation: { packages: *desktop_packages }
+  verification: { tests: [] }
   status: planned
 - id: FR-013
   title: FR-013
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-013
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
-  verification:
-    tests: []
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-013 }
+  implementation: { packages: *desktop_packages }
+  verification: { tests: [] }
   status: planned
 - id: FR-014
   title: FR-014
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-014
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
-  verification:
-    tests: []
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-014 }
+  implementation: { packages: *desktop_packages }
+  verification: { tests: [] }
   status: planned
 - id: FR-015
   title: FR-015
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-015
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
-  verification:
-    tests: []
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-015 }
+  implementation: { packages: *desktop_packages }
+  verification: { tests: [] }
   status: planned
 - id: FR-016
   title: FR-016
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-016
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
-  verification:
-    tests: []
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-016 }
+  implementation: { packages: *desktop_packages }
+  verification: { tests: [] }
   status: planned
 - id: FR-017
   title: FR-017
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-017
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
-  verification:
-    tests: []
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-017 }
+  implementation: { packages: *desktop_packages }
+  verification: { tests: [] }
   status: planned
 - id: FR-018
   title: FR-018
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-018
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
-  verification:
-    tests: []
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-018 }
+  implementation: { packages: *desktop_packages }
+  verification: { tests: [] }
   status: planned
 - id: FR-019
   title: FR-019
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-019
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
-  verification:
-    tests: []
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-019 }
+  implementation: { packages: *desktop_packages }
+  verification: { tests: [] }
   status: planned
 - id: FR-020
   title: FR-020
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-020
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
-  verification:
-    tests: []
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-020 }
+  implementation: { packages: *desktop_packages }
+  verification: { tests: [] }
   status: planned
 - id: FR-021
   title: FR-021
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-021
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
-  verification:
-    tests: []
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-021 }
+  implementation: { packages: *desktop_packages }
+  verification: { tests: [] }
   status: planned
 - id: FR-022
   title: FR-022
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-022
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-022 }
+  implementation: { packages: *desktop_packages }
   verification:
     tests:
     - apps/desktop-electron/e2e/source.spec.ts
@@ -322,14 +176,8 @@
 - id: FR-023
   title: FR-023
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-023
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-023 }
+  implementation: { packages: *desktop_packages }
   verification:
     tests:
     - .github/workflows/desktop-ci.yml
@@ -339,14 +187,8 @@
 - id: FR-024
   title: FR-024
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-024
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-024 }
+  implementation: { packages: *desktop_packages }
   verification:
     tests:
     - .github/workflows/desktop-ci.yml
@@ -356,70 +198,52 @@
 - id: FR-025
   title: FR-025
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-025
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-025 }
+  implementation: { packages: *desktop_packages }
   verification:
-    tests: []
-  status: planned
+    tests:
+    - .github/workflows/desktop-release-reusable.yml
+    - scripts/workflow-release.test.ts
+    - project-docs/release/verification-run-29113199684.md
+  status: implemented
 - id: FR-026
   title: FR-026
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-026
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-026 }
+  implementation: { packages: *desktop_packages }
   verification:
-    tests: []
-  status: planned
+    tests:
+    - scripts/aggregate-release.mjs
+    - scripts/verify-release-assets.mjs
+    - project-docs/release/verification-run-29113199684.md
+  status: implemented
 - id: FR-027
   title: FR-027
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-027
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-027 }
+  implementation: { packages: *desktop_packages }
   verification:
-    tests: []
-  status: planned
+    tests:
+    - .github/workflows/desktop-release-reusable.yml
+    - scripts/workflow-release.test.ts
+    - project-docs/release/verification-run-29113199684.md
+  status: implemented
 - id: FR-028
   title: FR-028
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-028
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-028 }
+  implementation: { packages: *desktop_packages }
   verification:
-    tests: []
-  status: planned
+    tests:
+    - .github/workflows/desktop-release-reusable.yml
+    - scripts/workflow-release.test.ts
+    - project-docs/release/verification-run-29113199684.md
+  status: implemented
 - id: FR-029
   title: FR-029
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-029
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-029 }
+  implementation: { packages: *desktop_packages }
   verification:
     tests:
     - scripts/node-smoke.mjs
@@ -427,14 +251,8 @@
 - id: FR-030
   title: FR-030
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: FR-030
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: FR-030 }
+  implementation: { packages: *desktop_packages }
   verification:
     tests:
     - project-docs/migration/mkdocs-feature-parity-matrix.md
@@ -442,14 +260,8 @@
 - id: NFR-001
   title: NFR-001
   priority: P1
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: NFR-001
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: NFR-001 }
+  implementation: { packages: *desktop_packages }
   verification:
     tests:
     - apps/desktop-electron/e2e/source.spec.ts
@@ -457,14 +269,8 @@
 - id: NFR-002
   title: NFR-002
   priority: P1
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: NFR-002
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: NFR-002 }
+  implementation: { packages: *desktop_packages }
   verification:
     tests:
     - apps/desktop-electron/tests/security.spec.ts
@@ -472,14 +278,8 @@
 - id: NFR-003
   title: NFR-003
   priority: P1
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: NFR-003
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: NFR-003 }
+  implementation: { packages: *desktop_packages }
   verification:
     tests:
     - apps/desktop-electron/tests/security.spec.ts
@@ -487,14 +287,8 @@
 - id: NFR-004
   title: NFR-004
   priority: P1
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: NFR-004
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: NFR-004 }
+  implementation: { packages: *desktop_packages }
   verification:
     tests:
     - apps/desktop-electron/e2e/source.spec.ts
@@ -502,14 +296,8 @@
 - id: NFR-005
   title: NFR-005
   priority: P1
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: NFR-005
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: NFR-005 }
+  implementation: { packages: *desktop_packages }
   verification:
     tests:
     - packages/platform-contracts/src/index.test.ts
@@ -517,29 +305,17 @@
 - id: NFR-006
   title: NFR-006
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: NFR-006
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: NFR-006 }
+  implementation: { packages: *desktop_packages }
   verification:
     tests:
-    - apps/desktop-electron/tests/security.spec.ts
+    - apps/desktop-electron/src/renderer/index.html
   status: implemented
 - id: NFR-007
   title: NFR-007
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: NFR-007
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: NFR-007 }
+  implementation: { packages: *desktop_packages }
   verification:
     tests:
     - apps/desktop-electron/tests/security.spec.ts
@@ -547,14 +323,8 @@
 - id: NFR-008
   title: NFR-008
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: NFR-008
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: NFR-008 }
+  implementation: { packages: *desktop_packages }
   verification:
     tests:
     - apps/desktop-electron/tests/asset-path.spec.ts
@@ -562,14 +332,8 @@
 - id: NFR-009
   title: NFR-009
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: NFR-009
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: NFR-009 }
+  implementation: { packages: *desktop_packages }
   verification:
     tests:
     - packages/content-engine/src/index.test.ts
@@ -577,154 +341,95 @@
 - id: NFR-010
   title: NFR-010
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: NFR-010
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
-  verification:
-    tests: []
+  source: { document: project-docs/product/desktop-product-spec.md, section: NFR-010 }
+  implementation: { packages: *desktop_packages }
+  verification: { tests: [] }
   status: planned
 - id: NFR-011
   title: NFR-011
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: NFR-011
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
-  verification:
-    tests: []
+  source: { document: project-docs/product/desktop-product-spec.md, section: NFR-011 }
+  implementation: { packages: *desktop_packages }
+  verification: { tests: [] }
   status: planned
 - id: NFR-012
   title: NFR-012
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: NFR-012
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
-  verification:
-    tests: []
+  source: { document: project-docs/product/desktop-product-spec.md, section: NFR-012 }
+  implementation: { packages: *desktop_packages }
+  verification: { tests: [] }
   status: planned
 - id: NFR-013
   title: NFR-013
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: NFR-013
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
-  verification:
-    tests: []
+  source: { document: project-docs/product/desktop-product-spec.md, section: NFR-013 }
+  implementation: { packages: *desktop_packages }
+  verification: { tests: [] }
   status: planned
 - id: NFR-014
   title: NFR-014
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: NFR-014
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
-  verification:
-    tests: []
+  source: { document: project-docs/product/desktop-product-spec.md, section: NFR-014 }
+  implementation: { packages: *desktop_packages }
+  verification: { tests: [] }
   status: planned
 - id: NFR-015
   title: NFR-015
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: NFR-015
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: NFR-015 }
+  implementation: { packages: *desktop_packages }
   verification:
-    tests: []
-  status: planned
+    tests:
+    - .github/workflows/desktop-ci.yml
+    - scripts/packaged-smoke.mjs
+    - project-docs/release/verification-run-29113199684.md
+  status: implemented
 - id: NFR-016
   title: NFR-016
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: NFR-016
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: NFR-016 }
+  implementation: { packages: *desktop_packages }
   verification:
-    tests: []
-  status: planned
+    tests:
+    - .github/workflows/desktop-ci.yml
+    - .github/workflows/desktop-release-reusable.yml
+    - scripts/workflow-release.test.ts
+  status: implemented
 - id: NFR-017
   title: NFR-017
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: NFR-017
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: NFR-017 }
+  implementation: { packages: *desktop_packages }
   verification:
-    tests: []
-  status: planned
+    tests:
+    - .github/workflows/desktop-ci.yml
+    - .github/workflows/desktop-release-reusable.yml
+    - scripts/workflow-release.test.ts
+  status: implemented
 - id: NFR-018
   title: NFR-018
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: NFR-018
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: NFR-018 }
+  implementation: { packages: *desktop_packages }
   verification:
-    tests: []
-  status: planned
+    tests:
+    - .github/workflows/desktop-release-reusable.yml
+    - scripts/release-scripts.test.ts
+    - scripts/workflow-release.test.ts
+    - project-docs/release/verification-run-29113199684.md
+  status: implemented
 - id: NFR-019
   title: NFR-019
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: NFR-019
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
-  verification:
-    tests: []
+  source: { document: project-docs/product/desktop-product-spec.md, section: NFR-019 }
+  implementation: { packages: *desktop_packages }
+  verification: { tests: [] }
   status: planned
 - id: NFR-020
   title: NFR-020
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: NFR-020
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: NFR-020 }
+  implementation: { packages: *desktop_packages }
   verification:
     tests:
     - scripts/validate-architecture.mjs
@@ -732,14 +437,8 @@
 - id: NFR-021
   title: NFR-021
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: NFR-021
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: NFR-021 }
+  implementation: { packages: *desktop_packages }
   verification:
     tests:
     - scripts/validate-traceability.mjs
@@ -747,14 +446,8 @@
 - id: NFR-022
   title: NFR-022
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: NFR-022
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: NFR-022 }
+  implementation: { packages: *desktop_packages }
   verification:
     tests:
     - apps/desktop-electron/e2e/source.spec.ts
@@ -762,44 +455,25 @@
 - id: NFR-023
   title: NFR-023
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: NFR-023
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: NFR-023 }
+  implementation: { packages: *desktop_packages }
   verification:
     tests:
-    - apps/desktop-electron/e2e/source.spec.ts
+    - apps/desktop-electron/src/renderer/index.html
   status: implemented
 - id: NFR-024
   title: NFR-024
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: NFR-024
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
+  source: { document: project-docs/product/desktop-product-spec.md, section: NFR-024 }
+  implementation: { packages: *desktop_packages }
   verification:
     tests:
-    - apps/desktop-electron/e2e/source.spec.ts
+    - project-docs/product/desktop-product-spec.md
   status: implemented
 - id: NFR-025
   title: NFR-025
   priority: P2
-  source:
-    document: project-docs/product/desktop-product-spec.md
-    section: NFR-025
-  implementation:
-    packages:
-    - packages/application
-    - packages/content-engine
-    - apps/desktop-electron
-  verification:
-    tests: []
+  source: { document: project-docs/product/desktop-product-spec.md, section: NFR-025 }
+  implementation: { packages: *desktop_packages }
+  verification: { tests: [] }
   status: planned
