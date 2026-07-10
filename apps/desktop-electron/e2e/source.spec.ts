@@ -14,6 +14,12 @@ async function launch(extraEnv: Record<string, string> = {}) {
   });
 }
 
+function writeArticle(root: string, relativePath: string, markdown: string) {
+  const file = path.join(root, relativePath, 'index.md');
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, markdown);
+}
+
 test('source Electron app searches and opens the known Chinese article securely', async () => {
   const app = await launch();
   try {
@@ -118,5 +124,53 @@ test('about modal shows build information without exposing Node globals', async 
     await expect(page.locator(':focus')).toHaveText('關於');
   } finally {
     await app.close();
+  }
+});
+
+test('browses the archive by category, tag, and month without leaving the app shell', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'observatory-browse-e2e-'));
+  writeArticle(
+    root,
+    path.join('alpha', 'one'),
+    `---\ndate: 2026-02-10\ntags: [shared, first]\n---\n# Alpha One\n\nFirst body.\n`,
+  );
+  writeArticle(
+    root,
+    path.join('alpha', 'two'),
+    `---\ndate: 2026-01-05\ntags: [shared]\n---\n# Alpha Two\n\nSecond body.\n`,
+  );
+  writeArticle(
+    root,
+    path.join('beta', 'three'),
+    `---\ndate: 2026-02-01\ntags: [third]\n---\n# Beta Three\n\nThird body.\n`,
+  );
+
+  const app = await launch({ ARCHIVE_CONTENT_ROOT: root });
+  try {
+    const page = await app.firstWindow();
+    await expect(page.getByTestId('app-ready')).toBeVisible({ timeout: 30000 });
+    await expect(page.getByTestId('article-list').getByRole('button')).toHaveCount(3);
+    const before = page.url();
+
+    await page.getByTestId('browse-category').click();
+    await page.getByRole('button', { name: 'alpha（2 篇）' }).click();
+    await expect(page.getByTestId('article-list').getByRole('button')).toHaveCount(2);
+    await expect(page.getByRole('button', { name: /Alpha One/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Beta Three/ })).toHaveCount(0);
+
+    await page.getByTestId('browse-tag').click();
+    await page.getByRole('button', { name: 'shared（2 篇）' }).click();
+    await expect(page.getByTestId('article-list').getByRole('button')).toHaveCount(2);
+    await expect(page.getByRole('button', { name: /Alpha Two/ })).toBeVisible();
+
+    await page.getByTestId('browse-timeline').click();
+    await page.getByRole('button', { name: '2026 年 2 月（2 篇）' }).click();
+    await expect(page.getByTestId('article-list').getByRole('button')).toHaveCount(2);
+    await expect(page.getByRole('button', { name: /Beta Three/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Alpha Two/ })).toHaveCount(0);
+    await expect(page).toHaveURL(before);
+  } finally {
+    await app.close();
+    fs.rmSync(root, { recursive: true, force: true });
   }
 });
