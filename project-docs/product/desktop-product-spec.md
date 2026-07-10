@@ -10,7 +10,7 @@ related-adrs:
 
 ## Current P1 Offline Reader Scope
 
-The current implementation provides the offline bundled reader, secure Electron shell, content parsing, search, sanitized reading, native packaging, and a verified draft-release pipeline. Requirements without concrete code and verification artifacts remain planned.
+The current implementation provides the offline bundled reader, secure Electron shell, content parsing, full-text search, category/tag/timeline browsing, sanitized reading, native packaging, and a verified draft-release pipeline. Requirements without concrete code and verification artifacts remain planned.
 
 ## FR-001
 
@@ -26,15 +26,15 @@ Status: `implemented`. Verification: packages/content-engine/src/index.test.ts.
 
 ## FR-004
 
-Status: `planned`. Verification: planned for a later PR.
+Status: `implemented`. Verification: packages/renderer-ui/src/browse.test.ts, apps/desktop-electron/e2e/source.spec.ts.
 
 ## FR-005
 
-Status: `planned`. Verification: planned for a later PR.
+Status: `implemented`. Verification: packages/renderer-ui/src/browse.test.ts, apps/desktop-electron/e2e/source.spec.ts.
 
 ## FR-006
 
-Status: `planned`. Verification: planned for a later PR.
+Status: `implemented`. Verification: packages/renderer-ui/src/browse.test.ts, apps/desktop-electron/e2e/source.spec.ts.
 
 ## FR-007
 
