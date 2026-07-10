@@ -19,7 +19,7 @@ related-adrs:
 | FR-007 | implemented | packages/search-engine/src/index.test.ts, apps/desktop-electron/e2e/source.spec.ts |
 | FR-008 | implemented | apps/desktop-electron/e2e/source.spec.ts, scripts/packaged-smoke.mjs |
 | FR-009 | implemented | packages/content-engine/src/index.test.ts |
-| FR-010 | planned | planned |
+| FR-010 | implemented | apps/desktop-electron/e2e/source.spec.ts |
 | FR-011 | implemented | packages/platform-contracts/src/index.test.ts, apps/desktop-electron/tests/security.spec.ts |
 | FR-012 | planned | planned |
 | FR-013 | planned | planned |
@@ -31,9 +31,9 @@ related-adrs:
 | FR-019 | planned | planned |
 | FR-020 | planned | planned |
 | FR-021 | planned | planned |
-| FR-022 | planned | planned |
-| FR-023 | implemented-pending-ci | scripts/release-assets.mjs, scripts/packaged-smoke.mjs |
-| FR-024 | implemented-pending-ci | scripts/release-assets.mjs, scripts/packaged-smoke.mjs |
+| FR-022 | implemented | apps/desktop-electron/e2e/source.spec.ts |
+| FR-023 | implemented | .github/workflows/desktop-ci.yml, scripts/release-assets.mjs, scripts/packaged-smoke.mjs |
+| FR-024 | implemented | .github/workflows/desktop-ci.yml, scripts/release-assets.mjs, scripts/packaged-smoke.mjs |
 | FR-025 | planned | planned |
 | FR-026 | planned | planned |
 | FR-027 | planned | planned |

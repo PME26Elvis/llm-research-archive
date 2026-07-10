@@ -145,8 +145,9 @@
     - packages/content-engine
     - apps/desktop-electron
   verification:
-    tests: []
-  status: planned
+    tests:
+    - apps/desktop-electron/e2e/source.spec.ts
+  status: implemented
 - id: FR-011
   title: FR-011
   priority: P2
@@ -315,8 +316,9 @@
     - packages/content-engine
     - apps/desktop-electron
   verification:
-    tests: []
-  status: planned
+    tests:
+    - apps/desktop-electron/e2e/source.spec.ts
+  status: implemented
 - id: FR-023
   title: FR-023
   priority: P2
@@ -330,9 +332,10 @@
     - apps/desktop-electron
   verification:
     tests:
+    - .github/workflows/desktop-ci.yml
     - scripts/release-assets.mjs
     - scripts/packaged-smoke.mjs
-  status: implemented-pending-ci
+  status: implemented
 - id: FR-024
   title: FR-024
   priority: P2
@@ -346,9 +349,10 @@
     - apps/desktop-electron
   verification:
     tests:
+    - .github/workflows/desktop-ci.yml
     - scripts/release-assets.mjs
     - scripts/packaged-smoke.mjs
-  status: implemented-pending-ci
+  status: implemented
 - id: FR-025
   title: FR-025
   priority: P2

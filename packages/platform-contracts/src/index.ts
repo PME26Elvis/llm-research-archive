@@ -30,6 +30,19 @@ export const ArticleDtoSchema = ArticleSummaryDtoSchema.extend({
   ),
   headings: z.array(z.object({ depth: z.number().int(), text: z.string(), slug: z.string() })),
 });
+
+export const AppInfoResponseSchema = z.object({
+  productName: z.string().min(1),
+  version: z.string().min(1),
+  commit: z.string().min(1),
+  platform: z.string().min(1),
+  packaged: z.boolean(),
+  electronVersion: z.string().min(1),
+  chromiumVersion: z.string().min(1),
+  nodeVersion: z.string().min(1),
+  contentArticleCount: z.number().int().nonnegative(),
+  contentManifestHash: z.string().optional(),
+});
 export const SearchResultDtoSchema = ArticleSummaryDtoSchema.extend({
   score: z.number().nonnegative(),
 });
@@ -44,6 +57,7 @@ export const SearchResponseSchema = z.array(SearchResultDtoSchema);
 export type ArticleSummaryDto = z.infer<typeof ArticleSummaryDtoSchema>;
 export type ArticleDto = z.infer<typeof ArticleDtoSchema>;
 export type SearchResultDto = z.infer<typeof SearchResultDtoSchema>;
+export type AppInfoDto = z.infer<typeof AppInfoResponseSchema>;
 export type SearchRequest = z.infer<typeof SearchRequestSchema>;
 export type ArticleRequest = z.infer<typeof ArticleRequestSchema>;
 export interface ArchiveRepositoryPort {

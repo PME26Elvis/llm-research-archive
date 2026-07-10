@@ -9,8 +9,17 @@ const acceptanceRows = new Map(
     m[2].trim(),
   ]),
 );
+const productSpec = fs.readFileSync('project-docs/product/desktop-product-spec.md', 'utf8');
+const productStatuses = new Map();
+const sectionRe =
+  /^##\s+((?:FR|NFR)-\d{3})\s*$([\s\S]*?)(?=^##\s+(?:FR|NFR)-\d{3}\s*$|$(?![\s\S]))/gm;
+for (const match of productSpec.matchAll(sectionRe)) {
+  const status = match[2].match(/Status:\s*`([^`]+)`/);
+  if (!status) throw new Error(`missing Product Spec Status for ${match[1]}`);
+  productStatuses.set(match[1], status[1]);
+}
 const validVerification =
-  /(__tests__|\.test\.|\.spec\.|e2e\/|scripts\/(node-smoke|packaged-smoke|validate-[^/]+|release-assets|aggregate-release)\.mjs|project-docs\/migration\/mkdocs-feature-parity-matrix\.md)/;
+  /(__tests__|\.test\.|\.spec\.|e2e\/|scripts\/(node-smoke|packaged-smoke|validate-[^/]+|release-assets|aggregate-release)\.mjs|project-docs\/migration\/mkdocs-feature-parity-matrix\.md|\.github\/workflows\/desktop-ci\.yml)/;
 for (const r of req) {
   if (ids.has(r.id)) throw new Error(`duplicate ${r.id}`);
   ids.add(r.id);
@@ -32,8 +41,13 @@ for (const r of req) {
   if (r.status === 'planned' && r.verification?.tests?.length)
     throw new Error(`planned requirement must not claim tests ${r.id}`);
   if (acceptanceRows.get(r.id) !== r.status) throw new Error(`acceptance status mismatch ${r.id}`);
+  if (productStatuses.get(r.id) !== r.status)
+    throw new Error(
+      `product spec status mismatch ${r.id}: ${productStatuses.get(r.id)} !== ${r.status}`,
+    );
 }
 if (acceptanceRows.size !== ids.size)
   throw new Error('requirements and acceptance matrix ID counts differ');
 for (const id of acceptanceRows.keys()) if (!ids.has(id)) throw new Error(`YAML missing ${id}`);
+for (const id of ids) if (!productStatuses.has(id)) throw new Error(`Product Spec missing ${id}`);
 console.log('traceability ok');

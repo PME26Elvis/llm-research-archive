@@ -55,3 +55,42 @@ export interface ArchiveManifestV1 {
 }
 export const asArticleId = (value: string) => value as ArticleId;
 export const asCategoryId = (value: string) => value as CategoryId;
+
+export function cleanHeadingText(text: string): string {
+  return text
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/[`*_~>#|]/g, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/gu, ' ')
+    .trim();
+}
+
+export function baseHeadingSlug(text: string): string {
+  const normalized = cleanHeadingText(text)
+    .normalize('NFKC')
+    .toLocaleLowerCase()
+    .replace(/[\p{Separator}\s]+/gu, '-')
+    .replace(/[^\p{Letter}\p{Number}-]+/gu, '')
+    .replace(/-+/gu, '-')
+    .replace(/^-|-$/gu, '');
+  return normalized || 'section';
+}
+
+export class HeadingSlugger {
+  private readonly counts = new Map<string, number>();
+
+  slug(text: string): string {
+    const base = baseHeadingSlug(text);
+    const count = this.counts.get(base) || 0;
+    this.counts.set(base, count + 1);
+    return count === 0 ? base : `${base}-${count}`;
+  }
+}
+
+export function slugHeadings<T extends { text: string }>(
+  headings: readonly T[],
+): (T & { slug: string })[] {
+  const slugger = new HeadingSlugger();
+  return headings.map((heading) => ({ ...heading, slug: slugger.slug(heading.text) }));
+}

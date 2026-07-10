@@ -50,7 +50,7 @@ Status: `implemented`. Verification: packages/content-engine/src/index.test.ts.
 
 ## FR-010
 
-Status: `planned`. Verification: planned for a later PR.
+Status: `implemented`. Verification: apps/desktop-electron/e2e/source.spec.ts.
 
 ## FR-011
 
@@ -98,15 +98,15 @@ Status: `planned`. Verification: planned for a later PR.
 
 ## FR-022
 
-Status: `planned`. Verification: planned for a later PR.
+Status: `implemented`. Verification: apps/desktop-electron/e2e/source.spec.ts.
 
 ## FR-023
 
-Status: `implemented-pending-ci`. Verification: planned for a later PR.
+Status: `implemented`. Verification: .github/workflows/desktop-ci.yml, scripts/release-assets.mjs, scripts/packaged-smoke.mjs.
 
 ## FR-024
 
-Status: `implemented-pending-ci`. Verification: planned for a later PR.
+Status: `implemented`. Verification: .github/workflows/desktop-ci.yml, scripts/release-assets.mjs, scripts/packaged-smoke.mjs.
 
 ## FR-025
 
