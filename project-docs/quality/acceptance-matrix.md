@@ -34,10 +34,10 @@ related-adrs:
 | FR-022 | implemented | apps/desktop-electron/e2e/source.spec.ts |
 | FR-023 | implemented | .github/workflows/desktop-ci.yml, scripts/release-assets.mjs, scripts/packaged-smoke.mjs |
 | FR-024 | implemented | .github/workflows/desktop-ci.yml, scripts/release-assets.mjs, scripts/packaged-smoke.mjs |
-| FR-025 | planned | planned |
-| FR-026 | planned | planned |
-| FR-027 | planned | planned |
-| FR-028 | planned | planned |
+| FR-025 | implemented | .github/workflows/desktop-release-reusable.yml, scripts/workflow-release.test.ts, project-docs/release/verification-run-29113199684.md |
+| FR-026 | implemented | scripts/aggregate-release.mjs, scripts/verify-release-assets.mjs, project-docs/release/verification-run-29113199684.md |
+| FR-027 | implemented | .github/workflows/desktop-release-reusable.yml, scripts/workflow-release.test.ts, project-docs/release/verification-run-29113199684.md |
+| FR-028 | implemented | .github/workflows/desktop-release-reusable.yml, scripts/workflow-release.test.ts, project-docs/release/verification-run-29113199684.md |
 | FR-029 | implemented | scripts/node-smoke.mjs |
 | FR-030 | implemented | project-docs/migration/mkdocs-feature-parity-matrix.md |
 | NFR-001 | implemented | apps/desktop-electron/e2e/source.spec.ts |
@@ -45,7 +45,7 @@ related-adrs:
 | NFR-003 | implemented | apps/desktop-electron/tests/security.spec.ts |
 | NFR-004 | implemented | apps/desktop-electron/e2e/source.spec.ts |
 | NFR-005 | implemented | packages/platform-contracts/src/index.test.ts |
-| NFR-006 | implemented | apps/desktop-electron/tests/security.spec.ts |
+| NFR-006 | implemented | apps/desktop-electron/src/renderer/index.html |
 | NFR-007 | implemented | apps/desktop-electron/tests/security.spec.ts |
 | NFR-008 | implemented | apps/desktop-electron/tests/asset-path.spec.ts |
 | NFR-009 | implemented | packages/content-engine/src/index.test.ts |
@@ -54,14 +54,14 @@ related-adrs:
 | NFR-012 | planned | planned |
 | NFR-013 | planned | planned |
 | NFR-014 | planned | planned |
-| NFR-015 | planned | planned |
-| NFR-016 | planned | planned |
-| NFR-017 | planned | planned |
-| NFR-018 | planned | planned |
+| NFR-015 | implemented | .github/workflows/desktop-ci.yml, scripts/packaged-smoke.mjs, project-docs/release/verification-run-29113199684.md |
+| NFR-016 | implemented | .github/workflows/desktop-ci.yml, .github/workflows/desktop-release-reusable.yml, scripts/workflow-release.test.ts |
+| NFR-017 | implemented | .github/workflows/desktop-ci.yml, .github/workflows/desktop-release-reusable.yml, scripts/workflow-release.test.ts |
+| NFR-018 | implemented | .github/workflows/desktop-release-reusable.yml, scripts/release-scripts.test.ts, scripts/workflow-release.test.ts, project-docs/release/verification-run-29113199684.md |
 | NFR-019 | planned | planned |
 | NFR-020 | implemented | scripts/validate-architecture.mjs |
 | NFR-021 | implemented | scripts/validate-traceability.mjs |
 | NFR-022 | implemented | apps/desktop-electron/e2e/source.spec.ts |
-| NFR-023 | implemented | apps/desktop-electron/e2e/source.spec.ts |
-| NFR-024 | implemented | apps/desktop-electron/e2e/source.spec.ts |
+| NFR-023 | implemented | apps/desktop-electron/src/renderer/index.html |
+| NFR-024 | implemented | project-docs/product/desktop-product-spec.md |
 | NFR-025 | planned | planned |
