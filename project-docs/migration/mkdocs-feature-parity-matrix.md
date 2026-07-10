@@ -11,8 +11,9 @@ related-adrs:
 | Existing Feature | Current Source | New Owner | Status | Tests | Rationale |
 | --- | --- | --- | --- | --- | --- |
 | Search | MkDocs/material | search-engine | implemented | packages/search-engine/src/index.test.ts; apps/desktop-electron/e2e/source.spec.ts | Offline desktop search returns complete DTOs. |
-| Tags | front matter | content-engine | planned | planned | Dedicated tags UI is not part of this P1 slice. |
-| Timeline | blog dates | content-engine | planned | planned | Dedicated timeline UI is not part of this P1 slice. |
+| Categories | canonical content paths | renderer-ui | implemented | packages/renderer-ui/src/browse.test.ts; apps/desktop-electron/e2e/source.spec.ts | Category facets are derived from article DTOs and filter entirely offline. |
+| Tags | front matter | renderer-ui | implemented | packages/renderer-ui/src/browse.test.ts; apps/desktop-electron/e2e/source.spec.ts | Tag facets preserve article order, show counts, and combine with search. |
+| Timeline | blog dates | renderer-ui | implemented | packages/renderer-ui/src/browse.test.ts; apps/desktop-electron/e2e/source.spec.ts | Month facets sort newest first and filter without navigation. |
 | Word counts | hooks/word_counts.py | content-engine | implemented | packages/content-engine/src/index.test.ts | Python-compatible CJK/Latin count. |
 | Reading time | hooks/word_counts.py | content-engine | implemented | packages/content-engine/src/index.test.ts | 500-display-unit rule. |
 | Dark mode | CSS | renderer | planned | planned | Current styling is fixed dark reader. |
@@ -21,7 +22,7 @@ related-adrs:
 | Image lightbox | JS/CSS | renderer | planned | planned | Images can render; lightbox is later. |
 | Mermaid | MkDocs | renderer | planned | planned | Rendered as safe text/fence only. |
 | Footnotes | Markdown | renderer | planned | planned | Markdown-it default coverage only. |
-| Internal links | Markdown | application/renderer | planned | planned | Partial resolver exists; E2E coverage is pending. |
+| Internal links | Markdown | application/renderer | implemented | packages/content-engine/src/index.test.ts; apps/desktop-electron/e2e/source.spec.ts | Same-page and cross-article Unicode fragments remain inside the app shell. |
 | Git revision date | plugin | manifest | planned | planned | Not in current reader UI. |
 | Blog ordering | MkDocs | content-engine | implemented | packages/content-engine/src/index.test.ts | Date sorting for formal articles. |
 | Observatory | docs page | renderer | planned | planned | Not in P1 reader slice. |
