@@ -39,9 +39,7 @@ function alphabeticalFacets(counts: Map<string, number>): BrowseFacet[] {
     .sort((a, b) => a.label.localeCompare(b.label));
 }
 
-export function buildArchiveBrowseModel(
-  articles: readonly BrowsableArticle[],
-): ArchiveBrowseModel {
+export function buildArchiveBrowseModel(articles: readonly BrowsableArticle[]): ArchiveBrowseModel {
   const categories = new Map<string, number>();
   const tags = new Map<string, number>();
   const timeline = new Map<string, number>();
