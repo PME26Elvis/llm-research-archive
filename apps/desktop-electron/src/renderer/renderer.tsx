@@ -26,6 +26,11 @@ declare global {
   }
 }
 
+interface LightboxImage {
+  src: string;
+  alt: string;
+}
+
 const browseModes: { mode: BrowseMode; label: string }[] = [
   { mode: 'all', label: '全部' },
   { mode: 'category', label: '分類' },
@@ -119,6 +124,65 @@ function AboutModal({ info, onClose }: { info: AppInfoDto; onClose: () => void }
   );
 }
 
+function ImageLightbox({ image, onClose }: { image: LightboxImage; onClose: () => void }) {
+  const dialogRef = useRef<HTMLElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    closeRef.current?.focus();
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      if (event.key !== 'Tab' || !dialogRef.current) return;
+      const focusable = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        ),
+      );
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div
+      className="modal-backdrop lightbox-backdrop"
+      role="presentation"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section
+        ref={dialogRef}
+        className="modal lightbox-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label={`圖片預覽：${image.alt}`}
+        data-testid="image-lightbox"
+      >
+        <img src={image.src} alt={image.alt} data-testid="lightbox-image" />
+        <p>{image.alt}</p>
+        <button ref={closeRef} type="button" onClick={onClose}>
+          關閉圖片
+        </button>
+      </section>
+    </div>
+  );
+}
+
 function App() {
   const [articles, setArticles] = useState<ArticleSummaryDto[]>([]);
   const [shown, setShown] = useState<(ArticleSummaryDto | SearchResultDto)[]>([]);
@@ -130,7 +194,10 @@ function App() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [about, setAbout] = useState<AppInfoDto | null>(null);
+  const [lightbox, setLightbox] = useState<LightboxImage | null>(null);
   const aboutButtonRef = useRef<HTMLButtonElement>(null);
+  const readerRef = useRef<HTMLElement>(null);
+  const lightboxTriggerRef = useRef<HTMLImageElement | null>(null);
   const browseModel = useMemo(() => buildArchiveBrowseModel(articles), [articles]);
   const filteredArticles = useMemo(
     () => filterArticlesByBrowse(articles, browseMode, selectedFacet),
@@ -181,9 +248,23 @@ function App() {
     });
   }, [selected, pendingFragment]);
 
+  useEffect(() => {
+    const reader = readerRef.current;
+    if (!reader) return;
+    for (const image of reader.querySelectorAll<HTMLImageElement>('img')) {
+      const description = image.alt.trim() || '文章圖片';
+      image.tabIndex = 0;
+      image.setAttribute('role', 'button');
+      image.setAttribute('aria-label', `放大圖片：${description}`);
+      image.loading = 'lazy';
+      image.decoding = 'async';
+    }
+  }, [selected]);
+
   async function open(id: string, fragment = '') {
     setError('');
     setPendingFragment('');
+    setLightbox(null);
     try {
       const article = await window.observatory.getArticle(id);
       setSelected(article);
@@ -196,6 +277,7 @@ function App() {
   async function openInternalLink(id: string, href: string, fragment = '') {
     setError('');
     setPendingFragment('');
+    setLightbox(null);
     try {
       const article = await window.observatory.getArticle(id);
       setSelected(article);
@@ -234,8 +316,29 @@ function App() {
     setSelectedFacet('');
   }
 
+  function openImageLightbox(image: HTMLImageElement) {
+    const src = image.currentSrc || image.src;
+    if (!src) return;
+    lightboxTriggerRef.current = image;
+    setLightbox({ src, alt: image.alt.trim() || '文章圖片' });
+  }
+
+  function closeImageLightbox() {
+    const trigger = lightboxTriggerRef.current;
+    setLightbox(null);
+    requestAnimationFrame(() => trigger?.focus());
+  }
+
   function onArticleClick(e: React.MouseEvent<HTMLElement>) {
-    const a = (e.target as HTMLElement).closest('a');
+    const target = e.target as HTMLElement;
+    const image = target.closest('img[role="button"]') as HTMLImageElement | null;
+    if (image) {
+      e.preventDefault();
+      openImageLightbox(image);
+      return;
+    }
+
+    const a = target.closest('a');
     if (!a) return;
     const href = a.getAttribute('href') || '';
     if (/^https:/.test(href) || /^mailto:/.test(href)) {
@@ -266,6 +369,16 @@ function App() {
       e.preventDefault();
       setError(`找不到內部文章連結：${href}`);
     }
+  }
+
+  function onArticleKeyDown(e: React.KeyboardEvent<HTMLElement>) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    const image = (e.target as HTMLElement).closest(
+      'img[role="button"]',
+    ) as HTMLImageElement | null;
+    if (!image) return;
+    e.preventDefault();
+    openImageLightbox(image);
   }
 
   return (
@@ -342,7 +455,7 @@ function App() {
           ))}
         </ul>
       </aside>
-      <article onClick={onArticleClick}>
+      <article onClick={onArticleClick} onKeyDown={onArticleKeyDown}>
         {error && <p role="alert">{error}</p>}
         {selected ? (
           <>
@@ -354,6 +467,7 @@ function App() {
               </p>
             </header>
             <section
+              ref={readerRef}
               data-testid="reader"
               dangerouslySetInnerHTML={{
                 __html: renderMarkdown(rewriteAssetLinks(selected.markdown, selected.assetRoot)),
@@ -365,6 +479,7 @@ function App() {
         )}
       </article>
       {about && <AboutModal info={about} onClose={closeAbout} />}
+      {lightbox && <ImageLightbox image={lightbox} onClose={closeImageLightbox} />}
     </main>
   );
 }
