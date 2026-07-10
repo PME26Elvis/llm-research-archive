@@ -31,10 +31,9 @@ describe('archive browse model', () => {
   });
 
   it('filters articles without mutating their source order', () => {
-    expect(filterArticlesByBrowse(articles, 'category', 'AI').map((article) => article.id)).toEqual([
-      'alpha',
-      'beta',
-    ]);
+    expect(filterArticlesByBrowse(articles, 'category', 'AI').map((article) => article.id)).toEqual(
+      ['alpha', 'beta'],
+    );
     expect(filterArticlesByBrowse(articles, 'tag', 'Shared').map((article) => article.id)).toEqual([
       'alpha',
       'beta',
