@@ -13,7 +13,26 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with: { node-version: '24', cache: npm }
       - run: npm ci
-      - run: npm run verify
+      - name: Formatting
+        run: npm run format:check
+      - name: Architecture
+        run: npm run lint
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Traceability
+        run: npm run validate:traceability
+      - name: Generated content
+        run: npm run validate:generated
+      - name: Release assets
+        run: npm run validate:release-assets
+      - name: Unit tests
+        run: npm run test
+      - name: Security tests
+        run: npm run test:security
+      - name: Compatibility tests
+        run: npm run test:compatibility
+      - name: Build
+        run: npm run build
   e2e:
     needs: quality
     runs-on: ubuntu-latest
