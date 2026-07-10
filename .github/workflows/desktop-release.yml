@@ -1,0 +1,113 @@
+name: Desktop Release
+on:
+  workflow_dispatch:
+    inputs:
+      target_ref:
+        { description: Branch, tag, or commit SHA to release, required: true, default: app-main }
+      version: { description: SemVer version without v prefix, required: true }
+      channel:
+        {
+          description: Release channel,
+          required: true,
+          type: choice,
+          options: [stable, prerelease],
+          default: prerelease,
+        }
+      publish:
+        {
+          description: Publish after all assets are verified,
+          required: true,
+          type: boolean,
+          default: false,
+        }
+concurrency:
+  group: desktop-release-${{ inputs.version }}
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    outputs: { sha: '${{ steps.rev.outputs.sha }}' }
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with: { ref: '${{ inputs.target_ref }}' }
+      - id: rev
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: { node-version: '24', cache: npm }
+      - run: node -e "if(!/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/.test(process.env.VERSION)) process.exit(1)"
+        env: { VERSION: '${{ inputs.version }}' }
+      - run: |
+          test "$(node -p 'require("./package.json").version')" = "${{ inputs.version }}"
+      - run: npm ci
+      - run: npm run verify
+      - run: |
+          test "${{ inputs.channel }}" != stable || node -e "process.exit(process.env.VERSION.includes('-') ? 1 : 0)"
+        env: { VERSION: '${{ inputs.version }}' }
+      - run: |
+          if gh release view "v${{ inputs.version }}" --json isDraft >/tmp/release.json 2>/dev/null; then
+            node -e "const r=require('/tmp/release.json'); if(!r.isDraft) process.exit(1)"
+          fi
+        env: { GH_TOKEN: '${{ github.token }}' }
+  build:
+    needs: preflight
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-latest, platform: windows, artifact: desktop-windows-x64 }
+          - { os: ubuntu-latest, platform: linux, artifact: desktop-linux-x64 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with: { ref: '${{ needs.preflight.outputs.sha }}' }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: { node-version: '24', cache: npm }
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y fakeroot rpm xvfb libgtk-3-0 libnss3 libasound2t64 libatk-bridge2.0-0 libxss1
+      - run: npm ci
+      - run: npm run make:${{ matrix.platform }}
+      - if: runner.os == 'Linux'
+        run: xvfb-run -a npm run smoke:packaged
+      - if: runner.os == 'Windows'
+        run: npm run smoke:packaged
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with: { name: '${{ matrix.artifact }}', path: dist/release-assets/* }
+  aggregate:
+    needs: [preflight, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with: { ref: '${{ needs.preflight.outputs.sha }}' }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: { node-version: '24', cache: npm }
+      - run: npm ci
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with: { path: dist/downloaded }
+      - run: mkdir -p dist/release-assets && find dist/downloaded -type f \( -name '*.exe' -o -name '*.zip' -o -name '*.deb' -o -name '*.rpm' \) -exec cp {} dist/release-assets/ \;
+      - run: node scripts/aggregate-release.mjs dist/release-assets dist/aggregate-release
+      - run: npm sbom --sbom-format cyclonedx --json > dist/aggregate-release/sbom.cdx.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with: { name: aggregate-release-assets, path: dist/aggregate-release/* }
+  release:
+    needs: [preflight, aggregate]
+    runs-on: ubuntu-latest
+    permissions: { contents: write, attestations: write, id-token: write }
+    steps:
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with: { name: aggregate-release-assets, path: dist/aggregate-release }
+      - uses: softprops/action-gh-release@6cbd405e2c4e67a21c47fa9e383d020e4e28b836
+        with:
+          tag_name: v${{ inputs.version }}
+          target_commitish: ${{ needs.preflight.outputs.sha }}
+          draft: true
+          prerelease: ${{ inputs.channel == 'prerelease' }}
+          files: dist/aggregate-release/*
+      - run: |
+          gh release view "v${{ inputs.version }}" --json assets > /tmp/assets.json
+          node -e "const fs=require('fs'); const m=require('./dist/aggregate-release/release-manifest.json'); const a=require('/tmp/assets.json').assets; for (const x of m.artifacts) { const y=a.find(z=>z.name===x.name); if(!y||y.size!==x.size) process.exit(1); }"
+        env: { GH_TOKEN: '${{ github.token }}' }
+      - if: inputs.publish
+        run: gh release edit "v${{ inputs.version }}" --draft=false
+        env: { GH_TOKEN: '${{ github.token }}' }
