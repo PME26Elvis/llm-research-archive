@@ -1,7 +1,23 @@
+import MarkdownIt from 'markdown-it';
+import sanitizeHtml from 'sanitize-html';
+const md = new MarkdownIt({ html: true, linkify: true, typographer: true });
 export function renderMarkdown(markdown: string): string {
-  return markdown
-    .replace(/^# (.+)$/gm, '<h1>$1</h1>')
-    .replace(/^## (.+)$/gm, '<h2>$1</h2>')
-    .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
-    .replace(/\n/g, '<br>');
+  return sanitizeHtml(md.render(markdown), {
+    allowedTags: sanitizeHtml.defaults.allowedTags.concat([
+      'img',
+      'details',
+      'summary',
+      'table',
+      'thead',
+      'tbody',
+      'tr',
+      'th',
+      'td',
+    ]),
+    allowedAttributes: { a: ['href', 'title'], img: ['src', 'alt', 'title'], code: ['class'] },
+    allowedSchemes: ['http', 'https', 'mailto', 'app-asset'],
+    transformTags: {
+      a: (_tag, attrs) => ({ tagName: 'a', attribs: { ...attrs, rel: 'noreferrer' } }),
+    },
+  });
 }

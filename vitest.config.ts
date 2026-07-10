@@ -12,5 +12,8 @@ export default defineConfig({
       '@research-observatory/renderer-ui': r('./packages/renderer-ui/src/index.ts'),
     },
   },
-  test: { include: ['packages/**/*.test.ts', 'apps/**/*.test.ts'], environment: 'node' },
+  test: {
+    include: ['packages/**/*.test.ts', 'apps/**/*.test.ts', 'apps/**/tests/**/*.spec.ts'],
+    environment: 'node',
+  },
 });

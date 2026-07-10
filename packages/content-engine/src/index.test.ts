@@ -1,13 +1,25 @@
 import { describe, it, expect } from 'vitest';
 import { readingStats, createManifest, scanArchive } from './index';
+
 describe('content engine', () => {
-  it('counts cjk and latin without code', () => {
-    expect(readingStats('你好 world `skip` ```code```').displayCount).toBe(3);
+  it('matches Python hook counting rules for cjk, latin, code, html and citations', () => {
+    expect(
+      readingStats(
+        '你好 world `inline` ```code``` <b>x</b> cite [link text](https://example.com)',
+      ).displayCount,
+    ).toBe(7);
+    expect(readingStats('').estimatedMinutes).toBe(0);
   });
-  it('scans corpus deterministically', () => {
-    const m = createManifest('docs');
-    expect(m.schemaVersion).toBe(1);
-    expect(m.articles.length).toBeGreaterThan(0);
-    expect(scanArchive('docs')[0].id).toBeTruthy();
+  it('scans only dated formal articles with H1 titles', () => {
+    const articles = scanArchive('docs');
+    expect(articles).toHaveLength(6);
+    expect(articles.some((a) => a.sourcePath === 'index.md')).toBe(false);
+    expect(articles.every((a) => a.date && a.title !== a.slug)).toBe(true);
+  });
+  it('creates a deterministic manifest content hash from article entries', () => {
+    const a = createManifest('docs');
+    const b = createManifest('docs');
+    expect(a.contentHash).toBe(b.contentHash);
+    expect(a.articles.length).toBe(6);
   });
 });

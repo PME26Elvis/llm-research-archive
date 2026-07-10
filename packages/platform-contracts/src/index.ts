@@ -6,7 +6,7 @@ export type ArticleRequest = z.infer<typeof ArticleRequestSchema>;
 export const ExternalUrlSchema = z
   .string()
   .url()
-  .refine((v) => ['https:', 'http:', 'mailto:'].includes(new URL(v).protocol));
+  .refine((v) => ['https:', 'mailto:'].includes(new URL(v).protocol));
 export interface ArchiveRepositoryPort {
   listArticles(): Promise<unknown[]>;
   getArticle(id: string): Promise<unknown>;

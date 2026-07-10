@@ -1,6 +1,20 @@
 {
-  "name": "@research-observatory/desktop-electron",
+  "name": "research-observatory",
+  "productName": "Research Observatory",
   "version": "0.1.0",
   "type": "module",
-  "main": "dist/main/main.js"
+  "main": ".vite/build/main.js",
+  "private": true,
+  "dependencies": {
+    "@research-observatory/application": "0.1.0",
+    "@research-observatory/content-engine": "0.1.0",
+    "@research-observatory/domain": "0.1.0",
+    "@research-observatory/platform-contracts": "0.1.0",
+    "@research-observatory/renderer-ui": "0.1.0",
+    "@research-observatory/search-engine": "0.1.0",
+    "@electron-forge/plugin-vite": "^7.10.2"
+  },
+  "devDependencies": {},
+  "description": "Offline Research Observatory desktop archive reader",
+  "license": "MIT"
 }

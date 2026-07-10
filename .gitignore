@@ -8,3 +8,10 @@ dist/
 out/
 coverage/
 apps/desktop-electron/resources/archive-manifest.json
+.vite/*
+!.vite/build/
+!.vite/build/main.js
+test-results/
+playwright-report/
+.vite/build/*.map
+.vite/build/preload.js

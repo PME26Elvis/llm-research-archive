@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import matter from 'gray-matter';
+import { z } from 'zod';
 import {
   Article,
   ArchiveManifestV1,
@@ -9,41 +10,82 @@ import {
   asCategoryId,
   ReadingStats,
 } from '@research-observatory/domain';
-export function readingStats(markdown: string): ReadingStats {
-  const noCode = markdown
-    .replace(/```[\s\S]*?```/g, ' ')
-    .replace(/`[^`]*`/g, ' ')
-    .replace(/<[^>]+>/g, ' ')
+
+const excludedSourcePaths = new Set([
+  'index.md',
+  'tags.md',
+  'word-counts.md',
+  'article-publishing-workflow.md',
+  'timeline/index.md',
+  'observatory/index.md',
+]);
+const metadataSchema = z
+  .object({
+    date: z.union([z.string(), z.date()]),
+    tags: z.array(z.string()).default([]),
+    title: z.string().optional(),
+    updated: z.union([z.string(), z.date()]).optional(),
+  })
+  .passthrough();
+const cleanInline = (text: string) =>
+  text
     .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
-    .replace(/\[\^?\d+\]|\[\d+\]/g, ' ');
-  const cjk = (noCode.match(/[\u3400-\u9fff\uf900-\ufaff]/g) || []).length;
-  const latin = (noCode.match(/[A-Za-z0-9]+(?:[-'][A-Za-z0-9]+)*/g) || []).length;
-  const displayCount = cjk + latin;
-  return {
-    displayCount,
-    cjkCharacters: cjk,
-    latinNumberTokens: latin,
-    estimatedMinutes: Math.max(1, Math.ceil(displayCount / 500)),
-  };
-}
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/[`*_~>#|]/g, ' ');
 const slugify = (s: string) =>
   s
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, '-')
     .replace(/^-|-$/g, '') || 'article';
-export function parseArticle(file: string, root: string): Article {
+export function readingStats(markdown: string): ReadingStats {
+  const text = cleanInline(
+    markdown
+      .replace(/```[\s\S]*?```|~~~[\s\S]*?~~~/g, ' ')
+      .replace(/.*?/g, ' ')
+      .replace(/<[^>]+>/g, ' '),
+  );
+  const cjk = (text.match(/[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/g) || []).length;
+  const latin = (
+    text
+      .replace(/[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]/g, ' ')
+      .match(/[A-Za-z0-9]+(?:[-'’][A-Za-z0-9]+)*/g) || []
+  ).length;
+  const displayCount = cjk + latin;
+  return {
+    displayCount,
+    cjkCharacters: cjk,
+    latinNumberTokens: latin,
+    estimatedMinutes: displayCount ? Math.max(1, Math.round(displayCount / 500)) : 0,
+  };
+}
+export function isArticlePath(sourcePath: string, data: unknown): boolean {
+  return !excludedSourcePaths.has(sourcePath) && metadataSchema.safeParse(data).success;
+}
+export function titleFromMarkdown(markdown: string, fallback: string): string {
+  return cleanInline(markdown.match(/^#\s+(.+?)\s*$/m)?.[1] || fallback).trim();
+}
+export function parseArticle(file: string, root: string): Article | undefined {
   const raw = fs.readFileSync(file, 'utf8');
   const parsed = matter(raw);
-  const data = parsed.data as Record<string, unknown>;
-  const title = String(data.title || path.basename(path.dirname(file)));
   const rel = path.relative(root, file).split(path.sep).join('/');
+  if (!isArticlePath(rel, parsed.data)) return undefined;
+  const data = metadataSchema.parse(parsed.data);
   const parts = rel.split('/');
-  const category = parts.length > 2 ? parts[0] : 'general';
-  const slug = parts.length > 2 ? parts[1] : slugify(title);
+  const category = parts.length > 2 ? parts[0] : '未分類';
+  const slug =
+    parts.length > 2
+      ? parts[1]
+      : slugify(
+          titleFromMarkdown(
+            parsed.content,
+            String(data.title || path.basename(path.dirname(file))),
+          ),
+        );
   const markdown = parsed.content.trim();
+  const title = titleFromMarkdown(markdown, data.title || path.basename(path.dirname(file)));
   const headings = [...markdown.matchAll(/^(#{1,6})\s+(.+)$/gm)].map((m) => ({
     depth: m[1].length,
-    text: m[2].trim(),
+    text: cleanInline(m[2]).trim(),
     slug: slugify(m[2]),
   }));
   const links = [...markdown.matchAll(/\[([^\]]+)\]\(([^)]+)\)/g)].map((m) => ({
@@ -51,18 +93,27 @@ export function parseArticle(file: string, root: string): Article {
     href: m[2],
     internal: !/^https?:/i.test(m[2]),
   }));
+  const date =
+    data.date instanceof Date
+      ? data.date.toISOString().slice(0, 10)
+      : String(data.date).slice(0, 10);
+  const updatedAt = data.updated
+    ? data.updated instanceof Date
+      ? data.updated.toISOString().slice(0, 10)
+      : String(data.updated).slice(0, 10)
+    : undefined;
   return {
     id: asArticleId(`${category}/${slug}`),
     slug,
     title,
-    date: String(data.date || '1970-01-01'),
-    updatedAt: data.updated ? String(data.updated) : undefined,
+    date,
+    updatedAt,
     category: asCategoryId(category),
-    tags: Array.isArray(data.tags) ? data.tags.map(String) : [],
+    tags: data.tags,
     sourcePath: rel,
     assetRoot: path.dirname(rel),
     markdown,
-    excerpt: markdown.replace(/[#>*_`]/g, '').slice(0, 180),
+    excerpt: cleanInline(markdown).replace(/\s+/g, ' ').slice(0, 180),
     readingStats: readingStats(markdown),
     links,
     headings,
@@ -74,17 +125,14 @@ export function scanArchive(root = 'docs'): Article[] {
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
       const p = path.join(dir, e.name);
       if (e.isDirectory()) walk(p);
-      else if (
-        e.name === 'index.md' &&
-        !/^(observatory|timeline)$/.test(path.basename(path.dirname(p)))
-      )
-        files.push(p);
+      else if (e.name.endsWith('.md')) files.push(p);
     }
   };
   walk(root);
   return files
     .map((f) => parseArticle(f, root))
-    .sort((a, b) => b.date.localeCompare(a.date) || a.id.localeCompare(b.id));
+    .filter((a): a is Article => Boolean(a))
+    .sort((a, b) => b.date.localeCompare(a.date) || a.title.localeCompare(b.title));
 }
 export function createManifest(root = 'docs'): ArchiveManifestV1 {
   const articles = scanArchive(root);
