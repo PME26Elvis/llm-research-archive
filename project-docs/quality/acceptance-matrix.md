@@ -21,7 +21,7 @@ related-adrs:
 | FR-009 | implemented | packages/content-engine/src/index.test.ts |
 | FR-010 | implemented | apps/desktop-electron/e2e/source.spec.ts |
 | FR-011 | implemented | packages/platform-contracts/src/index.test.ts, apps/desktop-electron/tests/security.spec.ts |
-| FR-012 | planned | planned |
+| FR-012 | implemented | apps/desktop-electron/e2e/source.spec.ts |
 | FR-013 | planned | planned |
 | FR-014 | planned | planned |
 | FR-015 | planned | planned |
