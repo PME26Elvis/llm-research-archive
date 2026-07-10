@@ -206,3 +206,7 @@ https://PME26Elvis.github.io/llm-research-archive/
 - 若文章含圖片，建議放在同篇文章的 `assets/` 目錄中。
 - 上架由 AI 研究工具輸出的文章時，請先清理 citation marker、entity wrapper 或沒有實際資產的 image placeholder。
 - 修改文章後建議執行 `mkdocs build --strict`，確認導覽、tags、字數總表與 plugin 設定都能正常產生。
+
+## Research Observatory Desktop
+
+This branch contains a TypeScript/Electron desktop refactor. Use `npm ci`, then `npm run verify` for the full local gate. Windows, Linux and WSL developers use the same root npm scripts; native packaging is exposed as `npm run make:windows` and `npm run make:linux`. The app reads canonical Markdown from `docs/` by default or `ARCHIVE_CONTENT_ROOT` for a local workspace.

@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "declaration": true,
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "@research-observatory/domain": ["packages/domain/src/index.ts"],
+      "@research-observatory/content-engine": ["packages/content-engine/src/index.ts"],
+      "@research-observatory/search-engine": ["packages/search-engine/src/index.ts"],
+      "@research-observatory/application": ["packages/application/src/index.ts"],
+      "@research-observatory/platform-contracts": ["packages/platform-contracts/src/index.ts"],
+      "@research-observatory/renderer-ui": ["packages/renderer-ui/src/index.ts"]
+    },
+    "types": ["node", "vitest/globals"]
+  },
+  "include": ["packages/**/*.ts", "apps/**/*.ts", "apps/**/*.tsx", "vitest.config.ts"]
+}

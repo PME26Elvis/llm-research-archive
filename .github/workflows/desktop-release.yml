@@ -1,0 +1,84 @@
+name: Desktop Release
+on:
+  workflow_dispatch:
+    inputs:
+      target_ref:
+        { description: Branch, tag, or commit SHA to release, required: true, default: app-main }
+      version: { description: SemVer version without v prefix, required: true }
+      channel:
+        {
+          description: Release channel,
+          required: true,
+          type: choice,
+          options: [stable, prerelease],
+          default: prerelease,
+        }
+      publish:
+        {
+          description: Publish after all assets are verified,
+          required: true,
+          type: boolean,
+          default: false,
+        }
+concurrency:
+  group: desktop-release-${{ inputs.version }}
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.rev.outputs.sha }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with: { ref: '${{ inputs.target_ref }}' }
+      - id: rev
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: { node-version: '20', cache: npm }
+      - run: npm ci
+      - run: test "$(node -p "require('./package.json').version")" = "${{ inputs.version }}"
+      - run: npm run verify
+  build:
+    needs: preflight
+    strategy:
+      matrix:
+        include:
+          - { os: windows-latest, platform: windows, arch: x64 }
+          - { os: ubuntu-latest, platform: linux, arch: x64 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with: { ref: '${{ needs.preflight.outputs.sha }}' }
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: { node-version: '20', cache: npm }
+      - run: npm ci
+      - run: npm run make:${{ matrix.platform }}
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: desktop-${{ matrix.platform }}-${{ matrix.arch }}
+          path: out/release/*
+  aggregate:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with: { path: artifacts }
+      - run: find artifacts -type f -print | sort
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with: { name: aggregate-release-assets, path: artifacts }
+  release:
+    needs: [preflight, aggregate]
+    runs-on: ubuntu-latest
+    permissions: { contents: write, attestations: write, id-token: write }
+    steps:
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+        with: { name: aggregate-release-assets, path: artifacts }
+      - uses: softprops/action-gh-release@6cbd405e2c4e67a21c47fa9e383d020e4e28b836
+        with:
+          tag_name: v${{ inputs.version }}
+          target_commitish: ${{ needs.preflight.outputs.sha }}
+          draft: ${{ ! inputs.publish }}
+          prerelease: ${{ inputs.channel == 'prerelease' }}
+          files: artifacts/**

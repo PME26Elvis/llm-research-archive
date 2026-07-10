@@ -3,3 +3,8 @@ site/
 .venv/
 __pycache__/
 *.pyc
+node_modules/
+dist/
+out/
+coverage/
+apps/desktop-electron/resources/archive-manifest.json
