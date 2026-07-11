@@ -29,7 +29,9 @@ export function CommandPalette({ open, onClose, onExecute }: CommandPaletteProps
 
   function execute(command: DesktopCommand) {
     onClose();
-    requestAnimationFrame(() => onExecute(command));
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => onExecute(command));
+    });
   }
 
   return (
