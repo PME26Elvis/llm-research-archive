@@ -24,6 +24,7 @@ related-adrs:
 | Mermaid | MkDocs | renderer | implemented | apps/desktop-electron/src/renderer/mermaid-renderer.test.ts; apps/desktop-electron/e2e/mermaid.spec.ts | Fenced Mermaid diagrams load near the viewport with strict mode, a second SVG allowlist, accessible output, and a source fallback. |
 | Footnotes | Markdown | renderer | implemented | packages/renderer-ui/src/index.test.ts; apps/desktop-electron/e2e/footnotes.spec.ts | Named, inline, multi-block, and repeated footnotes use deterministic accessible in-app navigation. |
 | Internal links | Markdown | application/renderer | implemented | packages/content-engine/src/index.test.ts; apps/desktop-electron/e2e/source.spec.ts | Same-page and cross-article Unicode fragments remain inside the app shell. |
+| Reader navigation history | browser navigation | renderer | implemented | apps/desktop-electron/src/renderer/navigation-history.test.ts; apps/desktop-electron/e2e/navigation-history.spec.ts | Semantic Back/Forward restores article, fragment, search, and facet state without changing the trusted renderer URL. |
 | Git revision date | plugin | manifest | planned | planned | Not in current reader UI. |
 | Blog ordering | MkDocs | content-engine | implemented | packages/content-engine/src/index.test.ts | Date sorting for formal articles. |
 | Observatory | docs page | renderer | planned | planned | Not in P1 reader slice. |

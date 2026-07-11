@@ -27,7 +27,7 @@ related-adrs:
 | FR-015 | implemented | apps/desktop-electron/src/renderer/syntax-highlight.test.ts, apps/desktop-electron/e2e/syntax-highlight.spec.ts |
 | FR-016 | implemented | packages/renderer-ui/src/index.test.ts, apps/desktop-electron/e2e/footnotes.spec.ts |
 | FR-017 | implemented | apps/desktop-electron/src/renderer/preferences.test.ts, apps/desktop-electron/e2e/preferences.spec.ts |
-| FR-018 | planned | planned |
+| FR-018 | implemented | apps/desktop-electron/src/renderer/navigation-history.test.ts, apps/desktop-electron/e2e/navigation-history.spec.ts |
 | FR-019 | planned | planned |
 | FR-020 | planned | planned |
 | FR-021 | planned | planned |
