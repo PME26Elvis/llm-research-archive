@@ -14,7 +14,8 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with: { node-version: '24', cache: npm }
-      - name: Relax formatting-sensitive integration guards
+      - name: Run integration script with traceback
+        shell: bash
         run: |
           python - <<'PY'
           from pathlib import Path
@@ -24,8 +25,13 @@ jobs:
           text = text.replace("if load_marker not in r:\n    raise SystemExit('list effect marker missing')\n", '')
           path.write_text(text)
           PY
-      - run: python scripts/apply-pr24.py
-      - run: rm scripts/apply-pr24.py
+          set +e
+          python scripts/apply-pr24.py > integration.log 2>&1
+          status=$?
+          echo '--- integration traceback (last 80 lines) ---'
+          tail -80 integration.log
+          exit $status
+      - run: rm scripts/apply-pr24.py integration.log
       - run: npm ci
       - run: npm run format:write
       - run: npm run typecheck
