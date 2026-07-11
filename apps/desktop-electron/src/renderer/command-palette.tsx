@@ -27,13 +27,6 @@ export function CommandPalette({ open, onClose, onExecute }: CommandPaletteProps
 
   if (!open) return null;
 
-  function execute(command: DesktopCommand) {
-    onClose();
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => onExecute(command));
-    });
-  }
-
   return (
     <div className="modal-backdrop command-palette-backdrop" onMouseDown={onClose}>
       <section
@@ -54,7 +47,7 @@ export function CommandPalette({ open, onClose, onExecute }: CommandPaletteProps
             setActiveIndex((index) => Math.max(0, index - 1));
           } else if (event.key === 'Enter' && results[activeIndex]) {
             event.preventDefault();
-            execute(results[activeIndex].id);
+            onExecute(results[activeIndex].id);
           }
         }}
       >
@@ -78,7 +71,7 @@ export function CommandPalette({ open, onClose, onExecute }: CommandPaletteProps
               role="option"
               aria-selected={index === activeIndex}
               onMouseEnter={() => setActiveIndex(index)}
-              onClick={() => execute(command.id)}
+              onClick={() => onExecute(command.id)}
             >
               <span>{command.label}</span>
               {command.shortcut && <kbd>{command.shortcut}</kbd>}
