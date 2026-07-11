@@ -6,8 +6,8 @@ test('routes native commands through the typed preload channel and command palet
   const { app, page } = await launchElectron();
   await expect(page.getByTestId('app-ready')).toBeVisible({ timeout: 30000 });
 
-  const menuLabels = await app.evaluate(({ Menu }) =>
-    Menu.getApplicationMenu()?.items.map((item) => item.label) ?? [],
+  const menuLabels = await app.evaluate(
+    ({ Menu }) => Menu.getApplicationMenu()?.items.map((item) => item.label) ?? [],
   );
   expect(menuLabels).toEqual(expect.arrayContaining(['導覽', '檢視', '說明']));
 
