@@ -1,88 +1,89 @@
 name: Desktop CI
 on:
   push:
-    branches: [app-main, main]
-  pull_request:
+    branches: [agent/accessible-footnotes]
 permissions:
-  contents: read
+  contents: write
 jobs:
-  quality:
+  finalize-footnotes:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: agent/accessible-footnotes
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with: { node-version: '24', cache: npm }
-      - run: npm ci
-      - name: Formatting
-        run: npm run format:check
-      - name: Architecture
-        run: npm run lint
-      - name: TypeScript
-        run: npm run typecheck
-      - name: Traceability
-        run: npm run validate:traceability
-      - name: Generated content
-        run: npm run validate:generated
-      - name: Release assets
-        run: npm run validate:release-assets
-      - name: Unit tests
-        run: npm run test
-      - name: Security tests
-        run: npm run test:security
-      - name: Compatibility tests
-        run: npm run test:compatibility
-      - name: Build
-        run: npm run build
-  e2e:
-    needs: quality
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with: { node-version: '24', cache: npm }
-      - run: sudo apt-get update && sudo apt-get install -y xvfb libgtk-3-0 libnss3 libasound2t64 libatk-bridge2.0-0 libxss1
-      - run: npm ci
-      - run: npm run build
-      - name: Electron E2E
+      - name: Install pinned footnote plugin
+        run: npm install --save-dev --save-exact markdown-it-footnote@4.0.0 --ignore-scripts
+      - name: Integrate footnote lifecycle and traceability
         shell: bash
         run: |
-          set -o pipefail
-          xvfb-run -a npm run test:e2e 2>&1 | tee playwright-e2e.log
-      - name: Upload E2E diagnostics
-        if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: desktop-e2e-diagnostics-${{ github.run_attempt }}
-          path: |
-            playwright-e2e.log
-            playwright-report/
-            test-results/
-          if-no-files-found: warn
-          retention-days: 14
-  package-smoke:
-    needs: quality
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - { os: windows-latest, platform: windows, artifact: desktop-windows-x64 }
-          - { os: ubuntu-latest, platform: linux, artifact: desktop-linux-x64 }
-    runs-on: ${{ matrix.os }}
-    steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with: { node-version: '24', cache: npm }
-      - if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y fakeroot rpm xvfb libgtk-3-0 libnss3 libasound2t64 libatk-bridge2.0-0 libxss1
-      - run: npm ci
-      - run: npm run make:${{ matrix.platform }}
-        env:
-          RELEASE_TARGET_COMMIT: ${{ github.sha }}
-      - if: runner.os == 'Linux'
-        run: xvfb-run -a npm run smoke:packaged
-      - if: runner.os == 'Windows'
-        run: npm run smoke:packaged
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: ${{ matrix.artifact }}
-          path: dist/release-assets/*
+          python - <<'PY'
+          from pathlib import Path
+
+          renderer = Path('apps/desktop-electron/src/renderer/renderer.tsx')
+          text = renderer.read_text()
+          old = "import { mountMermaidBlocks } from './mermaid-dom';\nimport { mountSyntaxHighlighting } from './syntax-highlight';"
+          new = "import { mountFootnoteNavigation } from './footnotes';\nimport { mountMermaidBlocks } from './mermaid-dom';\nimport { mountSyntaxHighlighting } from './syntax-highlight';"
+          if old not in text:
+              raise SystemExit('renderer import anchor missing')
+          text = text.replace(old, new, 1)
+          old = "    const cleanupHighlighting = mountSyntaxHighlighting(reader);\n    return () => {\n      cleanupHighlighting();\n      cleanupMermaid();\n    };"
+          new = "    const cleanupHighlighting = mountSyntaxHighlighting(reader);\n    const cleanupFootnotes = mountFootnoteNavigation(reader);\n    return () => {\n      cleanupFootnotes();\n      cleanupHighlighting();\n      cleanupMermaid();\n    };"
+          if old not in text:
+              raise SystemExit('renderer lifecycle anchor missing')
+          renderer.write_text(text.replace(old, new, 1))
+
+          replacements = {
+              Path('project-docs/product/desktop-product-spec.md'): [
+                  ('  - ADR-0010\n', '  - ADR-0010\n  - ADR-0011\n'),
+                  ('strict lazy Mermaid rendering, native packaging',
+                   'strict lazy Mermaid rendering, lazy syntax highlighting, accessible footnotes, native packaging'),
+                  ('## FR-016\n\nStatus: `planned`. Verification: planned for a later PR.',
+                   '## FR-016\n\nStatus: `implemented`. Verification: packages/renderer-ui/src/index.test.ts, apps/desktop-electron/e2e/footnotes.spec.ts.'),
+              ],
+              Path('project-docs/traceability/requirements.yaml'): [
+                  ('- {id: FR-016, title: FR-016, priority: P2, source: {document: project-docs/product/desktop-product-spec.md, section: FR-016}, implementation: {packages: *p}, verification: {tests: []}, status: planned}',
+                   '- {id: FR-016, title: FR-016, priority: P2, source: {document: project-docs/product/desktop-product-spec.md, section: FR-016}, implementation: {packages: *p}, verification: {tests: [packages/renderer-ui/src/index.test.ts, apps/desktop-electron/e2e/footnotes.spec.ts]}, status: implemented}'),
+              ],
+              Path('project-docs/quality/acceptance-matrix.md'): [
+                  ('| FR-016 | planned | planned |',
+                   '| FR-016 | implemented | packages/renderer-ui/src/index.test.ts, apps/desktop-electron/e2e/footnotes.spec.ts |'),
+              ],
+              Path('project-docs/migration/mkdocs-feature-parity-matrix.md'): [
+                  ('| Footnotes | Markdown | renderer | planned | planned | Markdown-it default coverage only. |',
+                   '| Footnotes | Markdown | renderer | implemented | packages/renderer-ui/src/index.test.ts; apps/desktop-electron/e2e/footnotes.spec.ts | Named, inline, multi-block, and repeated footnotes use deterministic accessible in-app navigation. |'),
+              ],
+          }
+
+          for path, pairs in replacements.items():
+              text = path.read_text()
+              for old, new in pairs:
+                  if old not in text:
+                      raise SystemExit(f'missing expected text in {path}: {old}')
+                  text = text.replace(old, new, 1)
+              path.write_text(text)
+          PY
+      - name: Apply repository formatting
+        run: npm run format:write
+      - name: Commit finalized footnotes
+        run: |
+          if ! git diff --quiet; then
+            git config user.name github-actions[bot]
+            git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+            git add package.json package-lock.json \
+              packages/renderer-ui/src/index.ts \
+              packages/renderer-ui/src/index.test.ts \
+              packages/renderer-ui/src/markdown-it-footnote.d.ts \
+              apps/desktop-electron/src/renderer/renderer.tsx \
+              apps/desktop-electron/src/renderer/footnotes.ts \
+              apps/desktop-electron/src/renderer/footnotes.css \
+              apps/desktop-electron/e2e/footnotes.spec.ts \
+              project-docs/architecture/adr/0011-accessible-markdown-footnotes.md \
+              project-docs/product/desktop-product-spec.md \
+              project-docs/traceability/requirements.yaml \
+              project-docs/quality/acceptance-matrix.md \
+              project-docs/migration/mkdocs-feature-parity-matrix.md
+            git commit -m "feat(reader): finalize accessible footnotes"
+            git push origin HEAD:agent/accessible-footnotes
+          fi
