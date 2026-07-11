@@ -55,9 +55,7 @@ test('renders valid Mermaid near the viewport and preserves invalid source as fa
     const invalidFigure = page.locator('figure.mermaid-diagram');
     await invalidFigure.scrollIntoViewIfNeeded();
     await expect(invalidFigure).toHaveAttribute('data-mermaid-state', 'error', { timeout: 30000 });
-    await expect(invalidFigure.getByRole('alert')).toHaveText(
-      'Mermaid 圖表無法渲染，已保留原始碼',
-    );
+    await expect(invalidFigure.getByRole('alert')).toHaveText('Mermaid 圖表無法渲染，已保留原始碼');
     await expect(invalidFigure.locator('details.mermaid-source')).toHaveAttribute('open', '');
     await expect(invalidFigure).toContainText('this is not a Mermaid diagram');
   } finally {

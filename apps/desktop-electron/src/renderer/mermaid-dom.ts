@@ -38,10 +38,7 @@ function createMermaidFigure(pre: HTMLPreElement, source: string): HTMLElement {
   return figure;
 }
 
-async function renderFigure(
-  figure: HTMLElement,
-  render: typeof renderMermaidSvg,
-): Promise<void> {
+async function renderFigure(figure: HTMLElement, render: typeof renderMermaidSvg): Promise<void> {
   if (figure.dataset.mermaidState !== 'pending') return;
   const source = figure.dataset.mermaidSource || '';
   const canvas = figure.querySelector<HTMLElement>('[data-mermaid-canvas]');
