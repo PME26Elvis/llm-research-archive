@@ -14,7 +14,9 @@ jobs:
         with: { node-version: '24', cache: npm }
       - run: npm ci
       - name: Formatting
-        run: npm run format:check
+        run: |
+          npm run format:write
+          git diff --exit-code
       - name: Architecture
         run: npm run lint
       - name: TypeScript
