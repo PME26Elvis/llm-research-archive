@@ -14,7 +14,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with: { node-version: '24', cache: npm }
-      - name: Run integration script with traceback
+      - name: Run integration script
+        id: integration
+        continue-on-error: true
         shell: bash
         run: |
           python - <<'PY'
@@ -25,12 +27,18 @@ jobs:
           text = text.replace("if load_marker not in r:\n    raise SystemExit('list effect marker missing')\n", '')
           path.write_text(text)
           PY
-          set +e
           python scripts/apply-pr24.py > integration.log 2>&1
-          status=$?
-          echo '--- integration traceback (last 80 lines) ---'
-          tail -80 integration.log
-          exit $status
+      - name: Upload integration diagnostics
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: native-command-integration-log
+          path: integration.log
+          if-no-files-found: error
+          retention-days: 2
+      - name: Stop after integration failure
+        if: steps.integration.outcome == 'failure'
+        run: exit 1
       - run: rm scripts/apply-pr24.py integration.log
       - run: npm ci
       - run: npm run format:write
