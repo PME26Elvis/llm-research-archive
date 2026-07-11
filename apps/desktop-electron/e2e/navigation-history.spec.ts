@@ -58,11 +58,11 @@ test('navigates article, fragment, search, and branch history without leaving th
   await expect(page.getByText('請選擇文章')).toBeVisible();
   await expect(forward).toBeEnabled();
 
-  await page.getByLabel('搜尋文章').fill('Target');
+  await page.getByLabel('搜尋文章').fill('Target body');
   await expect(page.getByTestId('article-list').getByRole('button')).toHaveCount(1);
   await page.getByRole('button', { name: /Target Article/ }).click();
   await page.keyboard.press('Alt+ArrowLeft');
-  await expect(page.getByLabel('搜尋文章')).toHaveValue('Target');
+  await expect(page.getByLabel('搜尋文章')).toHaveValue('Target body');
   await expect(page.getByText('請選擇文章')).toBeVisible();
   await page.keyboard.press('Alt+ArrowRight');
   await expect(page.locator('article header h2')).toHaveText('Target Article');
