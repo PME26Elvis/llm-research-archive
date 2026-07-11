@@ -25,6 +25,10 @@ jobs:
           from pathlib import Path
           path = Path('scripts/apply-pr25.py')
           text = path.read_text()
+          text = text.replace(
+              'c = c.replace(f"\\n{append_marker}", diagnostic_code + f"\\n{append_marker}")',
+              'c = c.replace(append_marker, diagnostic_code + "\\n" + append_marker)',
+          )
           start = text.index('q = q.replace(\n    "  openExternal:')
           end = text.index('preload.write_text(q)', start)
           replacement = '''q = q.replace(
@@ -45,15 +49,19 @@ jobs:
           from pathlib import Path
           path = Path('apps/desktop-electron/src/main/main.ts')
           text = path.read_text()
+          text = text.replace(
+              '  type MenuItemConstructorOptions,\n',
+              '  type MenuItemConstructorOptions,\n  type OpenDialogOptions,\n',
+          )
           old = """  const owner = BrowserWindow.fromWebContents(event.sender) ?? undefined;
             const selection = await dialog.showOpenDialog(owner, {
               title: '選擇 Research Observatory 工作區',
               properties: ['openDirectory'],
             });"""
           new = """  const owner = BrowserWindow.fromWebContents(event.sender);
-            const options = {
+            const options: OpenDialogOptions = {
               title: '選擇 Research Observatory 工作區',
-              properties: ['openDirectory'] as const,
+              properties: ['openDirectory'],
             };
             const selection = owner
               ? await dialog.showOpenDialog(owner, options)
