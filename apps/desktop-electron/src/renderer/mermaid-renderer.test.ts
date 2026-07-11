@@ -30,14 +30,18 @@ describe('sanitizeMermaidSvg', () => {
 });
 
 describe('renderMermaidSvg', () => {
-  it('renders through the injected Mermaid API and sanitizes its result', async () => {
+  it('configures the requested theme, renders, and sanitizes the result', async () => {
+    const initialize = vi.fn();
     const render = vi.fn(async () => ({
       svg: '<svg><text>Start</text><script>alert(1)</script></svg>',
     }));
-    const api: MermaidApi = { initialize: vi.fn(), render };
+    const api: MermaidApi = { initialize, render };
 
-    await expect(renderMermaidSvg('diagram-1', 'graph TD\nA-->B', '測試圖', api)).resolves.toBe(
-      '<svg role="img" aria-label="測試圖"><text>Start</text></svg>',
+    await expect(
+      renderMermaidSvg('diagram-1', 'graph TD\nA-->B', '測試圖', api, 'light'),
+    ).resolves.toBe('<svg role="img" aria-label="測試圖"><text>Start</text></svg>');
+    expect(initialize).toHaveBeenCalledWith(
+      expect.objectContaining({ securityLevel: 'strict', theme: 'default' }),
     );
     expect(render).toHaveBeenCalledWith('diagram-1', 'graph TD\nA-->B');
   });
