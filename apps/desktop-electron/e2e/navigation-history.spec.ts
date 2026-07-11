@@ -37,6 +37,7 @@ test('navigates article, fragment, search, and branch history without leaving th
   const initialUrl = page.url();
   const back = page.getByRole('button', { name: '上一個位置' });
   const forward = page.getByRole('button', { name: '下一個位置' });
+  const position = page.getByTestId('history-position');
   await expect(back).toBeDisabled();
   await expect(forward).toBeDisabled();
 
@@ -61,6 +62,8 @@ test('navigates article, fragment, search, and branch history without leaving th
   await page.getByLabel('搜尋文章').fill('Target body');
   await expect(page.getByTestId('article-list').getByRole('button')).toHaveCount(1);
   await page.getByRole('button', { name: /Target Article/ }).click();
+  await expect(position).toHaveText('2 / 2');
+  await expect(back).toBeEnabled();
   await page.keyboard.press('Alt+ArrowLeft');
   await expect(page.getByLabel('搜尋文章')).toHaveValue('Target body');
   await expect(page.getByText('請選擇文章')).toBeVisible();
@@ -68,6 +71,7 @@ test('navigates article, fragment, search, and branch history without leaving th
   await expect(page.locator('article header h2')).toHaveText('Target Article');
 
   await page.keyboard.press('Alt+ArrowLeft');
+  await expect(page.getByText('請選擇文章')).toBeVisible();
   await page.getByLabel('搜尋文章').fill('Gamma');
   await page.getByRole('button', { name: /Gamma Article/ }).click();
   await expect(page.locator('article header h2')).toHaveText('Gamma Article');
