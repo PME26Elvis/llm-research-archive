@@ -36,8 +36,10 @@ test('renders valid Mermaid near the viewport and preserves invalid source as fa
   const app = await launch(root);
   try {
     const page = await app.firstWindow();
+    const articleTitle = page.locator('article header h2');
     await expect(page.getByTestId('app-ready')).toBeVisible({ timeout: 30000 });
     await page.getByRole('button', { name: /Valid Diagram/ }).click();
+    await expect(articleTitle).toHaveText('Valid Diagram');
 
     const figure = page.locator('figure.mermaid-diagram');
     await figure.scrollIntoViewIfNeeded();
@@ -56,7 +58,9 @@ test('renders valid Mermaid near the viewport and preserves invalid source as fa
     await expect(figure.getByRole('button', { name: '複製 mermaid 程式碼' })).toBeVisible();
 
     await page.getByRole('button', { name: /Invalid Diagram/ }).click();
+    await expect(articleTitle).toHaveText('Invalid Diagram');
     const invalidFigure = page.locator('figure.mermaid-diagram');
+    await expect(invalidFigure).toBeVisible();
     await invalidFigure.scrollIntoViewIfNeeded();
     await expect(invalidFigure).toHaveAttribute('data-mermaid-state', 'error', { timeout: 30000 });
     await expect(invalidFigure.getByRole('alert')).toHaveText('Mermaid 圖表無法渲染，已保留原始碼');
