@@ -14,9 +14,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with: { node-version: '24', cache: npm }
-      - name: Run integration script
-        id: integration
-        continue-on-error: true
+      - name: Apply integration script
         shell: bash
         run: |
           python - <<'PY'
@@ -28,22 +26,27 @@ jobs:
           text = text.replace("if load_marker not in r:\n    raise SystemExit('list effect marker missing')\n", '')
           path.write_text(text)
           PY
-          python scripts/apply-pr24.py > integration.log 2>&1
-      - name: Upload integration diagnostics
+          python scripts/apply-pr24.py
+          rm scripts/apply-pr24.py
+      - run: npm ci
+      - run: npm run format:write
+      - name: TypeScript diagnostics
+        id: typecheck
+        continue-on-error: true
+        shell: bash
+        run: npm run typecheck > typecheck.log 2>&1
+      - name: Upload typecheck diagnostics
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: native-command-integration-log
-          path: integration.log
+          name: native-command-typecheck-log
+          path: typecheck.log
           if-no-files-found: error
           retention-days: 2
-      - name: Stop after integration failure
-        if: steps.integration.outcome == 'failure'
+      - name: Stop after typecheck failure
+        if: steps.typecheck.outcome == 'failure'
         run: exit 1
-      - run: rm scripts/apply-pr24.py integration.log
-      - run: npm ci
-      - run: npm run format:write
-      - run: npm run typecheck
+      - run: rm typecheck.log
       - run: npm run test -- --run packages/platform-contracts/src/desktop-command.test.ts apps/desktop-electron/src/renderer/desktop-commands.test.ts
       - run: npm run validate:traceability
       - run: |
