@@ -14,83 +14,23 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with: { node-version: '24', cache: npm }
-      - name: Apply and validate workspace integration
-        id: finalize
-        continue-on-error: true
-        shell: bash
+      - name: Apply workspace integration
+        run: python scripts/apply-pr25.py
+      - name: Remove finalization script
+        run: rm scripts/apply-pr25.py
+      - run: npm ci
+      - name: Format repository
+        run: npm run format:write
+      - name: TypeScript
+        run: npm run typecheck
+      - name: Focused workspace tests
+        run: npm run test -- --run packages/content-engine/src/index.test.ts apps/desktop-electron/src/main/workspace-state.test.ts packages/platform-contracts/src/workspace-contract.test.ts
+      - name: Security tests
+        run: npm run test:security
+      - name: Traceability
+        run: npm run validate:traceability
+      - name: Commit finalized workspace feature
         run: |
-          set -o pipefail
-          (
-            python - <<'PY'
-          from pathlib import Path
-          path = Path('scripts/apply-pr25.py')
-          text = path.read_text()
-          text = text.replace(
-              'c = c.replace(f"\\n{append_marker}", diagnostic_code + f"\\n{append_marker}")',
-              'c = c.replace(append_marker, diagnostic_code + "\\n" + append_marker)',
-          )
-          start = text.index('q = q.replace(\n    "  openExternal:')
-          end = text.index('preload.write_text(q)', start)
-          replacement = '''q = q.replace(
-              "  openExternal: (url: string) => ipcRenderer.invoke('external:open', url),",
-              """  openExternal: (url: string) => ipcRenderer.invoke('external:open', url),
-            workspaceInfo: async (): Promise<WorkspaceInfoDto> =>
-              WorkspaceInfoSchema.parse(await ipcRenderer.invoke('workspace:info')),
-            selectWorkspace: async (): Promise<WorkspaceSelectionResult> =>
-              WorkspaceSelectionResultSchema.parse(await ipcRenderer.invoke('workspace:select')),
-          """,
-          )
-          '''
-          text = text[:start] + replacement + text[end:]
-          path.write_text(text)
-          PY
-            python scripts/apply-pr25.py
-            python - <<'PY'
-          from pathlib import Path
-          path = Path('apps/desktop-electron/src/main/main.ts')
-          text = path.read_text()
-          text = text.replace(
-              '  type MenuItemConstructorOptions,\n',
-              '  type MenuItemConstructorOptions,\n  type OpenDialogOptions,\n',
-          )
-          old = """  const owner = BrowserWindow.fromWebContents(event.sender) ?? undefined;
-            const selection = await dialog.showOpenDialog(owner, {
-              title: '選擇 Research Observatory 工作區',
-              properties: ['openDirectory'],
-            });"""
-          new = """  const owner = BrowserWindow.fromWebContents(event.sender);
-            const options: OpenDialogOptions = {
-              title: '選擇 Research Observatory 工作區',
-              properties: ['openDirectory'],
-            };
-            const selection = owner
-              ? await dialog.showOpenDialog(owner, options)
-              : await dialog.showOpenDialog(options);"""
-          if old not in text:
-              raise SystemExit('workspace dialog marker not found')
-          path.write_text(text.replace(old, new))
-          PY
-            rm scripts/apply-pr25.py
-            npm ci
-            npm run format:write
-            npm run typecheck
-            npm run test -- --run packages/content-engine/src/index.test.ts apps/desktop-electron/src/main/workspace-state.test.ts packages/platform-contracts/src/workspace-contract.test.ts
-            npm run test:security
-            npm run validate:traceability
-          ) 2>&1 | tee workspace-finalize.log
-      - name: Upload finalization diagnostics
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: local-workspace-finalize-log
-          path: workspace-finalize.log
-          if-no-files-found: error
-          retention-days: 2
-      - name: Stop after finalization failure
-        if: steps.finalize.outcome == 'failure'
-        run: exit 1
-      - run: rm workspace-finalize.log
-      - run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add .
