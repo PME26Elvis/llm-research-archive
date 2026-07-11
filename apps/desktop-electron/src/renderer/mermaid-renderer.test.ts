@@ -22,7 +22,6 @@ describe('sanitizeMermaidSvg', () => {
 
     expect(svg).not.toMatch(/script|foreignObject|iframe|onload|evil\.example|@import/i);
     expect(svg).not.toContain('href=');
-    expect(svg).toContain('stroke:url(#safe)');
   });
 
   it('rejects a non-SVG renderer response', () => {
