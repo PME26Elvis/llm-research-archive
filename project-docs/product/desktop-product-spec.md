@@ -4,6 +4,7 @@ owner: repository-maintainer
 last-verified: 2026-07-11
 related-adrs:
   - ADR-0001
+  - ADR-0009
 ---
 
 # Desktop Product Spec
