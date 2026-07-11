@@ -23,6 +23,7 @@ jobs:
           from pathlib import Path
           path = Path('scripts/apply-pr24.py')
           text = path.read_text()
+          text = text.replace("apps/desktop-electron/src/main/preload.ts", "apps/desktop-electron/src/preload/preload.ts")
           text = text.replace("if travel not in r:\n    raise SystemExit('travel history marker missing')\n", '')
           text = text.replace("if load_marker not in r:\n    raise SystemExit('list effect marker missing')\n", '')
           path.write_text(text)
