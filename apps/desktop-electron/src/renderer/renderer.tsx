@@ -14,6 +14,7 @@ import type {
   SearchResultDto,
 } from '@research-observatory/platform-contracts';
 import { copyText } from './copy-code';
+import { mountFootnoteNavigation } from './footnotes';
 import { mountMermaidBlocks } from './mermaid-dom';
 import { mountSyntaxHighlighting } from './syntax-highlight';
 
@@ -298,7 +299,9 @@ function App() {
     const cleanupMermaid = mountMermaidBlocks(reader);
     decorateCodeBlocks(reader);
     const cleanupHighlighting = mountSyntaxHighlighting(reader);
+    const cleanupFootnotes = mountFootnoteNavigation(reader);
     return () => {
+      cleanupFootnotes();
       cleanupHighlighting();
       cleanupMermaid();
     };

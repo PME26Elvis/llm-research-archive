@@ -6,13 +6,14 @@ related-adrs:
   - ADR-0001
   - ADR-0009
   - ADR-0010
+  - ADR-0011
 ---
 
 # Desktop Product Spec
 
 ## Current P1 Offline Reader Scope
 
-The current implementation provides the offline bundled reader, secure Electron shell, content parsing, full-text search, category/tag/timeline browsing, sanitized reading with local image lightbox, fenced-code copy, and strict lazy Mermaid rendering, native packaging, and a verified draft-release pipeline. Requirements without concrete code and verification artifacts remain planned.
+The current implementation provides the offline bundled reader, secure Electron shell, content parsing, full-text search, category/tag/timeline browsing, sanitized reading with local image lightbox, fenced-code copy, and strict lazy Mermaid rendering, lazy syntax highlighting, accessible footnotes, native packaging, and a verified draft-release pipeline. Requirements without concrete code and verification artifacts remain planned.
 
 ## FR-001
 
@@ -76,7 +77,7 @@ Status: `implemented`. Verification: apps/desktop-electron/src/renderer/syntax-h
 
 ## FR-016
 
-Status: `planned`. Verification: planned for a later PR.
+Status: `implemented`. Verification: packages/renderer-ui/src/index.test.ts, apps/desktop-electron/e2e/footnotes.spec.ts.
 
 ## FR-017
 

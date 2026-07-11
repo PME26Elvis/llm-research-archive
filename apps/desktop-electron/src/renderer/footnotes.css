@@ -1,0 +1,51 @@
+.footnote-ref {
+  font-size: 0.78em;
+  line-height: 1;
+  vertical-align: super;
+}
+
+.footnote-ref a,
+.footnote-backref {
+  border-radius: 0.25rem;
+  padding: 0.1rem 0.2rem;
+  text-decoration: none;
+}
+
+.footnote-ref a:focus-visible,
+.footnote-backref:focus-visible,
+.footnote-item:focus-visible {
+  outline: 2px solid currentColor;
+  outline-offset: 3px;
+}
+
+.footnotes-sep {
+  border: 0;
+  border-top: 1px solid #334155;
+  margin: 2.5rem 0 1rem;
+}
+
+.footnotes {
+  color: #cbd5e1;
+  font-size: 0.9rem;
+}
+
+.footnotes-list {
+  padding-left: 1.5rem;
+}
+
+.footnote-item {
+  border-radius: 0.4rem;
+  margin: 0.65rem 0;
+  padding: 0.2rem 0.35rem;
+  scroll-margin-block: 20vh;
+}
+
+.footnote-item:target,
+.footnote-item:focus {
+  background: rgba(56, 189, 248, 0.12);
+}
+
+.footnote-backref {
+  display: inline-block;
+  margin-left: 0.35rem;
+}
