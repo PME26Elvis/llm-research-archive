@@ -3,7 +3,13 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { renderMarkdown } from '@research-observatory/renderer-ui';
-import { readingStats, createManifest, scanArchive, parseArticle } from './index';
+import {
+  readingStats,
+  createManifest,
+  scanArchive,
+  scanArchiveWithDiagnostics,
+  parseArticle,
+} from './index';
 
 describe('content engine', () => {
   it('matches Python hook counting rules for cjk, latin, code, html and citations', () => {
@@ -28,6 +34,25 @@ describe('content engine', () => {
     const html = renderMarkdown(article.markdown);
     for (const heading of article.headings) expect(html).toContain(`id="${heading.slug}"`);
     expect(article.headings.map((h) => h.slug)).toEqual(['模型', '模型-1', 'deep-heading']);
+    fs.rmSync(root, { recursive: true, force: true });
+  });
+
+  it('reports invalid formal index articles without flagging supporting Markdown', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'content-diagnostics-'));
+    const valid = path.join(root, 'alpha', 'valid');
+    const broken = path.join(root, 'alpha', 'broken');
+    fs.mkdirSync(valid, { recursive: true });
+    fs.mkdirSync(broken, { recursive: true });
+    fs.writeFileSync(
+      path.join(valid, 'index.md'),
+      '---\ndate: 2026-01-01\ntags: [test]\n---\n# Valid\n',
+    );
+    fs.writeFileSync(path.join(valid, 'research-activity.md'), '# Supporting appendix\n');
+    fs.writeFileSync(path.join(broken, 'index.md'), '---\ndate: [invalid\n---\n# Broken\n');
+
+    const result = scanArchiveWithDiagnostics(root);
+    expect(result.articles.map((article) => article.title)).toEqual(['Valid']);
+    expect(result.diagnostics.invalidFiles).toEqual(['alpha/broken/index.md']);
     fs.rmSync(root, { recursive: true, force: true });
   });
 
