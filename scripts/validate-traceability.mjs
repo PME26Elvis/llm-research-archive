@@ -100,6 +100,7 @@ if (productRequirements.size !== ids.size) {
   throw new Error('requirements and Product Spec ID counts differ');
 }
 for (const id of acceptanceRows.keys()) if (!ids.has(id)) throw new Error(`YAML missing ${id}`);
-for (const id of productRequirements.keys()) if (!ids.has(id)) throw new Error(`YAML missing ${id}`);
+for (const id of productRequirements.keys())
+  if (!ids.has(id)) throw new Error(`YAML missing ${id}`);
 
 console.log('traceability ok');
