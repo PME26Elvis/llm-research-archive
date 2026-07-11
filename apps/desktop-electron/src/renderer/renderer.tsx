@@ -15,6 +15,7 @@ import type {
 } from '@research-observatory/platform-contracts';
 import { copyText } from './copy-code';
 import { mountMermaidBlocks } from './mermaid-dom';
+import { mountSyntaxHighlighting } from './syntax-highlight';
 
 declare global {
   interface Window {
@@ -296,7 +297,11 @@ function App() {
     }
     const cleanupMermaid = mountMermaidBlocks(reader);
     decorateCodeBlocks(reader);
-    return cleanupMermaid;
+    const cleanupHighlighting = mountSyntaxHighlighting(reader);
+    return () => {
+      cleanupHighlighting();
+      cleanupMermaid();
+    };
   }, [selected]);
 
   async function open(id: string, fragment = '') {
