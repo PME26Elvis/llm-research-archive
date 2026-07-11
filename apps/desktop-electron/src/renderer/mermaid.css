@@ -2,14 +2,14 @@
   margin: 1.25rem 0;
   padding: 0.85rem;
   overflow: hidden;
-  border: 1px solid #394150;
+  border: 1px solid var(--border-strong);
   border-radius: 10px;
-  background: #131923;
+  background: var(--surface-panel);
 }
 
 .mermaid-diagram figcaption {
   margin-bottom: 0.65rem;
-  color: #d6deea;
+  color: var(--text-primary);
   font-weight: 700;
 }
 
@@ -26,16 +26,16 @@
 
 .mermaid-status {
   margin: 0.65rem 0 0;
-  color: #aab4c3;
+  color: var(--text-muted);
   font-size: 0.85rem;
 }
 
 .mermaid-diagram[data-mermaid-state='error'] {
-  border-color: #ff8b8b;
+  border-color: var(--danger);
 }
 
 .mermaid-diagram[data-mermaid-state='error'] .mermaid-status {
-  color: #ffd1d1;
+  color: var(--danger-soft);
 }
 
 .mermaid-source {
@@ -44,7 +44,7 @@
 
 .mermaid-source summary {
   cursor: pointer;
-  color: #8ab4ff;
+  color: var(--accent);
 }
 
 .mermaid-source .code-block {
