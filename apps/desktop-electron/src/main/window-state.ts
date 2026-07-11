@@ -1,4 +1,5 @@
 import fs from 'node:fs';
+import path from 'node:path';
 
 export interface WindowBounds {
   x?: number;
@@ -39,12 +40,10 @@ export function normalizeWindowState(
   value: unknown,
   workAreas: WorkArea[],
 ): PersistedWindowState {
-  if (!value || typeof value !== 'object') return DEFAULT_WINDOW_STATE;
-  const record = value as Record<string, unknown>;
-  const boundsValue = record.bounds;
-  if (!boundsValue || typeof boundsValue !== 'object') return DEFAULT_WINDOW_STATE;
-  const raw = boundsValue as Record<string, unknown>;
   const primary = workAreas[0] ?? { x: 0, y: 0, width: 1920, height: 1080 };
+  const record = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
+  const boundsValue = record.bounds;
+  const raw = boundsValue && typeof boundsValue === 'object' ? (boundsValue as Record<string, unknown>) : {};
   const width = Math.min(primary.width, Math.max(MIN_WINDOW_WIDTH, Number(raw.width) || 1280));
   const height = Math.min(primary.height, Math.max(MIN_WINDOW_HEIGHT, Number(raw.height) || 840));
   const candidate: Required<WindowBounds> = {
@@ -78,7 +77,7 @@ export function loadWindowState(filePath: string, workAreas: WorkArea[]): Persis
 
 export function saveWindowState(filePath: string, state: PersistedWindowState): void {
   const temporary = `${filePath}.tmp`;
-  fs.mkdirSync(new URL('.', `file://${filePath}`).pathname, { recursive: true });
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
   fs.writeFileSync(temporary, `${JSON.stringify(state, null, 2)}\n`, { mode: 0o600 });
   fs.renameSync(temporary, filePath);
 }
