@@ -17,6 +17,7 @@ This catalog gives every traceable requirement a stable product name and defines
 - `planned` remains planned until its complete user journey passes.
 - Documents, mock interfaces, scaffolds, and skipped tests are not implementation evidence.
 - Status, traceability, acceptance evidence, and parity documentation change in the same pull request.
+- Catalog changes alone never implement runtime behavior.
 
 ## Remaining functional requirement
 
