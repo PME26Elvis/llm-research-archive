@@ -11,11 +11,12 @@ import {
 const initialPreferences = loadLayoutPreferences(window.localStorage);
 
 interface ResizableLayoutProps {
+  articleCount: number;
   sidebar: ReactNode;
   children: ReactNode;
 }
 
-export function ResizableLayout({ sidebar, children }: ResizableLayoutProps) {
+export function ResizableLayout({ articleCount, sidebar, children }: ResizableLayoutProps) {
   const [preferences, setPreferences] = useState<LayoutPreferences>(initialPreferences);
   const dragStartRef = useRef<{ x: number; width: number } | null>(null);
 
@@ -60,6 +61,7 @@ export function ResizableLayout({ sidebar, children }: ResizableLayoutProps) {
       className="app"
       style={style}
       data-testid="app-ready"
+      data-article-count={articleCount}
       data-sidebar-collapsed={preferences.sidebarCollapsed}
       data-sidebar-width={preferences.sidebarWidth}
     >
