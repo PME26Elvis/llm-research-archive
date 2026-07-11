@@ -43,7 +43,22 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y xvfb libgtk-3-0 libnss3 libasound2t64 libatk-bridge2.0-0 libxss1
       - run: npm ci
       - run: npm run build
-      - run: xvfb-run -a npm run test:e2e
+      - name: Electron E2E
+        shell: bash
+        run: |
+          set -o pipefail
+          xvfb-run -a npm run test:e2e 2>&1 | tee playwright-e2e.log
+      - name: Upload E2E diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: desktop-e2e-diagnostics-${{ github.run_attempt }}
+          path: |
+            playwright-e2e.log
+            playwright-report/
+            test-results/
+          if-no-files-found: warn
+          retention-days: 14
   package-smoke:
     needs: quality
     strategy:
