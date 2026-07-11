@@ -1,7 +1,7 @@
 ---
 status: accepted
 owner: repository-maintainer
-last-verified: 2026-07-10
+last-verified: 2026-07-11
 related-adrs:
   - ADR-0001
 ---
@@ -23,7 +23,7 @@ related-adrs:
 | FR-011 | implemented | packages/platform-contracts/src/index.test.ts, apps/desktop-electron/tests/security.spec.ts |
 | FR-012 | implemented | apps/desktop-electron/e2e/source.spec.ts |
 | FR-013 | implemented | apps/desktop-electron/src/renderer/copy-code.test.ts, apps/desktop-electron/e2e/source.spec.ts |
-| FR-014 | planned | planned |
+| FR-014 | implemented | apps/desktop-electron/src/renderer/mermaid-renderer.test.ts, apps/desktop-electron/e2e/mermaid.spec.ts |
 | FR-015 | planned | planned |
 | FR-016 | planned | planned |
 | FR-017 | planned | planned |

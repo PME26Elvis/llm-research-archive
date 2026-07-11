@@ -1,16 +1,17 @@
 ---
 status: accepted
 owner: repository-maintainer
-last-verified: 2026-07-10
+last-verified: 2026-07-11
 related-adrs:
   - ADR-0001
+  - ADR-0009
 ---
 
 # Desktop Product Spec
 
 ## Current P1 Offline Reader Scope
 
-The current implementation provides the offline bundled reader, secure Electron shell, content parsing, full-text search, category/tag/timeline browsing, sanitized reading with local image lightbox and fenced-code copy support, native packaging, and a verified draft-release pipeline. Requirements without concrete code and verification artifacts remain planned.
+The current implementation provides the offline bundled reader, secure Electron shell, content parsing, full-text search, category/tag/timeline browsing, sanitized reading with local image lightbox, fenced-code copy, and strict lazy Mermaid rendering, native packaging, and a verified draft-release pipeline. Requirements without concrete code and verification artifacts remain planned.
 
 ## FR-001
 
@@ -66,7 +67,7 @@ Status: `implemented`. Verification: apps/desktop-electron/src/renderer/copy-cod
 
 ## FR-014
 
-Status: `planned`. Verification: planned for a later PR.
+Status: `implemented`. Verification: apps/desktop-electron/src/renderer/mermaid-renderer.test.ts, apps/desktop-electron/e2e/mermaid.spec.ts.
 
 ## FR-015
 

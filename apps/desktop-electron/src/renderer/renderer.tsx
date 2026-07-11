@@ -14,6 +14,7 @@ import type {
   SearchResultDto,
 } from '@research-observatory/platform-contracts';
 import { copyText } from './copy-code';
+import { mountMermaidBlocks } from './mermaid-dom';
 
 declare global {
   interface Window {
@@ -293,7 +294,9 @@ function App() {
       image.loading = 'lazy';
       image.decoding = 'async';
     }
+    const cleanupMermaid = mountMermaidBlocks(reader);
     decorateCodeBlocks(reader);
+    return cleanupMermaid;
   }, [selected]);
 
   async function open(id: string, fragment = '') {
