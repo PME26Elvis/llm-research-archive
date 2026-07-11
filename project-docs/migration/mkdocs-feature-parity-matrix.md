@@ -19,7 +19,7 @@ related-adrs:
 | Reading time | hooks/word_counts.py | content-engine | implemented | packages/content-engine/src/index.test.ts | 500-display-unit rule. |
 | Dark mode | CSS | renderer | planned | planned | Current styling is fixed dark reader. |
 | Code copy | JS | renderer | implemented | apps/desktop-electron/src/renderer/copy-code.test.ts; apps/desktop-electron/e2e/source.spec.ts | Every fenced block receives a keyboard-accessible copy control, live feedback, Clipboard API handling, and a packaged-renderer fallback. |
-| Syntax highlighting | MkDocs | renderer | planned | planned | Sanitized code blocks exist; highlighting is later. |
+| Syntax highlighting | MkDocs | renderer | implemented | apps/desktop-electron/src/renderer/syntax-highlight.test.ts; apps/desktop-electron/e2e/syntax-highlight.spec.ts | Registered local grammars highlight near the viewport without auto-detection, while unknown languages remain plain text. |
 | Image lightbox | JS/CSS | renderer | implemented | apps/desktop-electron/e2e/source.spec.ts | Local article images are keyboard focusable, lazy-loaded, and open in an accessible modal with Escape and focus restoration. |
 | Mermaid | MkDocs | renderer | implemented | apps/desktop-electron/src/renderer/mermaid-renderer.test.ts; apps/desktop-electron/e2e/mermaid.spec.ts | Fenced Mermaid diagrams load near the viewport with strict mode, a second SVG allowlist, accessible output, and a source fallback. |
 | Footnotes | Markdown | renderer | planned | planned | Markdown-it default coverage only. |

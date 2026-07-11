@@ -67,7 +67,10 @@ export interface SyntaxHighlightOptions {
 }
 
 export function normalizeSyntaxLanguage(language: string): string {
-  const normalized = language.trim().toLowerCase().replace(/^language-/, '');
+  const normalized = language
+    .trim()
+    .toLowerCase()
+    .replace(/^language-/, '');
   return languageAliases[normalized] ?? normalized;
 }
 

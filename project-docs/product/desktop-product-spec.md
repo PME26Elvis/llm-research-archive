@@ -5,6 +5,7 @@ last-verified: 2026-07-11
 related-adrs:
   - ADR-0001
   - ADR-0009
+  - ADR-0010
 ---
 
 # Desktop Product Spec
@@ -71,7 +72,7 @@ Status: `implemented`. Verification: apps/desktop-electron/src/renderer/mermaid-
 
 ## FR-015
 
-Status: `planned`. Verification: planned for a later PR.
+Status: `implemented`. Verification: apps/desktop-electron/src/renderer/syntax-highlight.test.ts, apps/desktop-electron/e2e/syntax-highlight.spec.ts.
 
 ## FR-016
 
