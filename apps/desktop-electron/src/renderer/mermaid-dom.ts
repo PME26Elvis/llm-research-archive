@@ -1,5 +1,5 @@
 import './mermaid.css';
-import { renderMermaidSvg } from './mermaid-renderer';
+import { renderMermaidSvg, type MermaidTheme } from './mermaid-renderer';
 
 interface MermaidMountOptions {
   render?: typeof renderMermaidSvg;
@@ -7,11 +7,16 @@ interface MermaidMountOptions {
 
 let diagramSequence = 0;
 
+function resolvedTheme(): MermaidTheme {
+  return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+}
+
 function createMermaidFigure(pre: HTMLPreElement, source: string): HTMLElement {
   const figure = document.createElement('figure');
   figure.className = 'mermaid-diagram';
   figure.dataset.mermaidState = 'pending';
   figure.dataset.mermaidSource = source;
+  figure.dataset.mermaidRenderVersion = '0';
 
   const caption = document.createElement('figcaption');
   caption.textContent = 'Mermaid 圖表';
@@ -46,19 +51,23 @@ async function renderFigure(figure: HTMLElement, render: typeof renderMermaidSvg
   const sourceDetails = figure.querySelector<HTMLDetailsElement>('details.mermaid-source');
   if (!canvas || !status || !sourceDetails) return;
 
+  const version = Number(figure.dataset.mermaidRenderVersion ?? 0) + 1;
+  figure.dataset.mermaidRenderVersion = String(version);
   figure.dataset.mermaidState = 'rendering';
+  status.setAttribute('role', 'status');
   status.textContent = '正在渲染 Mermaid 圖表…';
   const id = `research-observatory-mermaid-${++diagramSequence}`;
 
   try {
-    const svg = await render(id, source, 'Mermaid 圖表');
-    if (!figure.isConnected) return;
+    const svg = await render(id, source, 'Mermaid 圖表', undefined, resolvedTheme());
+    if (!figure.isConnected || Number(figure.dataset.mermaidRenderVersion) !== version) return;
     canvas.innerHTML = svg;
     figure.dataset.mermaidState = 'rendered';
+    figure.dataset.mermaidTheme = resolvedTheme();
     status.textContent = 'Mermaid 圖表已完成';
     sourceDetails.open = false;
   } catch {
-    if (!figure.isConnected) return;
+    if (!figure.isConnected || Number(figure.dataset.mermaidRenderVersion) !== version) return;
     canvas.replaceChildren();
     figure.dataset.mermaidState = 'error';
     status.setAttribute('role', 'alert');
@@ -82,22 +91,37 @@ export function mountMermaidBlocks(
 
   if (!figures.length) return () => undefined;
 
+  let observer: IntersectionObserver | undefined;
   if (typeof IntersectionObserver === 'undefined') {
     for (const figure of figures) void renderFigure(figure, render);
-    return () => undefined;
+  } else {
+    observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          observer?.unobserve(entry.target);
+          void renderFigure(entry.target as HTMLElement, render);
+        }
+      },
+      { rootMargin: '320px 0px' },
+    );
+
+    for (const figure of figures) observer.observe(figure);
   }
 
-  const observer = new IntersectionObserver(
-    (entries) => {
-      for (const entry of entries) {
-        if (!entry.isIntersecting) continue;
-        observer.unobserve(entry.target);
-        void renderFigure(entry.target as HTMLElement, render);
-      }
-    },
-    { rootMargin: '320px 0px' },
-  );
+  const onThemeChange = () => {
+    for (const figure of figures) {
+      if (figure.dataset.mermaidState !== 'rendered') continue;
+      if (figure.dataset.mermaidTheme === resolvedTheme()) continue;
+      figure.dataset.mermaidState = 'pending';
+      figure.querySelector<HTMLElement>('[data-mermaid-canvas]')?.replaceChildren();
+      void renderFigure(figure, render);
+    }
+  };
+  document.addEventListener('observatory-theme-change', onThemeChange);
 
-  for (const figure of figures) observer.observe(figure);
-  return () => observer.disconnect();
+  return () => {
+    observer?.disconnect();
+    document.removeEventListener('observatory-theme-change', onThemeChange);
+  };
 }
