@@ -217,3 +217,34 @@ test('opens a local article image in an accessible keyboard lightbox', async () 
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+test('copies fenced code to the system clipboard with accessible feedback', async () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'observatory-code-copy-e2e-'));
+  const expected = 'const answer = 42;\nconsole.log(answer);\n';
+  writeArticle(
+    root,
+    path.join('code', 'sample'),
+    `---\ndate: 2026-03-02\ntags: [code]\n---\n# Code Article\n\n\`\`\`ts\nconst answer = 42;\nconsole.log(answer);\n\`\`\`\n`,
+  );
+
+  const app = await launch({ ARCHIVE_CONTENT_ROOT: root });
+  try {
+    const page = await app.firstWindow();
+    await app.evaluate(({ clipboard }) => clipboard.writeText('before'));
+    await expect(page.getByTestId('app-ready')).toBeVisible({ timeout: 30000 });
+    await page.getByRole('button', { name: /Code Article/ }).click();
+
+    const copyButton = page.getByRole('button', { name: '複製 ts 程式碼' });
+    await expect(copyButton).toBeVisible();
+    await copyButton.focus();
+    await page.keyboard.press('Enter');
+
+    await expect.poll(() => app.evaluate(({ clipboard }) => clipboard.readText())).toBe(expected);
+    await expect(copyButton).toHaveText('已複製');
+    await expect(page.getByRole('status')).toHaveText('程式碼已複製到剪貼簿');
+    await expect(copyButton).toBeFocused();
+  } finally {
+    await app.close();
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});

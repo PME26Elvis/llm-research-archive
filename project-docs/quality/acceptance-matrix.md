@@ -22,7 +22,7 @@ related-adrs:
 | FR-010 | implemented | apps/desktop-electron/e2e/source.spec.ts |
 | FR-011 | implemented | packages/platform-contracts/src/index.test.ts, apps/desktop-electron/tests/security.spec.ts |
 | FR-012 | implemented | apps/desktop-electron/e2e/source.spec.ts |
-| FR-013 | planned | planned |
+| FR-013 | implemented | apps/desktop-electron/src/renderer/copy-code.test.ts, apps/desktop-electron/e2e/source.spec.ts |
 | FR-014 | planned | planned |
 | FR-015 | planned | planned |
 | FR-016 | planned | planned |
