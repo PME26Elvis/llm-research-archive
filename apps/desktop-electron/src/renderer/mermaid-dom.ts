@@ -1,3 +1,4 @@
+import './mermaid.css';
 import { renderMermaidSvg } from './mermaid-renderer';
 
 interface MermaidMountOptions {
