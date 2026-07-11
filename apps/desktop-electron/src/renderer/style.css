@@ -1,8 +1,51 @@
+:root {
+  --reader-text-scale: 1;
+  --surface-body: #101318;
+  --surface-control: #171c25;
+  --surface-code: #1d2430;
+  --surface-panel: #131923;
+  --surface-selected: #22314a;
+  --text-primary: #f4f7fb;
+  --text-muted: #aab4c3;
+  --border: #2b3240;
+  --border-strong: #394150;
+  --border-hover: #58677d;
+  --accent: #8ab4ff;
+  --success: #61c995;
+  --danger: #ff8b8b;
+  --danger-soft: #ffd1d1;
+  --modal-backdrop: rgba(0, 0, 0, 0.65);
+  --modal-shadow: rgba(0, 0, 0, 0.5);
+  --lightbox-backdrop: rgba(0, 0, 0, 0.88);
+  --lightbox-text: #d6deea;
+  --note-focus: rgba(56, 189, 248, 0.12);
+}
+
+:root[data-theme='light'] {
+  --surface-body: #f5f7fb;
+  --surface-control: #ffffff;
+  --surface-code: #eef2f7;
+  --surface-panel: #f8fafc;
+  --surface-selected: #dbeafe;
+  --text-primary: #1d2733;
+  --text-muted: #5b6777;
+  --border: #cbd5e1;
+  --border-strong: #b8c3d1;
+  --border-hover: #64748b;
+  --accent: #2457b2;
+  --success: #137a4b;
+  --danger: #b42318;
+  --danger-soft: #7a271a;
+  --modal-backdrop: rgba(15, 23, 42, 0.45);
+  --modal-shadow: rgba(15, 23, 42, 0.22);
+  --note-focus: rgba(37, 99, 235, 0.12);
+}
+
 body {
   margin: 0;
   font-family: system-ui, -apple-system, 'Noto Sans TC', sans-serif;
-  background: #101318;
-  color: #f4f7fb;
+  background: var(--surface-body);
+  color: var(--text-primary);
 }
 
 .app {
@@ -12,7 +55,7 @@ body {
 }
 
 aside {
-  border-right: 1px solid #2b3240;
+  border-right: 1px solid var(--border);
   padding: 1rem;
   overflow: auto;
 }
@@ -21,14 +64,22 @@ article {
   padding: 2rem;
   overflow: auto;
   max-width: 960px;
+  font-size: calc(1rem * var(--reader-text-scale));
+  line-height: 1.65;
 }
 
-input {
+input:not([type]),
+input[type='text'],
+input[type='search'] {
   box-sizing: border-box;
   display: block;
   width: 100%;
   margin: 0.5rem 0 1rem;
   padding: 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface-control);
+  color: var(--text-primary);
 }
 
 button {
@@ -36,35 +87,36 @@ button {
   text-align: left;
   margin: 0.25rem 0;
   padding: 0.65rem;
-  border: 1px solid #2b3240;
-  background: #171c25;
+  border: 1px solid var(--border);
+  background: var(--surface-control);
   color: inherit;
   border-radius: 8px;
   cursor: pointer;
 }
 
 button:hover {
-  border-color: #58677d;
+  border-color: var(--border-hover);
 }
 
-button:focus-visible {
-  outline: 2px solid #8ab4ff;
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
 button[aria-pressed='true'] {
-  border-color: #8ab4ff;
-  background: #22314a;
+  border-color: var(--accent);
+  background: var(--surface-selected);
 }
 
 small {
   display: block;
-  color: #aab4c3;
+  color: var(--text-muted);
 }
 
 pre,
 code {
-  background: #1d2430;
+  background: var(--surface-code);
   border-radius: 6px;
 }
 
@@ -76,9 +128,9 @@ pre {
 .code-block {
   margin: 1rem 0;
   overflow: hidden;
-  border: 1px solid #394150;
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
-  background: #1d2430;
+  background: var(--surface-code);
 }
 
 .code-toolbar {
@@ -87,13 +139,13 @@ pre {
   gap: 0.5rem;
   min-height: 2rem;
   padding: 0.35rem 0.5rem;
-  border-bottom: 1px solid #394150;
-  background: #171c25;
+  border-bottom: 1px solid var(--border-strong);
+  background: var(--surface-control);
 }
 
 .code-language,
 .copy-code-status {
-  color: #aab4c3;
+  color: var(--text-muted);
   font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
   font-size: 0.8rem;
 }
@@ -110,11 +162,11 @@ pre {
 }
 
 .copy-code[data-copy-state='success'] {
-  border-color: #61c995;
+  border-color: var(--success);
 }
 
 .copy-code[data-copy-state='error'] {
-  border-color: #ff8b8b;
+  border-color: var(--danger);
 }
 
 .code-block pre {
@@ -123,7 +175,7 @@ pre {
 }
 
 a {
-  color: #8ab4ff;
+  color: var(--accent);
 }
 
 table {
@@ -132,7 +184,7 @@ table {
 
 td,
 th {
-  border: 1px solid #394150;
+  border: 1px solid var(--border-strong);
   padding: 0.4rem;
 }
 
@@ -149,7 +201,7 @@ th {
 }
 
 [data-testid='reader'] img[role='button']:focus-visible {
-  outline: 3px solid #8ab4ff;
+  outline: 3px solid var(--accent);
   outline-offset: 4px;
 }
 
@@ -163,6 +215,12 @@ th {
 .app-header h1 {
   margin: 0.25rem 0 0.75rem;
   font-size: 1.2rem;
+}
+
+.app-header-actions {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
 }
 
 .app-header button,
@@ -186,9 +244,9 @@ th {
 .facet-panel {
   margin-bottom: 0.75rem;
   padding: 0.65rem;
-  border: 1px solid #2b3240;
+  border: 1px solid var(--border);
   border-radius: 10px;
-  background: #131923;
+  background: var(--surface-panel);
 }
 
 .facet-heading {
@@ -241,19 +299,19 @@ th {
   position: fixed;
   z-index: 1000;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
+  background: var(--modal-backdrop);
   display: grid;
   place-items: center;
 }
 
 .modal {
-  background: #171c25;
-  border: 1px solid #394150;
+  background: var(--surface-control);
+  border: 1px solid var(--border-strong);
   border-radius: 12px;
   padding: 1.5rem;
   max-width: 640px;
   width: min(90vw, 640px);
-  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 20px 80px var(--modal-shadow);
 }
 
 .modal dl {
@@ -263,7 +321,7 @@ th {
 }
 
 .modal dt {
-  color: #aab4c3;
+  color: var(--text-muted);
 }
 
 .modal dd {
@@ -275,8 +333,52 @@ th {
   width: auto;
 }
 
+.settings-modal {
+  max-width: 480px;
+}
+
+.settings-theme {
+  display: grid;
+  gap: 0.55rem;
+  margin: 1rem 0;
+  padding: 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.settings-theme label {
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.settings-theme input {
+  width: auto;
+  margin: 0;
+}
+
+.settings-text h3 {
+  margin-bottom: 0.5rem;
+}
+
+.text-scale-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.text-scale-controls button {
+  margin: 0;
+  text-align: center;
+}
+
+.settings-hint {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
 .lightbox-backdrop {
-  background: rgba(0, 0, 0, 0.88);
+  background: var(--lightbox-backdrop);
 }
 
 .lightbox-modal {
@@ -298,7 +400,7 @@ th {
 
 .lightbox-modal p {
   margin: 0;
-  color: #d6deea;
+  color: var(--lightbox-text);
   text-align: center;
 }
 
@@ -312,7 +414,7 @@ th {
   aside {
     max-height: 55vh;
     border-right: 0;
-    border-bottom: 1px solid #2b3240;
+    border-bottom: 1px solid var(--border);
   }
 
   article {
