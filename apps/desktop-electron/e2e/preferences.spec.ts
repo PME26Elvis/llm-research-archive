@@ -48,8 +48,8 @@ test('persists theme and text size across an Electron restart', async ({ launchE
   await expect(first.page.locator('html')).toHaveCSS('--reader-text-scale', '1.1');
   await first.page.keyboard.press('Control+0');
   await expect(first.page.locator('html')).toHaveCSS('--reader-text-scale', '1');
-  await first.page.keyboard.press('Control++');
-  await first.page.keyboard.press('Control++');
+  await first.page.keyboard.press('Control+=');
+  await first.page.keyboard.press('Control+=');
   await expect(first.page.locator('html')).toHaveCSS('--reader-text-scale', '1.2');
 
   await first.app.close();

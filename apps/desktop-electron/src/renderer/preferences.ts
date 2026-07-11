@@ -40,7 +40,8 @@ export function parseReaderPreferences(raw: string | null): ReaderPreferences {
 
   const parsed = JSON.parse(raw) as LegacyPreferences & { schemaVersion?: unknown };
   const theme = validTheme(parsed.theme) ? parsed.theme : DEFAULT_READER_PREFERENCES.theme;
-  const sourceScale = parsed.schemaVersion === 1 ? parsed.textScale : parsed.textScale ?? parsed.fontScale;
+  const sourceScale =
+    parsed.schemaVersion === 1 ? parsed.textScale : (parsed.textScale ?? parsed.fontScale);
 
   return {
     schemaVersion: 1,

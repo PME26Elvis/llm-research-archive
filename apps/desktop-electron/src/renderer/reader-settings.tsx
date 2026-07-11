@@ -4,6 +4,7 @@ import {
   adjustTextScale,
   applyReaderPreferences,
   loadReaderPreferences,
+  resolveTheme,
   saveReaderPreferences,
   type ReaderPreferences,
   type ThemePreference,
@@ -129,6 +130,7 @@ export function ReaderSettings() {
   const [systemPrefersDark, setSystemPrefersDark] = useState(systemTheme.matches);
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
+  const resolvedThemeRef = useRef(resolveTheme(initialPreferences.theme, systemTheme.matches));
 
   useEffect(() => {
     const onChange = (event: MediaQueryListEvent) => setSystemPrefersDark(event.matches);
@@ -139,6 +141,11 @@ export function ReaderSettings() {
   useEffect(() => {
     applyReaderPreferences(document, preferences, systemPrefersDark);
     saveReaderPreferences(window.localStorage, preferences);
+    const resolved = resolveTheme(preferences.theme, systemPrefersDark);
+    if (resolved !== resolvedThemeRef.current) {
+      resolvedThemeRef.current = resolved;
+      document.dispatchEvent(new Event('observatory-theme-change'));
+    }
   }, [preferences, systemPrefersDark]);
 
   useEffect(() => {
@@ -176,11 +183,7 @@ export function ReaderSettings() {
         設定
       </button>
       {open && (
-        <SettingsDialog
-          preferences={preferences}
-          onChange={setPreferences}
-          onClose={close}
-        />
+        <SettingsDialog preferences={preferences} onChange={setPreferences} onClose={close} />
       )}
     </>
   );

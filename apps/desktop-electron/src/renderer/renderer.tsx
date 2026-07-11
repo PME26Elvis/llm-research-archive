@@ -16,6 +16,7 @@ import type {
 import { copyText } from './copy-code';
 import { mountFootnoteNavigation } from './footnotes';
 import { mountMermaidBlocks } from './mermaid-dom';
+import { ReaderSettings } from './reader-settings';
 import { mountSyntaxHighlighting } from './syntax-highlight';
 
 declare global {
@@ -463,9 +464,12 @@ function App() {
       <aside>
         <div className="app-header">
           <h1>Research Observatory</h1>
-          <button ref={aboutButtonRef} type="button" onClick={openAbout}>
-            關於
-          </button>
+          <div className="app-header-actions">
+            <ReaderSettings />
+            <button ref={aboutButtonRef} type="button" onClick={openAbout}>
+              關於
+            </button>
+          </div>
         </div>
         <label>
           搜尋文章

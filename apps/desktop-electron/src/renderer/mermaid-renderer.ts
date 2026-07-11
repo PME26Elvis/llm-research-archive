@@ -150,7 +150,9 @@ let renderQueue: Promise<unknown> = Promise.resolve();
 
 export function loadMermaid(): Promise<MermaidApi> {
   if (!mermaidPromise) {
-    mermaidPromise = import('mermaid').then(({ default: mermaid }) => mermaid as unknown as MermaidApi);
+    mermaidPromise = import('mermaid').then(
+      ({ default: mermaid }) => mermaid as unknown as MermaidApi,
+    );
   }
   return mermaidPromise;
 }
@@ -188,9 +190,9 @@ export async function renderMermaidSvg(
   if (api) return renderWithTheme(api, id, source, label, theme);
 
   const renderer = await loadMermaid();
-  const task = renderQueue.catch(() => undefined).then(() =>
-    renderWithTheme(renderer, id, source, label, theme),
-  );
+  const task = renderQueue
+    .catch(() => undefined)
+    .then(() => renderWithTheme(renderer, id, source, label, theme));
   renderQueue = task;
   return task;
 }

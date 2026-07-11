@@ -12,6 +12,7 @@ const require = createRequire(import.meta.url);
 
 interface LaunchElectronOptions {
   env?: Record<string, string>;
+  args?: string[];
   cleanupPaths?: string[];
 }
 
@@ -37,7 +38,7 @@ export const test = base.extend<ElectronFixtures>({
     await use(async (options = {}) => {
       const app = await electron.launch({
         executablePath: require('electron'),
-        args: ['.', '--no-sandbox'],
+        args: ['.', '--no-sandbox', ...(options.args ?? [])],
         env: { ...(process.env as Record<string, string>), ...(options.env ?? {}) },
       });
 
