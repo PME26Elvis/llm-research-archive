@@ -18,7 +18,7 @@
     "test:unit": "vitest run packages",
     "test:contract": "vitest run packages/platform-contracts packages/application",
     "test:renderer": "vitest run packages/renderer-ui",
-    "test:e2e": "playwright test apps/desktop-electron/e2e",
+    "test:e2e": "playwright test apps/desktop-electron/e2e --workers=1",
     "test:coverage": "vitest run --coverage",
     "test:security": "vitest run apps/desktop-electron/tests/security.spec.ts",
     "test:compatibility": "vitest run packages/content-engine",
