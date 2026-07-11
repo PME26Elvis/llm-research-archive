@@ -4,70 +4,14 @@ on:
     branches: [app-main, main]
   pull_request:
 permissions:
-  contents: write
+  contents: read
 jobs:
   quality:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
-        with:
-          ref: ${{ github.head_ref }}
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with: { node-version: '24', cache: npm }
-      - name: Finalize Mermaid integration
-        run: |
-          npm install --save-dev --save-exact mermaid@11.16.0
-          python - <<'PY'
-          from pathlib import Path
-
-          replacements = {
-              Path('apps/desktop-electron/src/renderer/renderer.tsx'): [
-                  (
-                      "import { copyText } from './copy-code';\n",
-                      "import { copyText } from './copy-code';\nimport { mountMermaidBlocks } from './mermaid-dom';\n",
-                  ),
-                  (
-                      "    decorateCodeBlocks(reader);\n  }, [selected]);\n",
-                      "    const cleanupMermaid = mountMermaidBlocks(reader);\n    decorateCodeBlocks(reader);\n    return cleanupMermaid;\n  }, [selected]);\n",
-                  ),
-              ],
-              Path('project-docs/quality/acceptance-matrix.md'): [
-                  (
-                      '| FR-014 | planned | planned |',
-                      '| FR-014 | implemented | apps/desktop-electron/src/renderer/mermaid-renderer.test.ts, apps/desktop-electron/e2e/mermaid.spec.ts |',
-                  ),
-                  ('last-verified: 2026-07-10', 'last-verified: 2026-07-11'),
-              ],
-              Path('project-docs/traceability/requirements.yaml'): [
-                  (
-                      '- {id: FR-014, title: FR-014, priority: P2, source: {document: project-docs/product/desktop-product-spec.md, section: FR-014}, implementation: {packages: *p}, verification: {tests: []}, status: planned}',
-                      '- {id: FR-014, title: FR-014, priority: P2, source: {document: project-docs/product/desktop-product-spec.md, section: FR-014}, implementation: {packages: *p}, verification: {tests: [apps/desktop-electron/src/renderer/mermaid-renderer.test.ts, apps/desktop-electron/e2e/mermaid.spec.ts]}, status: implemented}',
-                  ),
-              ],
-              Path('project-docs/product/desktop-product-spec.md'): [
-                  (
-                      'related-adrs:\n  - ADR-0001\n',
-                      'related-adrs:\n  - ADR-0001\n  - ADR-0009\n',
-                  ),
-              ],
-          }
-
-          for path, changes in replacements.items():
-              text = path.read_text()
-              for old, new in changes:
-                  if old not in text:
-                      raise SystemExit(f'missing expected text in {path}: {old!r}')
-                  text = text.replace(old, new, 1)
-              path.write_text(text)
-          PY
-          npm run format:write
-          if ! git diff --quiet; then
-            git config user.name github-actions[bot]
-            git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-            git add package.json package-lock.json apps/desktop-electron/src/renderer/renderer.tsx project-docs/product/desktop-product-spec.md project-docs/quality/acceptance-matrix.md project-docs/traceability/requirements.yaml
-            git commit -m "chore(renderer): finalize Mermaid integration"
-            git push origin HEAD:${GITHUB_HEAD_REF}
-          fi
       - run: npm ci
       - name: Formatting
         run: npm run format:check
@@ -77,7 +21,53 @@ jobs:
         run: npm run typecheck
       - name: Traceability
         run: npm run validate:traceability
+      - name: Generated content
+        run: npm run validate:generated
+      - name: Release assets
+        run: npm run validate:release-assets
       - name: Unit tests
         run: npm run test
+      - name: Security tests
+        run: npm run test:security
+      - name: Compatibility tests
+        run: npm run test:compatibility
       - name: Build
         run: npm run build
+  e2e:
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: { node-version: '24', cache: npm }
+      - run: sudo apt-get update && sudo apt-get install -y xvfb libgtk-3-0 libnss3 libasound2t64 libatk-bridge2.0-0 libxss1
+      - run: npm ci
+      - run: npm run build
+      - run: xvfb-run -a npm run test:e2e
+  package-smoke:
+    needs: quality
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-latest, platform: windows, artifact: desktop-windows-x64 }
+          - { os: ubuntu-latest, platform: linux, artifact: desktop-linux-x64 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: { node-version: '24', cache: npm }
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y fakeroot rpm xvfb libgtk-3-0 libnss3 libasound2t64 libatk-bridge2.0-0 libxss1
+      - run: npm ci
+      - run: npm run make:${{ matrix.platform }}
+        env:
+          RELEASE_TARGET_COMMIT: ${{ github.sha }}
+      - if: runner.os == 'Linux'
+        run: xvfb-run -a npm run smoke:packaged
+      - if: runner.os == 'Windows'
+        run: npm run smoke:packaged
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/release-assets/*
