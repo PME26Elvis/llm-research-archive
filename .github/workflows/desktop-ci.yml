@@ -4,26 +4,29 @@ on:
     branches: [app-main, main]
   pull_request:
 permissions:
-  contents: read
+  contents: write
 jobs:
   quality:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: ${{ github.head_ref }}
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with: { node-version: '24', cache: npm }
       - run: npm ci
-      - name: Generate formatting patch
+      - name: Apply formatting to PR head
         run: |
           npm run format:write
-          git diff > prettier.patch
-      - name: Upload formatting patch
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: prettier-diff
-          path: prettier.patch
+          if ! git diff --quiet; then
+            git config user.name github-actions[bot]
+            git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+            git add apps/desktop-electron/e2e/source.spec.ts apps/desktop-electron/src/renderer/renderer.tsx
+            git commit -m "style(renderer): apply Prettier"
+            git push origin HEAD:${GITHUB_HEAD_REF}
+          fi
       - name: Formatting
-        run: test ! -s prettier.patch
+        run: npm run format:check
       - name: Architecture
         run: npm run lint
       - name: TypeScript
