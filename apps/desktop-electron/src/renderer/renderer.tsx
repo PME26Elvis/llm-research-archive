@@ -13,6 +13,7 @@ import type {
   ArticleSummaryDto,
   SearchResultDto,
 } from '@research-observatory/platform-contracts';
+import { copyText } from './copy-code';
 
 declare global {
   interface Window {
@@ -183,6 +184,42 @@ function ImageLightbox({ image, onClose }: { image: LightboxImage; onClose: () =
   );
 }
 
+function decorateCodeBlocks(reader: HTMLElement): void {
+  for (const pre of reader.querySelectorAll<HTMLPreElement>('pre')) {
+    if (pre.parentElement?.classList.contains('code-block')) continue;
+    const code = pre.querySelector<HTMLElement>('code');
+    if (!code) continue;
+
+    const languageClass = [...code.classList].find((name) => name.startsWith('language-'));
+    const language = languageClass?.slice('language-'.length) || '';
+    const wrapper = document.createElement('div');
+    wrapper.className = 'code-block';
+    const toolbar = document.createElement('div');
+    toolbar.className = 'code-toolbar';
+    const label = document.createElement('span');
+    label.className = 'code-language';
+    label.textContent = language || '程式碼';
+    const status = document.createElement('span');
+    status.className = 'copy-code-status';
+    status.dataset.copyCodeStatus = '';
+    status.setAttribute('role', 'status');
+    status.setAttribute('aria-live', 'polite');
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'copy-code';
+    button.dataset.copyCode = '';
+    button.setAttribute(
+      'aria-label',
+      language ? `複製 ${language} 程式碼` : '複製程式碼',
+    );
+    button.textContent = '複製';
+
+    toolbar.append(label, status, button);
+    pre.replaceWith(wrapper);
+    wrapper.append(toolbar, pre);
+  }
+}
+
 function App() {
   const [articles, setArticles] = useState<ArticleSummaryDto[]>([]);
   const [shown, setShown] = useState<(ArticleSummaryDto | SearchResultDto)[]>([]);
@@ -259,6 +296,7 @@ function App() {
       image.loading = 'lazy';
       image.decoding = 'async';
     }
+    decorateCodeBlocks(reader);
   }, [selected]);
 
   async function open(id: string, fragment = '') {
@@ -329,8 +367,41 @@ function App() {
     requestAnimationFrame(() => trigger?.focus());
   }
 
+  async function copyCodeBlock(button: HTMLButtonElement) {
+    if (button.dataset.copyPending === 'true') return;
+    const block = button.closest('.code-block');
+    const code = block?.querySelector<HTMLElement>('pre > code');
+    const status = block?.querySelector<HTMLElement>('[data-copy-code-status]');
+    if (!code || !status) return;
+
+    button.dataset.copyPending = 'true';
+    button.setAttribute('aria-busy', 'true');
+    const copied = await copyText(code.textContent || '');
+    button.textContent = copied ? '已複製' : '複製失敗';
+    button.dataset.copyState = copied ? 'success' : 'error';
+    status.textContent = copied
+      ? '程式碼已複製到剪貼簿'
+      : '無法存取剪貼簿，請手動選取程式碼';
+
+    window.setTimeout(() => {
+      if (!button.isConnected) return;
+      delete button.dataset.copyPending;
+      delete button.dataset.copyState;
+      button.removeAttribute('aria-busy');
+      button.textContent = '複製';
+      status.textContent = '';
+    }, 1800);
+  }
+
   function onArticleClick(e: React.MouseEvent<HTMLElement>) {
     const target = e.target as HTMLElement;
+    const copyButton = target.closest('button[data-copy-code]') as HTMLButtonElement | null;
+    if (copyButton) {
+      e.preventDefault();
+      void copyCodeBlock(copyButton);
+      return;
+    }
+
     const image = target.closest('img[role="button"]') as HTMLImageElement | null;
     if (image) {
       e.preventDefault();
