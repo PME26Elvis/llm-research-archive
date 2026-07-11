@@ -16,6 +16,16 @@ import type {
 import { copyText } from './copy-code';
 import { mountFootnoteNavigation } from './footnotes';
 import { mountMermaidBlocks } from './mermaid-dom';
+import {
+  canNavigateBack,
+  canNavigateForward,
+  createNavigationHistory,
+  currentNavigationLocation,
+  moveNavigation,
+  pushNavigationLocation,
+  replaceNavigationLocation,
+  type NavigationLocation,
+} from './navigation-history';
 import { ReaderSettings } from './reader-settings';
 import { mountSyntaxHighlighting } from './syntax-highlight';
 
@@ -233,6 +243,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [about, setAbout] = useState<AppInfoDto | null>(null);
   const [lightbox, setLightbox] = useState<LightboxImage | null>(null);
+  const [navigationHistory, setNavigationHistory] = useState(createNavigationHistory);
   const aboutButtonRef = useRef<HTMLButtonElement>(null);
   const readerRef = useRef<HTMLElement>(null);
   const lightboxTriggerRef = useRef<HTMLImageElement | null>(null);
@@ -250,6 +261,63 @@ function App() {
           ? browseModel.timeline
           : [];
 
+  function navigationSnapshot(overrides: Partial<NavigationLocation> = {}): NavigationLocation {
+    return {
+      articleId: selected?.id ?? '',
+      fragment: '',
+      query,
+      browseMode,
+      selectedFacet,
+      ...overrides,
+    };
+  }
+
+  function pushNavigation(overrides: Partial<NavigationLocation>) {
+    setNavigationHistory((history) =>
+      pushNavigationLocation(history, navigationSnapshot(overrides)),
+    );
+  }
+
+  function replaceNavigation(overrides: Partial<NavigationLocation>) {
+    setNavigationHistory((history) =>
+      replaceNavigationLocation(history, {
+        ...currentNavigationLocation(history),
+        ...overrides,
+      }),
+    );
+  }
+
+  async function applyNavigation(location: NavigationLocation) {
+    setError('');
+    setLightbox(null);
+    setQuery(location.query);
+    setBrowseMode(location.browseMode);
+    setSelectedFacet(location.selectedFacet);
+    setPendingFragment('');
+    if (!location.articleId) {
+      setSelected(null);
+      return;
+    }
+    if (selected?.id === location.articleId) {
+      setPendingFragment(location.fragment);
+      return;
+    }
+    try {
+      const article = await window.observatory.getArticle(location.articleId);
+      setSelected(article);
+      setPendingFragment(location.fragment);
+    } catch (error) {
+      setError(`文章載入失敗：${String(error)}`);
+    }
+  }
+
+  function travelHistory(delta: -1 | 1) {
+    const next = moveNavigation(navigationHistory, delta);
+    if (next === navigationHistory) return;
+    setNavigationHistory(next);
+    void applyNavigation(currentNavigationLocation(next));
+  }
+
   useEffect(() => {
     window.observatory
       .listArticles()
@@ -260,6 +328,21 @@ function App() {
       .catch((e) => setError(String(e)))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    const onNavigationKey = (event: KeyboardEvent) => {
+      if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        travelHistory(-1);
+      } else if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        travelHistory(1);
+      }
+    };
+    document.addEventListener('keydown', onNavigationKey);
+    return () => document.removeEventListener('keydown', onNavigationKey);
+  }, [navigationHistory, selected, query, browseMode, selectedFacet]);
 
   useEffect(() => {
     const q = query.trim();
@@ -316,8 +399,9 @@ function App() {
       const article = await window.observatory.getArticle(id);
       setSelected(article);
       setPendingFragment(fragment);
-    } catch (e) {
-      setError(`文章載入失敗：${String(e)}`);
+      pushNavigation({ articleId: id, fragment });
+    } catch (error) {
+      setError(`文章載入失敗：${String(error)}`);
     }
   }
 
@@ -329,6 +413,7 @@ function App() {
       const article = await window.observatory.getArticle(id);
       setSelected(article);
       setPendingFragment(fragment);
+      pushNavigation({ articleId: id, fragment });
     } catch {
       setError(`找不到內部文章連結：${href}`);
     }
@@ -339,8 +424,10 @@ function App() {
     setPendingFragment('');
     requestAnimationFrame(() => {
       const target = document.getElementById(fragment);
-      if (target) target.scrollIntoView();
-      else setError(`找不到標題片段：${fragment}`);
+      if (target) {
+        target.scrollIntoView();
+        pushNavigation({ articleId: selected?.id ?? '', fragment });
+      } else setError(`找不到標題片段：${fragment}`);
     });
   }
 
@@ -361,6 +448,17 @@ function App() {
   function selectBrowseMode(mode: BrowseMode) {
     setBrowseMode(mode);
     setSelectedFacet('');
+    pushNavigation({ browseMode: mode, selectedFacet: '' });
+  }
+
+  function selectFacet(facet: string) {
+    setSelectedFacet(facet);
+    pushNavigation({ selectedFacet: facet });
+  }
+
+  function clearFacet() {
+    setSelectedFacet('');
+    pushNavigation({ selectedFacet: '' });
   }
 
   function openImageLightbox(image: HTMLImageElement) {
@@ -473,7 +571,14 @@ function App() {
         </div>
         <label>
           搜尋文章
-          <input aria-label="搜尋文章" value={query} onChange={(e) => setQuery(e.target.value)} />
+          <input
+            aria-label="搜尋文章"
+            value={query}
+            onChange={(event) => {
+              setQuery(event.target.value);
+              replaceNavigation({ query: event.target.value });
+            }}
+          />
         </label>
         <nav className="browse-tabs" aria-label="瀏覽文章">
           {browseModes.map(({ mode, label }) => (
@@ -500,7 +605,7 @@ function App() {
                   : `選擇${browseModes.find((x) => x.mode === browseMode)?.label}`}
               </strong>
               {selectedFacet && (
-                <button type="button" className="clear-filter" onClick={() => setSelectedFacet('')}>
+                <button type="button" className="clear-filter" onClick={clearFacet}>
                   清除
                 </button>
               )}
@@ -512,7 +617,7 @@ function App() {
                   type="button"
                   aria-label={`${facet.label}（${facet.count} 篇）`}
                   aria-pressed={selectedFacet === facet.key}
-                  onClick={() => setSelectedFacet(facet.key)}
+                  onClick={() => selectFacet(facet.key)}
                 >
                   <span>{facet.label}</span>
                   <small>{facet.count}</small>
@@ -526,7 +631,11 @@ function App() {
         <ul className="article-list" data-testid="article-list">
           {shown.map((a) => (
             <li key={a.id}>
-              <button type="button" onClick={() => open(a.id)}>
+              <button
+                type="button"
+                aria-current={selected?.id === a.id ? 'page' : undefined}
+                onClick={() => open(a.id)}
+              >
                 {a.title}
                 <small>
                   {a.category} · {a.date} · 約 {a.readingStats.estimatedMinutes} 分鐘
@@ -537,6 +646,27 @@ function App() {
         </ul>
       </aside>
       <article onClick={onArticleClick} onKeyDown={onArticleKeyDown}>
+        <nav className="navigation-toolbar" aria-label="閱讀歷史">
+          <button
+            type="button"
+            aria-label="上一個位置"
+            disabled={!canNavigateBack(navigationHistory)}
+            onClick={() => travelHistory(-1)}
+          >
+            ← 上一頁
+          </button>
+          <span aria-live="polite" data-testid="history-position">
+            {navigationHistory.index + 1} / {navigationHistory.entries.length}
+          </span>
+          <button
+            type="button"
+            aria-label="下一個位置"
+            disabled={!canNavigateForward(navigationHistory)}
+            onClick={() => travelHistory(1)}
+          >
+            下一頁 →
+          </button>
+        </nav>
         {error && <p role="alert">{error}</p>}
         {selected ? (
           <>

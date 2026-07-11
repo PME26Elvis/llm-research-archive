@@ -426,3 +426,35 @@ th {
     flex-wrap: wrap;
   }
 }
+
+
+.navigation-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-bottom: 1rem;
+}
+
+.navigation-toolbar button {
+  width: auto;
+  margin: 0;
+  padding: 0.45rem 0.7rem;
+}
+
+.navigation-toolbar button:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.navigation-toolbar span {
+  min-width: 4.5rem;
+  color: var(--muted);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.article-list button[aria-current='page'] {
+  border-color: var(--focus);
+  background: var(--selected-bg);
+}
