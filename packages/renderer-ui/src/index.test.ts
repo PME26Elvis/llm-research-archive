@@ -48,7 +48,9 @@ describe('footnotes', () => {
   });
 
   it('sanitizes unsafe HTML inside footnote content', () => {
-    const html = renderMarkdown('安全[^x]\n\n[^x]: <img src=x onerror="alert(1)"><script>x</script>');
+    const html = renderMarkdown(
+      '安全[^x]\n\n[^x]: <img src=x onerror="alert(1)"><script>x</script>',
+    );
 
     expect(html).not.toContain('onerror');
     expect(html).not.toContain('<script>');

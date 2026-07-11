@@ -22,7 +22,7 @@ related-adrs:
 | Syntax highlighting | MkDocs | renderer | implemented | apps/desktop-electron/src/renderer/syntax-highlight.test.ts; apps/desktop-electron/e2e/syntax-highlight.spec.ts | Registered local grammars highlight near the viewport without auto-detection, while unknown languages remain plain text. |
 | Image lightbox | JS/CSS | renderer | implemented | apps/desktop-electron/e2e/source.spec.ts | Local article images are keyboard focusable, lazy-loaded, and open in an accessible modal with Escape and focus restoration. |
 | Mermaid | MkDocs | renderer | implemented | apps/desktop-electron/src/renderer/mermaid-renderer.test.ts; apps/desktop-electron/e2e/mermaid.spec.ts | Fenced Mermaid diagrams load near the viewport with strict mode, a second SVG allowlist, accessible output, and a source fallback. |
-| Footnotes | Markdown | renderer | planned | planned | Markdown-it default coverage only. |
+| Footnotes | Markdown | renderer | implemented | packages/renderer-ui/src/index.test.ts; apps/desktop-electron/e2e/footnotes.spec.ts | Named, inline, multi-block, and repeated footnotes use deterministic accessible in-app navigation. |
 | Internal links | Markdown | application/renderer | implemented | packages/content-engine/src/index.test.ts; apps/desktop-electron/e2e/source.spec.ts | Same-page and cross-article Unicode fragments remain inside the app shell. |
 | Git revision date | plugin | manifest | planned | planned | Not in current reader UI. |
 | Blog ordering | MkDocs | content-engine | implemented | packages/content-engine/src/index.test.ts | Date sorting for formal articles. |
