@@ -130,23 +130,111 @@ export function parseArticle(file: string, root: string): Article | undefined {
     headings,
   };
 }
-export function scanArchive(root = 'docs'): Article[] {
+export interface ArchiveDiagnostics {
+  warnings: string[];
+  invalidFiles: string[];
+  brokenLinks: string[];
+  missingAssets: string[];
+}
+
+export interface ArchiveScanResult {
+  articles: Article[];
+  diagnostics: ArchiveDiagnostics;
+}
+
+function isInsideRoot(root: string, candidate: string): boolean {
+  const relative = path.relative(root, candidate);
+  return (
+    relative === '' ||
+    (!relative.startsWith(`..${path.sep}`) && relative !== '..' && !path.isAbsolute(relative))
+  );
+}
+
+function isFormalArticleCandidate(sourcePath: string): boolean {
+  return path.posix.basename(sourcePath) === 'index.md' && !excludedSourcePaths.has(sourcePath);
+}
+
+export function scanArchiveWithDiagnostics(root = 'docs'): ArchiveScanResult {
+  const realRoot = fs.realpathSync(root);
   const files: string[] = [];
-  const walk = (dir: string) => {
-    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-      const p = path.join(dir, e.name);
-      if (e.isDirectory()) walk(p);
-      else if (e.name.endsWith('.md')) files.push(p);
+  const diagnostics: ArchiveDiagnostics = {
+    warnings: [],
+    invalidFiles: [],
+    brokenLinks: [],
+    missingAssets: [],
+  };
+
+  const visit = (directory: string) => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const full = path.join(directory, entry.name);
+      const relative = path.relative(realRoot, full).split(path.sep).join('/');
+      const stat = fs.lstatSync(full);
+      if (stat.isSymbolicLink()) {
+        diagnostics.warnings.push(`${relative}: symlink skipped`);
+        continue;
+      }
+      if (stat.isDirectory()) {
+        visit(full);
+        continue;
+      }
+      if (!stat.isFile() || !entry.name.endsWith('.md')) continue;
+      const realFile = fs.realpathSync(full);
+      if (!isInsideRoot(realRoot, realFile)) {
+        diagnostics.warnings.push(`${relative}: path escaped workspace root`);
+        continue;
+      }
+      files.push(realFile);
     }
   };
-  walk(root);
-  return files
-    .map((f) => parseArticle(f, root))
-    .filter((a): a is Article => Boolean(a))
-    .sort((a, b) => b.date.localeCompare(a.date) || a.title.localeCompare(b.title));
+
+  visit(realRoot);
+  const articles: Article[] = [];
+  for (const file of files.sort()) {
+    const relative = path.relative(realRoot, file).split(path.sep).join('/');
+    try {
+      const article = parseArticle(file, realRoot);
+      if (article) articles.push(article);
+      else if (isFormalArticleCandidate(relative)) diagnostics.invalidFiles.push(relative);
+    } catch {
+      diagnostics.invalidFiles.push(relative);
+    }
+  }
+  articles.sort((a, b) => b.date.localeCompare(a.date) || a.title.localeCompare(b.title));
+
+  const articleIds = new Set(articles.map((article) => article.id));
+  for (const article of articles) {
+    for (const link of article.links) {
+      if (link.internal && link.targetArticleId && !articleIds.has(link.targetArticleId)) {
+        diagnostics.brokenLinks.push(`${article.sourcePath}: ${link.href}`);
+      }
+    }
+    const sourceDirectory = path.dirname(path.join(realRoot, article.sourcePath));
+    for (const match of article.markdown.matchAll(/!\[[^\]]*\]\(([^)]+)\)/g)) {
+      const raw = match[1]
+        .trim()
+        .replace(/^<|>$/g, '')
+        .split(/\s+["']/)[0];
+      if (!raw || /^(?:https?:|data:|app-asset:|#)/i.test(raw)) continue;
+      const asset = path.resolve(sourceDirectory, raw);
+      if (!isInsideRoot(realRoot, asset) || !fs.existsSync(asset)) {
+        diagnostics.missingAssets.push(`${article.sourcePath}: ${raw}`);
+      }
+    }
+  }
+
+  diagnostics.warnings.sort();
+  diagnostics.invalidFiles.sort();
+  diagnostics.brokenLinks.sort();
+  diagnostics.missingAssets.sort();
+  return { articles, diagnostics };
 }
+
+export function scanArchive(root = 'docs'): Article[] {
+  return scanArchiveWithDiagnostics(root).articles;
+}
+
 export function createManifest(root = 'docs'): ArchiveManifestV1 {
-  const articles = scanArchive(root);
+  const articles = scanArchiveWithDiagnostics(root).articles;
   const cats = new Map<string, number>(),
     tags = new Map<string, number>();
   for (const a of articles) {

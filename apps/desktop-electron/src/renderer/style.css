@@ -557,3 +557,40 @@ body.resizing-sidebar {
   font: inherit;
   font-size: 0.85rem;
 }
+
+
+.workspace-panel {
+  display: grid;
+  gap: 0.55rem;
+  margin-bottom: 0.85rem;
+  padding: 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-panel);
+}
+
+.workspace-panel > div {
+  min-width: 0;
+}
+
+.workspace-panel small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-panel button {
+  margin: 0;
+}
+
+.workspace-panel details {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.workspace-panel ul {
+  margin: 0.45rem 0 0;
+  padding-left: 1.2rem;
+  overflow-wrap: anywhere;
+}

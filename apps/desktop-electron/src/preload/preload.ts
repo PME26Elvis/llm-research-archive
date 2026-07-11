@@ -2,11 +2,15 @@ import { contextBridge, ipcRenderer } from 'electron';
 import {
   AppInfoResponseSchema,
   DesktopCommandSchema,
+  WorkspaceInfoSchema,
+  WorkspaceSelectionResultSchema,
   type AppInfoDto,
   type ArticleDto,
   type ArticleSummaryDto,
   type SearchResultDto,
   type DesktopCommand,
+  type WorkspaceInfoDto,
+  type WorkspaceSelectionResult,
 } from '@research-observatory/platform-contracts';
 contextBridge.exposeInMainWorld('observatory', {
   listArticles: (): Promise<ArticleSummaryDto[]> => ipcRenderer.invoke('archive:list'),
@@ -17,6 +21,11 @@ contextBridge.exposeInMainWorld('observatory', {
   appInfo: async (): Promise<AppInfoDto> =>
     AppInfoResponseSchema.parse(await ipcRenderer.invoke('app:info')),
   openExternal: (url: string) => ipcRenderer.invoke('external:open', url),
+  workspaceInfo: async (): Promise<WorkspaceInfoDto> =>
+    WorkspaceInfoSchema.parse(await ipcRenderer.invoke('workspace:info')),
+  selectWorkspace: async (): Promise<WorkspaceSelectionResult> =>
+    WorkspaceSelectionResultSchema.parse(await ipcRenderer.invoke('workspace:select')),
+
   onCommand: (listener: (command: DesktopCommand) => void) => {
     ipcRenderer.removeAllListeners('app:command');
     ipcRenderer.on('app:command', (_event, value) => {

@@ -13,6 +13,8 @@ import type {
   ArticleSummaryDto,
   SearchResultDto,
   DesktopCommand,
+  WorkspaceInfoDto,
+  WorkspaceSelectionResult,
 } from '@research-observatory/platform-contracts';
 import { CommandPalette } from './command-palette';
 import { copyText } from './copy-code';
@@ -42,6 +44,14 @@ declare global {
       openExternal(url: string): Promise<void>;
       onCommand(listener: (command: DesktopCommand) => void): void;
       clearCommandHandler(): void;
+      workspaceInfo(): Promise<WorkspaceInfoDto>;
+      selectWorkspace(): Promise<WorkspaceSelectionResult>;
+      diagnostics(): Promise<{
+        warnings: string[];
+        invalidFiles: string[];
+        brokenLinks: string[];
+        missingAssets: string[];
+      }>;
     };
   }
 }
@@ -250,6 +260,7 @@ function App() {
   const [lightbox, setLightbox] = useState<LightboxImage | null>(null);
   const [navigationHistory, setNavigationHistory] = useState(createNavigationHistory);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const [workspace, setWorkspace] = useState<WorkspaceInfoDto | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const aboutButtonRef = useRef<HTMLButtonElement>(null);
   const readerRef = useRef<HTMLElement>(null);
@@ -325,6 +336,40 @@ function App() {
     void applyNavigation(currentNavigationLocation(next));
   }
 
+  async function refreshWorkspace(nextWorkspace?: WorkspaceInfoDto) {
+    setLoading(true);
+    setError('');
+    try {
+      const [nextArticles, info] = await Promise.all([
+        window.observatory.listArticles(),
+        nextWorkspace ? Promise.resolve(nextWorkspace) : window.observatory.workspaceInfo(),
+      ]);
+      setWorkspace(info);
+      setArticles(nextArticles);
+      setShown(nextArticles);
+      setSelected(null);
+      setQuery('');
+      setBrowseMode('all');
+      setSelectedFacet('');
+      setNavigationHistory(createNavigationHistory());
+    } catch (error) {
+      setError(`工作區重新載入失敗：${String(error)}`);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function chooseWorkspace() {
+    setError('');
+    const result = await window.observatory.selectWorkspace();
+    if (result.status === 'cancelled') return;
+    if (result.status === 'rejected') {
+      setError(result.message);
+      return;
+    }
+    await refreshWorkspace(result.workspace);
+  }
+
   function executeDesktopCommand(command: DesktopCommand) {
     if (command === 'palette.open') {
       setCommandPaletteOpen(true);
@@ -335,6 +380,8 @@ function App() {
       travelHistory(-1);
     } else if (command === 'navigation.forward') {
       travelHistory(1);
+    } else if (command === 'workspace.open') {
+      void chooseWorkspace();
     } else if (command === 'about.open') {
       void openAbout();
     }
@@ -350,6 +397,9 @@ function App() {
       } else if (event.key.toLocaleLowerCase() === 'f') {
         event.preventDefault();
         executeDesktopCommand('search.focus');
+      } else if (event.key.toLocaleLowerCase() === 'o') {
+        event.preventDefault();
+        executeDesktopCommand('workspace.open');
       }
     };
     document.addEventListener('keydown', onShortcut);
@@ -360,14 +410,7 @@ function App() {
   }, [navigationHistory, selected, query, browseMode, selectedFacet]);
 
   useEffect(() => {
-    window.observatory
-      .listArticles()
-      .then((a) => {
-        setArticles(a);
-        setShown(a);
-      })
-      .catch((e) => setError(String(e)))
-      .finally(() => setLoading(false));
+    void refreshWorkspace();
   }, []);
 
   useEffect(() => {
@@ -613,9 +656,35 @@ function App() {
                 </button>
               </div>
             </div>
+            {workspace && (
+              <section className="workspace-panel" aria-label="目前工作區">
+                <div>
+                  <strong data-testid="workspace-kind">
+                    {workspace.kind === 'local' ? '本機工作區' : '內建封存'}
+                  </strong>
+                  <small data-testid="workspace-path" title={workspace.rootPath}>
+                    {workspace.displayName}
+                  </small>
+                </div>
+                <button type="button" onClick={() => void chooseWorkspace()}>
+                  開啟資料夾
+                </button>
+                {(workspace.warnings.length > 0 || workspace.invalidFiles.length > 0) && (
+                  <details data-testid="workspace-diagnostics" open>
+                    <summary>工作區診斷</summary>
+                    <ul>
+                      {[...workspace.warnings, ...workspace.invalidFiles].map((message) => (
+                        <li key={message}>{message}</li>
+                      ))}
+                    </ul>
+                  </details>
+                )}
+              </section>
+            )}
             <label>
               搜尋文章
               <input
+                ref={searchInputRef}
                 aria-label="搜尋文章"
                 value={query}
                 onChange={(event) => {
