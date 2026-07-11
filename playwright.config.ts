@@ -12,8 +12,5 @@ export default defineConfig({
   },
   outputDir: 'test-results',
   preserveOutput: 'failures-only',
-  reporter: [
-    ['list'],
-    ['html', { outputFolder: 'playwright-report', open: 'never' }],
-  ],
+  reporter: [['list'], ['html', { outputFolder: 'playwright-report', open: 'never' }]],
 });

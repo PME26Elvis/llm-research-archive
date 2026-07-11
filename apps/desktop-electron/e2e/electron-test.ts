@@ -119,7 +119,10 @@ export const test = base.extend<ElectronFixtures>({
           contentType: 'text/plain',
         });
       } else {
-        await app.context().tracing.stop().catch(() => undefined);
+        await app
+          .context()
+          .tracing.stop()
+          .catch(() => undefined);
       }
 
       await app.close().catch(() => undefined);
