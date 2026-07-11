@@ -27,6 +27,19 @@ export function CommandPalette({ open, onClose, onExecute }: CommandPaletteProps
 
   if (!open) return null;
 
+  function execute(command: DesktopCommand) {
+    onExecute(command);
+    onClose();
+    if (command !== 'search.focus') return;
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const search = document.querySelector<HTMLInputElement>('input[aria-label="搜尋文章"]');
+        search?.focus();
+        search?.select();
+      });
+    });
+  }
+
   return (
     <div className="modal-backdrop command-palette-backdrop" onMouseDown={onClose}>
       <section
@@ -47,7 +60,7 @@ export function CommandPalette({ open, onClose, onExecute }: CommandPaletteProps
             setActiveIndex((index) => Math.max(0, index - 1));
           } else if (event.key === 'Enter' && results[activeIndex]) {
             event.preventDefault();
-            onExecute(results[activeIndex].id);
+            execute(results[activeIndex].id);
           }
         }}
       >
@@ -71,7 +84,7 @@ export function CommandPalette({ open, onClose, onExecute }: CommandPaletteProps
               role="option"
               aria-selected={index === activeIndex}
               onMouseEnter={() => setActiveIndex(index)}
-              onClick={() => onExecute(command.id)}
+              onClick={() => execute(command.id)}
             >
               <span>{command.label}</span>
               {command.shortcut && <kbd>{command.shortcut}</kbd>}
