@@ -20,12 +20,12 @@
 
 .footnotes-sep {
   border: 0;
-  border-top: 1px solid #334155;
+  border-top: 1px solid var(--border-strong);
   margin: 2.5rem 0 1rem;
 }
 
 .footnotes {
-  color: #cbd5e1;
+  color: var(--text-muted);
   font-size: 0.9rem;
 }
 
@@ -42,7 +42,7 @@
 
 .footnote-item:target,
 .footnote-item:focus {
-  background: rgba(56, 189, 248, 0.12);
+  background: var(--note-focus);
 }
 
 .footnote-backref {
