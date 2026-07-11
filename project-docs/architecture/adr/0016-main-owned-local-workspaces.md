@@ -19,6 +19,8 @@ The Electron main process exclusively owns workspace paths. A native directory c
 
 The content engine performs a diagnostic scan: symlinks and path escapes are skipped, malformed articles are isolated, and broken internal links or missing local assets are reported. The active root also drives the existing `app-asset` resolver. If a persisted workspace is missing or invalid at startup, the app clears it and falls back to bundled content with a visible recovery warning.
 
+The renderer may display the validated root from the workspace DTO for user transparency, but it never supplies that displayed value back as authority. Every new selection originates in the native chooser and is revalidated by main before activation.
+
 ## Consequences
 
 - Renderer gains fixed `workspaceInfo` and `selectWorkspace` methods, not a generic path or filesystem API.
