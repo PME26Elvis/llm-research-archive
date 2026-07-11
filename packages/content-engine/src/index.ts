@@ -150,6 +150,10 @@ function isInsideRoot(root: string, candidate: string): boolean {
   );
 }
 
+function isFormalArticleCandidate(sourcePath: string): boolean {
+  return path.posix.basename(sourcePath) === 'index.md' && !excludedSourcePaths.has(sourcePath);
+}
+
 export function scanArchiveWithDiagnostics(root = 'docs'): ArchiveScanResult {
   const realRoot = fs.realpathSync(root);
   const files: string[] = [];
@@ -186,11 +190,13 @@ export function scanArchiveWithDiagnostics(root = 'docs'): ArchiveScanResult {
   visit(realRoot);
   const articles: Article[] = [];
   for (const file of files.sort()) {
+    const relative = path.relative(realRoot, file).split(path.sep).join('/');
     try {
       const article = parseArticle(file, realRoot);
       if (article) articles.push(article);
+      else if (isFormalArticleCandidate(relative)) diagnostics.invalidFiles.push(relative);
     } catch {
-      diagnostics.invalidFiles.push(path.relative(realRoot, file).split(path.sep).join('/'));
+      diagnostics.invalidFiles.push(relative);
     }
   }
   articles.sort((a, b) => b.date.localeCompare(a.date) || a.title.localeCompare(b.title));
