@@ -1,62 +1,88 @@
-name: Finalize Local Workspace
+name: Desktop CI
 on:
+  push:
+    branches: [app-main, main]
   pull_request:
 permissions:
-  contents: write
+  contents: read
 jobs:
-  finalize:
-    if: github.head_ref == 'agent/local-workspace-foundation' && github.actor != 'github-actions[bot]'
+  quality:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
-        with:
-          ref: agent/local-workspace-foundation
-          token: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with: { node-version: '24', cache: npm }
-      - name: Repair and compile finalizer
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-
-          path = Path('scripts/apply-pr25.py')
-          text = path.read_text()
-          start = text.index("q = replace_once(\n    q,\n    \"  openExternal:")
-          end = text.index('preload.write_text(q)', start)
-          replacement = '''q = replace_once(
-              q,
-              "  openExternal: (url: string) => ipcRenderer.invoke('external:open', url),",
-              """  openExternal: (url: string) => ipcRenderer.invoke('external:open', url),
-            workspaceInfo: async (): Promise<WorkspaceInfoDto> =>
-              WorkspaceInfoSchema.parse(await ipcRenderer.invoke('workspace:info')),
-            selectWorkspace: async (): Promise<WorkspaceSelectionResult> =>
-              WorkspaceSelectionResultSchema.parse(await ipcRenderer.invoke('workspace:select')),
-          """,
-              'preload workspace methods',
-          )
-          '''
-          path.write_text(text[:start] + replacement + text[end:])
-          PY
-          python -m py_compile scripts/apply-pr25.py
-      - name: Apply workspace integration
-        run: python scripts/apply-pr25.py
-      - name: Remove finalization script
-        run: rm scripts/apply-pr25.py
       - run: npm ci
-      - name: Format repository
-        run: npm run format:write
+      - name: Formatting
+        run: npm run format:check
+      - name: Architecture
+        run: npm run lint
       - name: TypeScript
         run: npm run typecheck
-      - name: Focused workspace tests
-        run: npm run test -- --run packages/content-engine/src/index.test.ts apps/desktop-electron/src/main/workspace-state.test.ts packages/platform-contracts/src/workspace-contract.test.ts
-      - name: Security tests
-        run: npm run test:security
       - name: Traceability
         run: npm run validate:traceability
-      - name: Commit finalized workspace feature
+      - name: Generated content
+        run: npm run validate:generated
+      - name: Release assets
+        run: npm run validate:release-assets
+      - name: Unit tests
+        run: npm run test
+      - name: Security tests
+        run: npm run test:security
+      - name: Compatibility tests
+        run: npm run test:compatibility
+      - name: Build
+        run: npm run build
+  e2e:
+    needs: quality
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: { node-version: '24', cache: npm }
+      - run: sudo apt-get update && sudo apt-get install -y xvfb libgtk-3-0 libnss3 libasound2t64 libatk-bridge2.0-0 libxss1
+      - run: npm ci
+      - run: npm run build
+      - name: Electron E2E
+        shell: bash
         run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add .
-          git commit -m "Integrate validated persistent local workspaces"
-          git push origin HEAD:agent/local-workspace-foundation
+          set -o pipefail
+          xvfb-run -a npm run test:e2e 2>&1 | tee playwright-e2e.log
+      - name: Upload E2E diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: desktop-e2e-diagnostics-${{ github.run_attempt }}
+          path: |
+            playwright-e2e.log
+            playwright-report/
+            test-results/
+          if-no-files-found: warn
+          retention-days: 14
+  package-smoke:
+    needs: quality
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-latest, platform: windows, artifact: desktop-windows-x64 }
+          - { os: ubuntu-latest, platform: linux, artifact: desktop-linux-x64 }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with: { node-version: '24', cache: npm }
+      - if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y fakeroot rpm xvfb libgtk-3-0 libnss3 libasound2t64 libatk-bridge2.0-0 libxss1
+      - run: npm ci
+      - run: npm run make:${{ matrix.platform }}
+        env:
+          RELEASE_TARGET_COMMIT: ${{ github.sha }}
+      - if: runner.os == 'Linux'
+        run: xvfb-run -a npm run smoke:packaged
+      - if: runner.os == 'Windows'
+        run: npm run smoke:packaged
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: ${{ matrix.artifact }}
+          path: dist/release-assets/*

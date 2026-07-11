@@ -58,10 +58,26 @@ export const DesktopCommandSchema = z.enum([
   'navigation.back',
   'navigation.forward',
   'about.open',
+  'workspace.open',
+]);
+export const WorkspaceInfoSchema = z.object({
+  kind: z.enum(['bundled', 'local']),
+  rootPath: z.string().min(1),
+  displayName: z.string().min(1),
+  articleCount: z.number().int().nonnegative(),
+  warnings: z.array(z.string()),
+  invalidFiles: z.array(z.string()),
+});
+export const WorkspaceSelectionResultSchema = z.discriminatedUnion('status', [
+  z.object({ status: z.literal('cancelled') }),
+  z.object({ status: z.literal('selected'), workspace: WorkspaceInfoSchema }),
+  z.object({ status: z.literal('rejected'), message: z.string().min(1) }),
 ]);
 export const ArticleListResponseSchema = z.array(ArticleSummaryDtoSchema);
 export const SearchResponseSchema = z.array(SearchResultDtoSchema);
 export type DesktopCommand = z.infer<typeof DesktopCommandSchema>;
+export type WorkspaceInfoDto = z.infer<typeof WorkspaceInfoSchema>;
+export type WorkspaceSelectionResult = z.infer<typeof WorkspaceSelectionResultSchema>;
 export type ArticleSummaryDto = z.infer<typeof ArticleSummaryDtoSchema>;
 export type ArticleDto = z.infer<typeof ArticleDtoSchema>;
 export type SearchResultDto = z.infer<typeof SearchResultDtoSchema>;

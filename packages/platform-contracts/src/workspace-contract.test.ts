@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  DesktopCommandSchema,
-  WorkspaceInfoSchema,
-  WorkspaceSelectionResultSchema,
-} from './index';
+import { DesktopCommandSchema, WorkspaceInfoSchema, WorkspaceSelectionResultSchema } from './index';
 
 describe('workspace contracts', () => {
   it('accepts bounded workspace information and the open command', () => {

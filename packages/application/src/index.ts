@@ -1,31 +1,53 @@
-import { scanArchive, createManifest } from '@research-observatory/content-engine';
+import {
+  createManifest,
+  scanArchiveWithDiagnostics,
+  type ArchiveDiagnostics,
+} from '@research-observatory/content-engine';
+import type { Article } from '@research-observatory/domain';
 import { searchArticles } from '@research-observatory/search-engine';
+
 export class ResearchObservatoryApp {
-  constructor(private root = 'docs') {}
-  listArticles() {
-    return scanArchive(this.root);
+  private articles: Article[] = [];
+  private archiveDiagnostics: ArchiveDiagnostics = {
+    warnings: [],
+    invalidFiles: [],
+    brokenLinks: [],
+    missingAssets: [],
+  };
+
+  constructor(private root = 'docs') {
+    this.reload(root);
   }
-  getArticle(id: string) {
-    const a = this.listArticles().find((x) => x.id === id);
-    if (!a) throw new Error('article-not-found');
-    return a;
+
+  reload(root = this.root): void {
+    const snapshot = scanArchiveWithDiagnostics(root);
+    this.root = root;
+    this.articles = snapshot.articles;
+    this.archiveDiagnostics = snapshot.diagnostics;
   }
+
+  listArticles(): Article[] {
+    return this.articles;
+  }
+
+  getArticle(id: string): Article {
+    const article = this.articles.find((candidate) => candidate.id === id);
+    if (!article) throw new Error('article-not-found');
+    return article;
+  }
+
   search(query: string) {
-    return searchArticles(this.listArticles(), query);
+    return searchArticles(this.articles, query);
   }
+
   manifest() {
     return createManifest(this.root);
   }
+
   diagnostics() {
-    const articles = this.listArticles();
-    return {
-      validArticles: articles.length,
-      warnings: [],
-      invalidFiles: [],
-      brokenLinks: [],
-      missingAssets: [],
-    };
+    return { validArticles: this.articles.length, ...this.archiveDiagnostics };
   }
+
   importPreview(sourceMarkdown: string) {
     return {
       title: sourceMarkdown.match(/^#\s+(.+)$/m)?.[1] || 'Untitled',

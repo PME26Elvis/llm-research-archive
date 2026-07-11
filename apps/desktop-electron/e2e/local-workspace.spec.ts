@@ -30,12 +30,9 @@ test('selects, persists, diagnoses, and safely falls back from a local workspace
   );
   expect(bundledCount).toBeGreaterThan(1);
 
-  await first.app.evaluate(
-    ({ dialog }, selectedPath) => {
-      dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [selectedPath] });
-    },
-    workspace,
-  );
+  await first.app.evaluate(({ dialog }, selectedPath) => {
+    dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [selectedPath] });
+  }, workspace);
   await first.page.keyboard.press('Control+O');
   await expect(first.page.getByTestId('workspace-kind')).toHaveText('本機工作區');
   await expect(first.page.getByTestId('workspace-path')).toContainText(path.basename(workspace));

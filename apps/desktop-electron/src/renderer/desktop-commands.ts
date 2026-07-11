@@ -27,6 +27,12 @@ export const DESKTOP_COMMANDS: DesktopCommandDescriptor[] = [
     shortcut: 'Alt+→',
   },
   {
+    id: 'workspace.open',
+    label: '開啟本機工作區',
+    keywords: ['workspace', 'folder', 'archive', '工作區', '資料夾', '封存'],
+    shortcut: 'Ctrl+O',
+  },
+  {
     id: 'about.open',
     label: '開啟關於資訊',
     keywords: ['about', 'version', 'build', '關於', '版本'],

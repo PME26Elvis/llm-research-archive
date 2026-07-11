@@ -40,3 +40,5 @@ related-adrs:
 | Persistent desktop layout | fixed browser viewport | main/renderer | implemented | apps/desktop-electron/src/main/window-state.test.ts; apps/desktop-electron/e2e/resizable-layout.spec.ts | Accessible pane resizing/collapse and validated native window bounds survive restart. |
 
 | Native commands and palette | browser shortcuts | main/preload/renderer | implemented | packages/platform-contracts/src/desktop-command.test.ts; apps/desktop-electron/e2e/command-palette.spec.ts | One typed allowlist drives menu, shortcuts, preload delivery, and the accessible command palette. |
+
+| Local workspace selection | static site root | main/preload/application/content-engine | implemented | apps/desktop-electron/src/main/workspace-state.test.ts; apps/desktop-electron/e2e/local-workspace.spec.ts | Native folder selection, persisted recent workspace, diagnostics, bad-file isolation, and bundled fallback without renderer filesystem access. |

@@ -2,6 +2,7 @@ import squirrelStartup from 'electron-squirrel-startup';
 import {
   app,
   BrowserWindow,
+  dialog,
   ipcMain,
   Menu,
   screen,
@@ -10,12 +11,19 @@ import {
   WebContents,
   WebFrameMain,
   type MenuItemConstructorOptions,
+  type OpenDialogOptions,
 } from 'electron';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import fs from 'node:fs/promises';
 import { resolveSafeAssetPath } from './asset-path';
 import { loadWindowState, saveWindowState } from './window-state';
+import {
+  DEFAULT_WORKSPACE_STATE,
+  loadWorkspaceState,
+  saveWorkspaceState,
+  validateWorkspaceRoot,
+} from './workspace-state';
 import { ResearchObservatoryApp } from '@research-observatory/application';
 import { summarizeArticle } from '@research-observatory/search-engine';
 import {
@@ -27,7 +35,10 @@ import {
   ExternalUrlSchema,
   AppInfoResponseSchema,
   DesktopCommandSchema,
+  WorkspaceInfoSchema,
+  WorkspaceSelectionResultSchema,
   type DesktopCommand,
+  type WorkspaceInfoDto,
 } from '@research-observatory/platform-contracts';
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
@@ -37,12 +48,62 @@ declare const __OBSERVATORY_BUILD_COMMIT__: string;
 if (squirrelStartup) app.quit();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let core: ResearchObservatoryApp;
+let activeContentRoot = '';
+let activeWorkspace: WorkspaceInfoDto;
+let workspaceRecoveryWarnings: string[] = [];
 let trustedRendererUrl = '';
 let trustedRendererOrigin = '';
-function contentRoot(): string {
+function bundledContentRoot(): string {
   if (!app.isPackaged)
     return process.env.ARCHIVE_CONTENT_ROOT || path.resolve(__dirname, '../../docs');
   return path.join(process.resourcesPath, 'docs');
+}
+function contentRoot(): string {
+  return activeContentRoot || bundledContentRoot();
+}
+function workspaceInfo(kind: 'bundled' | 'local', rootPath: string): WorkspaceInfoDto {
+  const diagnostics = core.diagnostics();
+  return WorkspaceInfoSchema.parse({
+    kind,
+    rootPath,
+    displayName: kind === 'bundled' ? '內建封存' : path.basename(rootPath),
+    articleCount: core.listArticles().length,
+    warnings: [
+      ...workspaceRecoveryWarnings,
+      ...diagnostics.warnings,
+      ...diagnostics.brokenLinks,
+      ...diagnostics.missingAssets,
+    ],
+    invalidFiles: diagnostics.invalidFiles,
+  });
+}
+function activateWorkspace(rootPath: string, kind: 'bundled' | 'local'): WorkspaceInfoDto {
+  activeContentRoot = rootPath;
+  core = new ResearchObservatoryApp(rootPath);
+  activeWorkspace = workspaceInfo(kind, rootPath);
+  return activeWorkspace;
+}
+function initializeWorkspace(): void {
+  workspaceRecoveryWarnings = [];
+  const bundled = bundledContentRoot();
+  if (process.env.ARCHIVE_CONTENT_ROOT) {
+    const selected = validateWorkspaceRoot(path.resolve(process.env.ARCHIVE_CONTENT_ROOT));
+    activateWorkspace(selected.rootPath, 'local');
+    return;
+  }
+  const stateFile = path.join(app.getPath('userData'), 'workspace-state.json');
+  const persisted = loadWorkspaceState(stateFile);
+  if (persisted.rootPath) {
+    try {
+      const selected = validateWorkspaceRoot(persisted.rootPath);
+      activateWorkspace(selected.rootPath, 'local');
+      return;
+    } catch {
+      workspaceRecoveryWarnings.push('先前工作區無法使用，已回復內建封存');
+      saveWorkspaceState(stateFile, DEFAULT_WORKSPACE_STATE);
+    }
+  }
+  activateWorkspace(bundled, 'bundled');
 }
 async function safeAssetPath(rawUrl: string): Promise<string | undefined> {
   return resolveSafeAssetPath(contentRoot(), rawUrl);
@@ -73,6 +134,11 @@ function installApplicationMenu(win: BrowserWindow): void {
         { label: '下一個閱讀位置', click: () => send('navigation.forward') },
         { type: 'separator' },
         { label: '聚焦搜尋', accelerator: 'CmdOrCtrl+F', click: () => send('search.focus') },
+        {
+          label: '開啟本機工作區',
+          accelerator: 'CmdOrCtrl+O',
+          click: () => send('workspace.open'),
+        },
       ],
     },
     {
@@ -90,7 +156,7 @@ function installApplicationMenu(win: BrowserWindow): void {
 }
 
 function createWindow() {
-  core = new ResearchObservatoryApp(contentRoot());
+  initializeWorkspace();
   session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) =>
     callback(false),
   );
@@ -168,6 +234,39 @@ ipcMain.handle('article:get', (event, p) => {
 ipcMain.handle('search:query', (event, p) => {
   validateSender(event.sender, event.senderFrame);
   return SearchResponseSchema.parse(core.search(SearchRequestSchema.parse(p).query));
+});
+ipcMain.handle('workspace:info', (event) => {
+  validateSender(event.sender, event.senderFrame);
+  return WorkspaceInfoSchema.parse(activeWorkspace);
+});
+ipcMain.handle('workspace:select', async (event) => {
+  validateSender(event.sender, event.senderFrame);
+  const owner = BrowserWindow.fromWebContents(event.sender);
+  const options: OpenDialogOptions = {
+    title: '選擇 Research Observatory 工作區',
+    properties: ['openDirectory'],
+  };
+  const selection = owner
+    ? await dialog.showOpenDialog(owner, options)
+    : await dialog.showOpenDialog(options);
+  if (selection.canceled || !selection.filePaths[0]) {
+    return WorkspaceSelectionResultSchema.parse({ status: 'cancelled' });
+  }
+  try {
+    workspaceRecoveryWarnings = [];
+    const selected = validateWorkspaceRoot(selection.filePaths[0]);
+    const workspace = activateWorkspace(selected.rootPath, 'local');
+    saveWorkspaceState(path.join(app.getPath('userData'), 'workspace-state.json'), {
+      schemaVersion: 1,
+      rootPath: selected.rootPath,
+    });
+    return WorkspaceSelectionResultSchema.parse({ status: 'selected', workspace });
+  } catch (error) {
+    return WorkspaceSelectionResultSchema.parse({
+      status: 'rejected',
+      message: `無法開啟工作區：${error instanceof Error ? error.message : String(error)}`,
+    });
+  }
 });
 ipcMain.handle('diagnostics:get', (event) => {
   validateSender(event.sender, event.senderFrame);
