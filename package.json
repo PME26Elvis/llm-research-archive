@@ -57,6 +57,7 @@
     "electron": "43.1.0",
     "electron-squirrel-startup": "^1.0.1",
     "gray-matter": "^4.0.3",
+    "highlight.js": "11.11.1",
     "js-yaml": "^4.1.0",
     "markdown-it": "^14.3.0",
     "mermaid": "11.16.0",
