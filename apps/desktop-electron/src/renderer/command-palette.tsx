@@ -28,8 +28,8 @@ export function CommandPalette({ open, onClose, onExecute }: CommandPaletteProps
   if (!open) return null;
 
   function execute(command: DesktopCommand) {
-    onExecute(command);
     onClose();
+    requestAnimationFrame(() => onExecute(command));
   }
 
   return (
