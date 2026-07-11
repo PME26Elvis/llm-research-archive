@@ -28,7 +28,7 @@ related-adrs:
 | FR-016 | implemented | packages/renderer-ui/src/index.test.ts, apps/desktop-electron/e2e/footnotes.spec.ts |
 | FR-017 | implemented | apps/desktop-electron/src/renderer/preferences.test.ts, apps/desktop-electron/e2e/preferences.spec.ts |
 | FR-018 | implemented | apps/desktop-electron/src/renderer/navigation-history.test.ts, apps/desktop-electron/e2e/navigation-history.spec.ts |
-| FR-019 | planned | planned |
+| FR-019 | implemented | apps/desktop-electron/src/renderer/layout-preferences.test.ts, apps/desktop-electron/src/main/window-state.test.ts, apps/desktop-electron/e2e/resizable-layout.spec.ts |
 | FR-020 | planned | planned |
 | FR-021 | planned | planned |
 | FR-022 | implemented | apps/desktop-electron/e2e/source.spec.ts |

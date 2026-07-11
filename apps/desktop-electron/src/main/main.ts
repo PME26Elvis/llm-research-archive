@@ -1,9 +1,19 @@
 import squirrelStartup from 'electron-squirrel-startup';
-import { app, BrowserWindow, ipcMain, shell, session, WebContents, WebFrameMain } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  ipcMain,
+  screen,
+  shell,
+  session,
+  WebContents,
+  WebFrameMain,
+} from 'electron';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import fs from 'node:fs/promises';
 import { resolveSafeAssetPath } from './asset-path';
+import { loadWindowState, saveWindowState } from './window-state';
 import { ResearchObservatoryApp } from '@research-observatory/application';
 import { summarizeArticle } from '@research-observatory/search-engine';
 import {
@@ -58,9 +68,15 @@ function createWindow() {
       .then((filePath) => callback(filePath ? { path: filePath } : { error: -10 }))
       .catch(() => callback({ error: -10 }));
   });
+  const windowStateFile = path.join(app.getPath('userData'), 'window-state.json');
+  const windowState = loadWindowState(
+    windowStateFile,
+    screen.getAllDisplays().map((display) => display.workArea),
+  );
   const win = new BrowserWindow({
-    width: 1280,
-    height: 840,
+    ...windowState.bounds,
+    minWidth: 800,
+    minHeight: 600,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -69,6 +85,28 @@ function createWindow() {
       webSecurity: true,
     },
   });
+  let windowStateTimer: NodeJS.Timeout | undefined;
+  const persistWindowState = () => {
+    if (windowStateTimer) clearTimeout(windowStateTimer);
+    try {
+      saveWindowState(windowStateFile, {
+        schemaVersion: 1,
+        bounds: win.getNormalBounds(),
+        maximized: win.isMaximized(),
+      });
+    } catch (error) {
+      console.error('window-state-save-failed', error);
+    }
+  };
+  const scheduleWindowState = () => {
+    if (windowStateTimer) clearTimeout(windowStateTimer);
+    windowStateTimer = setTimeout(persistWindowState, 250);
+  };
+  win.on('resize', scheduleWindowState);
+  win.on('move', scheduleWindowState);
+  win.on('close', persistWindowState);
+  if (windowState.maximized) win.maximize();
+
   win.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(ExternalUrlSchema.parse(url));
     return { action: 'deny' };

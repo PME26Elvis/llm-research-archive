@@ -50,17 +50,20 @@ body {
 
 .app {
   display: grid;
-  grid-template-columns: 360px 1fr;
+  grid-template-columns: var(--sidebar-width) 6px minmax(0, 1fr);
   height: 100vh;
 }
 
 aside {
+  grid-column: 1;
   border-right: 1px solid var(--border);
   padding: 1rem;
   overflow: auto;
 }
 
 article {
+  flex: 1;
+  min-height: 0;
   padding: 2rem;
   overflow: auto;
   max-width: 960px;
@@ -406,7 +409,7 @@ th {
 
 @media (max-width: 800px) {
   .app {
-    grid-template-columns: 1fr;
+    display: block;
     height: auto;
     min-height: 100vh;
   }
@@ -457,4 +460,64 @@ th {
 .article-list button[aria-current='page'] {
   border-color: var(--focus);
   background: var(--selected-bg);
+}
+
+
+.pane-separator {
+  grid-column: 2;
+  position: relative;
+  z-index: 2;
+  cursor: col-resize;
+  background: var(--border);
+  touch-action: none;
+}
+
+.pane-separator::after {
+  content: '';
+  position: absolute;
+  inset: 0 -4px;
+}
+
+.pane-separator:hover,
+.pane-separator:focus-visible {
+  background: var(--accent);
+  outline: none;
+}
+
+.reader-pane {
+  grid-column: 3;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  height: 100vh;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sidebar-toggle {
+  align-self: flex-start;
+  width: auto;
+  margin: 0.55rem 0.75rem 0;
+  padding: 0.4rem 0.65rem;
+}
+
+.app[data-sidebar-collapsed='true'] {
+  grid-template-columns: 0 0 minmax(0, 1fr);
+}
+
+body.resizing-sidebar {
+  cursor: col-resize;
+  user-select: none;
+}
+
+
+@media (max-width: 800px) {
+  .pane-separator {
+    display: none;
+  }
+
+  .reader-pane {
+    height: auto;
+    min-height: 45vh;
+  }
 }

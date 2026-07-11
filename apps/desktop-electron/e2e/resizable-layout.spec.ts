@@ -17,7 +17,10 @@ test('persists accessible pane sizing and native window bounds across restart', 
   await first.page.keyboard.press('End');
   await expect(separator).toHaveAttribute('aria-valuenow', '620');
   await first.page.getByRole('button', { name: '隱藏導覽欄' }).click();
-  await expect(first.page.getByTestId('app-ready')).toHaveAttribute('data-sidebar-collapsed', 'true');
+  await expect(first.page.getByTestId('app-ready')).toHaveAttribute(
+    'data-sidebar-collapsed',
+    'true',
+  );
 
   await first.app.evaluate(({ BrowserWindow }) => {
     const window = BrowserWindow.getAllWindows()[0];
@@ -29,7 +32,10 @@ test('persists accessible pane sizing and native window bounds across restart', 
 
   const second = await launchElectron({ args });
   await expect(second.page.getByTestId('app-ready')).toBeVisible({ timeout: 30000 });
-  await expect(second.page.getByTestId('app-ready')).toHaveAttribute('data-sidebar-collapsed', 'true');
+  await expect(second.page.getByTestId('app-ready')).toHaveAttribute(
+    'data-sidebar-collapsed',
+    'true',
+  );
   await second.page.getByRole('button', { name: '顯示導覽欄' }).click();
   await expect(second.page.getByRole('separator', { name: '調整導覽欄寬度' })).toHaveAttribute(
     'aria-valuenow',

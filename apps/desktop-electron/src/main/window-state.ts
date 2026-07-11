@@ -31,19 +31,19 @@ const MIN_WINDOW_WIDTH = 800;
 const MIN_WINDOW_HEIGHT = 600;
 
 function overlaps(bounds: Required<WindowBounds>, area: WorkArea): boolean {
-  const visibleWidth = Math.min(bounds.x + bounds.width, area.x + area.width) - Math.max(bounds.x, area.x);
-  const visibleHeight = Math.min(bounds.y + bounds.height, area.y + area.height) - Math.max(bounds.y, area.y);
+  const visibleWidth =
+    Math.min(bounds.x + bounds.width, area.x + area.width) - Math.max(bounds.x, area.x);
+  const visibleHeight =
+    Math.min(bounds.y + bounds.height, area.y + area.height) - Math.max(bounds.y, area.y);
   return visibleWidth >= 120 && visibleHeight >= 80;
 }
 
-export function normalizeWindowState(
-  value: unknown,
-  workAreas: WorkArea[],
-): PersistedWindowState {
+export function normalizeWindowState(value: unknown, workAreas: WorkArea[]): PersistedWindowState {
   const primary = workAreas[0] ?? { x: 0, y: 0, width: 1920, height: 1080 };
   const record = value && typeof value === 'object' ? (value as Record<string, unknown>) : {};
   const boundsValue = record.bounds;
-  const raw = boundsValue && typeof boundsValue === 'object' ? (boundsValue as Record<string, unknown>) : {};
+  const raw =
+    boundsValue && typeof boundsValue === 'object' ? (boundsValue as Record<string, unknown>) : {};
   const width = Math.min(primary.width, Math.max(MIN_WINDOW_WIDTH, Number(raw.width) || 1280));
   const height = Math.min(primary.height, Math.max(MIN_WINDOW_HEIGHT, Number(raw.height) || 840));
   const candidate: Required<WindowBounds> = {
