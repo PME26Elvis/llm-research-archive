@@ -52,8 +52,16 @@ export const ExternalUrlSchema = z
   .string()
   .url()
   .refine((v) => ['https:', 'mailto:'].includes(new URL(v).protocol));
+export const DesktopCommandSchema = z.enum([
+  'palette.open',
+  'search.focus',
+  'navigation.back',
+  'navigation.forward',
+  'about.open',
+]);
 export const ArticleListResponseSchema = z.array(ArticleSummaryDtoSchema);
 export const SearchResponseSchema = z.array(SearchResultDtoSchema);
+export type DesktopCommand = z.infer<typeof DesktopCommandSchema>;
 export type ArticleSummaryDto = z.infer<typeof ArticleSummaryDtoSchema>;
 export type ArticleDto = z.infer<typeof ArticleDtoSchema>;
 export type SearchResultDto = z.infer<typeof SearchResultDtoSchema>;

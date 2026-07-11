@@ -14,7 +14,7 @@ related-adrs:
 
 ## Current P1 Offline Reader Scope
 
-The current implementation provides the offline bundled reader, secure Electron shell, content parsing, full-text search, category/tag/timeline browsing, sanitized reading with local image lightbox, fenced-code copy, and strict lazy Mermaid rendering, lazy syntax highlighting, accessible footnotes, persistent theme and text preferences, semantic Back/Forward navigation, persistent resizable desktop layout, native packaging, and a verified draft-release pipeline. Requirements without concrete code and verification artifacts remain planned.
+The current implementation provides the offline bundled reader, secure Electron shell, content parsing, full-text search, category/tag/timeline browsing, sanitized reading with local image lightbox, fenced-code copy, and strict lazy Mermaid rendering, lazy syntax highlighting, accessible footnotes, persistent theme and text preferences, semantic Back/Forward navigation, persistent resizable desktop layout, typed native commands and command palette, native packaging, and a verified draft-release pipeline. Requirements without concrete code and verification artifacts remain planned.
 
 ## FR-001
 
@@ -94,7 +94,7 @@ Status: `implemented`. Verification: apps/desktop-electron/src/renderer/layout-p
 
 ## FR-020
 
-Status: `planned`. Verification: planned for a later PR.
+Status: `implemented`. Verification: packages/platform-contracts/src/desktop-command.test.ts, apps/desktop-electron/src/renderer/desktop-commands.test.ts, apps/desktop-electron/e2e/command-palette.spec.ts.
 
 ## FR-021
 

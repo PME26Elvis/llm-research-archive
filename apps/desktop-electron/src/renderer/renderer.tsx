@@ -12,7 +12,9 @@ import type {
   ArticleDto,
   ArticleSummaryDto,
   SearchResultDto,
+  DesktopCommand,
 } from '@research-observatory/platform-contracts';
+import { CommandPalette } from './command-palette';
 import { copyText } from './copy-code';
 import { mountFootnoteNavigation } from './footnotes';
 import { mountMermaidBlocks } from './mermaid-dom';
@@ -38,6 +40,8 @@ declare global {
       search(query: string): Promise<SearchResultDto[]>;
       appInfo(): Promise<AppInfoDto>;
       openExternal(url: string): Promise<void>;
+      onCommand(listener: (command: DesktopCommand) => void): void;
+      clearCommandHandler(): void;
     };
   }
 }
@@ -245,6 +249,8 @@ function App() {
   const [about, setAbout] = useState<AppInfoDto | null>(null);
   const [lightbox, setLightbox] = useState<LightboxImage | null>(null);
   const [navigationHistory, setNavigationHistory] = useState(createNavigationHistory);
+  const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const aboutButtonRef = useRef<HTMLButtonElement>(null);
   const readerRef = useRef<HTMLElement>(null);
   const lightboxTriggerRef = useRef<HTMLImageElement | null>(null);
@@ -318,6 +324,40 @@ function App() {
     setNavigationHistory(next);
     void applyNavigation(currentNavigationLocation(next));
   }
+
+  function executeDesktopCommand(command: DesktopCommand) {
+    if (command === 'palette.open') {
+      setCommandPaletteOpen(true);
+    } else if (command === 'search.focus') {
+      searchInputRef.current?.focus();
+      searchInputRef.current?.select();
+    } else if (command === 'navigation.back') {
+      travelHistory(-1);
+    } else if (command === 'navigation.forward') {
+      travelHistory(1);
+    } else if (command === 'about.open') {
+      void openAbout();
+    }
+  }
+
+  useEffect(() => {
+    window.observatory.onCommand(executeDesktopCommand);
+    const onShortcut = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return;
+      if (event.key.toLocaleLowerCase() === 'k') {
+        event.preventDefault();
+        executeDesktopCommand('palette.open');
+      } else if (event.key.toLocaleLowerCase() === 'f') {
+        event.preventDefault();
+        executeDesktopCommand('search.focus');
+      }
+    };
+    document.addEventListener('keydown', onShortcut);
+    return () => {
+      document.removeEventListener('keydown', onShortcut);
+      window.observatory.clearCommandHandler();
+    };
+  }, [navigationHistory, selected, query, browseMode, selectedFacet]);
 
   useEffect(() => {
     window.observatory
@@ -696,6 +736,11 @@ function App() {
           )}
         </article>
       </ResizableLayout>
+      <CommandPalette
+        open={commandPaletteOpen}
+        onClose={() => setCommandPaletteOpen(false)}
+        onExecute={executeDesktopCommand}
+      />
       {about && <AboutModal info={about} onClose={closeAbout} />}
       {lightbox && <ImageLightbox image={lightbox} onClose={closeImageLightbox} />}
     </>

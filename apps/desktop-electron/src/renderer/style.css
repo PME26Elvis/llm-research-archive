@@ -521,3 +521,39 @@ body.resizing-sidebar {
     min-height: 45vh;
   }
 }
+
+
+.command-palette {
+  width: min(92vw, 680px);
+  padding: 1rem;
+}
+
+.command-palette h2 {
+  margin: 0 0 0.75rem;
+}
+
+.command-results {
+  display: grid;
+  gap: 0.35rem;
+  max-height: min(55vh, 420px);
+  overflow: auto;
+}
+
+.command-results button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin: 0;
+}
+
+.command-results button[aria-selected='true'] {
+  border-color: var(--accent);
+  background: var(--surface-selected);
+}
+
+.command-results kbd {
+  color: var(--text-muted);
+  font: inherit;
+  font-size: 0.85rem;
+}

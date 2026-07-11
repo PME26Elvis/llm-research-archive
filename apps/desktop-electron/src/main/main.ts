@@ -3,11 +3,13 @@ import {
   app,
   BrowserWindow,
   ipcMain,
+  Menu,
   screen,
   shell,
   session,
   WebContents,
   WebFrameMain,
+  type MenuItemConstructorOptions,
 } from 'electron';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -24,6 +26,8 @@ import {
   SearchResponseSchema,
   ExternalUrlSchema,
   AppInfoResponseSchema,
+  DesktopCommandSchema,
+  type DesktopCommand,
 } from '@research-observatory/platform-contracts';
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
@@ -58,6 +62,33 @@ function validateSender(sender: WebContents, frame?: WebFrameMain | null): void 
   }
   if (actual !== trustedRendererUrl) throw new Error(`invalid-ipc-sender:${actual}`);
 }
+function installApplicationMenu(win: BrowserWindow): void {
+  const send = (command: DesktopCommand) =>
+    win.webContents.send('app:command', DesktopCommandSchema.parse(command));
+  const template: MenuItemConstructorOptions[] = [
+    {
+      label: '導覽',
+      submenu: [
+        { label: '上一個閱讀位置', click: () => send('navigation.back') },
+        { label: '下一個閱讀位置', click: () => send('navigation.forward') },
+        { type: 'separator' },
+        { label: '聚焦搜尋', accelerator: 'CmdOrCtrl+F', click: () => send('search.focus') },
+      ],
+    },
+    {
+      label: '檢視',
+      submenu: [
+        { label: '指令面板', accelerator: 'CmdOrCtrl+K', click: () => send('palette.open') },
+      ],
+    },
+    {
+      label: '說明',
+      submenu: [{ label: '關於 Research Observatory', click: () => send('about.open') }],
+    },
+  ];
+  Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
 function createWindow() {
   core = new ResearchObservatoryApp(contentRoot());
   session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) =>
@@ -106,6 +137,7 @@ function createWindow() {
   win.on('move', scheduleWindowState);
   win.on('close', persistWindowState);
   if (windowState.maximized) win.maximize();
+  installApplicationMenu(win);
 
   win.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(ExternalUrlSchema.parse(url));
