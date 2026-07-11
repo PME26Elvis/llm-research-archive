@@ -48,7 +48,11 @@ test('renders valid Mermaid near the viewport and preserves invalid source as fa
     await expect(figure.locator('script, foreignObject, iframe, object, embed')).toHaveCount(0);
     await expect(figure.locator('[href^="http"], [xlink\\:href^="http"]')).toHaveCount(0);
     await expect(figure.getByRole('status')).toHaveText('Mermaid 圖表已完成');
-    await expect(figure.locator('details.mermaid-source')).not.toHaveAttribute('open', '');
+
+    const sourceDetails = figure.locator('details.mermaid-source');
+    await expect(sourceDetails).not.toHaveAttribute('open', '');
+    await figure.getByText('查看 Mermaid 原始碼', { exact: true }).click();
+    await expect(sourceDetails).toHaveAttribute('open', '');
     await expect(figure.getByRole('button', { name: '複製 mermaid 程式碼' })).toBeVisible();
 
     await page.getByRole('button', { name: /Invalid Diagram/ }).click();
