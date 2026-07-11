@@ -239,9 +239,7 @@ test('copies fenced code to the system clipboard with accessible feedback', asyn
     await copyButton.focus();
     await page.keyboard.press('Enter');
 
-    await expect
-      .poll(() => app.evaluate(({ clipboard }) => clipboard.readText()))
-      .toBe(expected);
+    await expect.poll(() => app.evaluate(({ clipboard }) => clipboard.readText())).toBe(expected);
     await expect(copyButton).toHaveText('已複製');
     await expect(page.getByRole('status')).toHaveText('程式碼已複製到剪貼簿');
     await expect(copyButton).toBeFocused();

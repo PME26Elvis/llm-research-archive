@@ -208,10 +208,7 @@ function decorateCodeBlocks(reader: HTMLElement): void {
     button.type = 'button';
     button.className = 'copy-code';
     button.dataset.copyCode = '';
-    button.setAttribute(
-      'aria-label',
-      language ? `複製 ${language} 程式碼` : '複製程式碼',
-    );
+    button.setAttribute('aria-label', language ? `複製 ${language} 程式碼` : '複製程式碼');
     button.textContent = '複製';
 
     toolbar.append(label, status, button);
@@ -379,9 +376,7 @@ function App() {
     const copied = await copyText(code.textContent || '');
     button.textContent = copied ? '已複製' : '複製失敗';
     button.dataset.copyState = copied ? 'success' : 'error';
-    status.textContent = copied
-      ? '程式碼已複製到剪貼簿'
-      : '無法存取剪貼簿，請手動選取程式碼';
+    status.textContent = copied ? '程式碼已複製到剪貼簿' : '無法存取剪貼簿，請手動選取程式碼';
 
     window.setTimeout(() => {
       if (!button.isConnected) return;
