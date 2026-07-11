@@ -1,5 +1,7 @@
 import sanitizeHtml from 'sanitize-html';
 
+export type MermaidTheme = 'light' | 'dark';
+
 export interface MermaidApi {
   initialize(config: Record<string, unknown>): void;
   render(id: string, source: string): Promise<{ svg: string }>;
@@ -144,23 +146,38 @@ export function sanitizeMermaidSvg(svg: string, label = 'Mermaid 圖表'): strin
 }
 
 let mermaidPromise: Promise<MermaidApi> | undefined;
+let renderQueue: Promise<unknown> = Promise.resolve();
 
 export function loadMermaid(): Promise<MermaidApi> {
   if (!mermaidPromise) {
-    mermaidPromise = import('mermaid').then(({ default: mermaid }) => {
-      const api = mermaid as unknown as MermaidApi;
-      api.initialize({
-        startOnLoad: false,
-        securityLevel: 'strict',
-        theme: 'dark',
-        suppressErrorRendering: true,
-        flowchart: { htmlLabels: false },
-        fontFamily: 'system-ui, sans-serif',
-      });
-      return api;
-    });
+    mermaidPromise = import('mermaid').then(
+      ({ default: mermaid }) => mermaid as unknown as MermaidApi,
+    );
   }
   return mermaidPromise;
+}
+
+function configureMermaid(renderer: MermaidApi, theme: MermaidTheme): void {
+  renderer.initialize({
+    startOnLoad: false,
+    securityLevel: 'strict',
+    theme: theme === 'light' ? 'default' : 'dark',
+    suppressErrorRendering: true,
+    flowchart: { htmlLabels: false },
+    fontFamily: 'system-ui, sans-serif',
+  });
+}
+
+async function renderWithTheme(
+  renderer: MermaidApi,
+  id: string,
+  source: string,
+  label: string,
+  theme: MermaidTheme,
+): Promise<string> {
+  configureMermaid(renderer, theme);
+  const { svg } = await renderer.render(id, source);
+  return sanitizeMermaidSvg(svg, label);
 }
 
 export async function renderMermaidSvg(
@@ -168,8 +185,14 @@ export async function renderMermaidSvg(
   source: string,
   label = 'Mermaid 圖表',
   api?: MermaidApi,
+  theme: MermaidTheme = 'dark',
 ): Promise<string> {
-  const renderer = api ?? (await loadMermaid());
-  const { svg } = await renderer.render(id, source);
-  return sanitizeMermaidSvg(svg, label);
+  if (api) return renderWithTheme(api, id, source, label, theme);
+
+  const renderer = await loadMermaid();
+  const task = renderQueue
+    .catch(() => undefined)
+    .then(() => renderWithTheme(renderer, id, source, label, theme));
+  renderQueue = task;
+  return task;
 }
