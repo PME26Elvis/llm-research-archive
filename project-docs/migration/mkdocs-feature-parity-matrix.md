@@ -36,3 +36,5 @@ related-adrs:
 | Research appendix | tools | application | planned | planned | Import flow not implemented. |
 | Generated word-count index | hook | manifest | planned | planned | Manifest exists; page generation not replaced. |
 | GitHub Pages deployment | workflow | deploy.yml | preserved | .github/workflows/deploy.yml | Web deployment remains separate. |
+
+| Persistent desktop layout | fixed browser viewport | main/renderer | implemented | apps/desktop-electron/src/main/window-state.test.ts; apps/desktop-electron/e2e/resizable-layout.spec.ts | Accessible pane resizing/collapse and validated native window bounds survive restart. |

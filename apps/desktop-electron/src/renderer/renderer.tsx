@@ -27,6 +27,7 @@ import {
   type NavigationLocation,
 } from './navigation-history';
 import { ReaderSettings } from './reader-settings';
+import { ResizableLayout } from './resizable-layout';
 import { mountSyntaxHighlighting } from './syntax-highlight';
 
 declare global {
@@ -558,140 +559,146 @@ function App() {
   }
 
   return (
-    <main className="app" data-testid="app-ready" data-article-count={articles.length}>
-      <aside>
-        <div className="app-header">
-          <h1>Research Observatory</h1>
-          <div className="app-header-actions">
-            <ReaderSettings />
-            <button ref={aboutButtonRef} type="button" onClick={openAbout}>
-              關於
-            </button>
-          </div>
-        </div>
-        <label>
-          搜尋文章
-          <input
-            aria-label="搜尋文章"
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              replaceNavigation({ query: event.target.value });
-            }}
-          />
-        </label>
-        <nav className="browse-tabs" aria-label="瀏覽文章">
-          {browseModes.map(({ mode, label }) => (
-            <button
-              key={mode}
-              type="button"
-              aria-pressed={browseMode === mode}
-              data-testid={`browse-${mode}`}
-              onClick={() => selectBrowseMode(mode)}
-            >
-              {label}
-            </button>
-          ))}
-        </nav>
-        {browseMode !== 'all' && (
-          <section
-            className="facet-panel"
-            aria-label={`${browseModes.find((x) => x.mode === browseMode)?.label}篩選`}
-          >
-            <div className="facet-heading">
-              <strong>
-                {selectedFacet
-                  ? `已篩選 ${shown.length} 篇`
-                  : `選擇${browseModes.find((x) => x.mode === browseMode)?.label}`}
-              </strong>
-              {selectedFacet && (
-                <button type="button" className="clear-filter" onClick={clearFacet}>
-                  清除
+    <>
+      <ResizableLayout
+        articleCount={articles.length}
+        sidebar={
+          <>
+            <div className="app-header">
+              <h1>Research Observatory</h1>
+              <div className="app-header-actions">
+                <ReaderSettings />
+                <button ref={aboutButtonRef} type="button" onClick={openAbout}>
+                  關於
                 </button>
-              )}
+              </div>
             </div>
-            <div className="facet-list" data-testid="facet-list">
-              {facets.map((facet) => (
+            <label>
+              搜尋文章
+              <input
+                aria-label="搜尋文章"
+                value={query}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  replaceNavigation({ query: event.target.value });
+                }}
+              />
+            </label>
+            <nav className="browse-tabs" aria-label="瀏覽文章">
+              {browseModes.map(({ mode, label }) => (
                 <button
-                  key={facet.key}
+                  key={mode}
                   type="button"
-                  aria-label={`${facet.label}（${facet.count} 篇）`}
-                  aria-pressed={selectedFacet === facet.key}
-                  onClick={() => selectFacet(facet.key)}
+                  aria-pressed={browseMode === mode}
+                  data-testid={`browse-${mode}`}
+                  onClick={() => selectBrowseMode(mode)}
                 >
-                  <span>{facet.label}</span>
-                  <small>{facet.count}</small>
+                  {label}
                 </button>
               ))}
-            </div>
-          </section>
-        )}
-        {loading && <p>載入中…</p>}
-        {!loading && !shown.length && <p data-testid="empty-results">沒有符合的文章</p>}
-        <ul className="article-list" data-testid="article-list">
-          {shown.map((a) => (
-            <li key={a.id}>
-              <button
-                type="button"
-                aria-current={selected?.id === a.id ? 'page' : undefined}
-                onClick={() => open(a.id)}
+            </nav>
+            {browseMode !== 'all' && (
+              <section
+                className="facet-panel"
+                aria-label={`${browseModes.find((x) => x.mode === browseMode)?.label}篩選`}
               >
-                {a.title}
-                <small>
-                  {a.category} · {a.date} · 約 {a.readingStats.estimatedMinutes} 分鐘
-                </small>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </aside>
-      <article onClick={onArticleClick} onKeyDown={onArticleKeyDown}>
-        <nav className="navigation-toolbar" aria-label="閱讀歷史">
-          <button
-            type="button"
-            aria-label="上一個位置"
-            disabled={!canNavigateBack(navigationHistory)}
-            onClick={() => travelHistory(-1)}
-          >
-            ← 上一頁
-          </button>
-          <span aria-live="polite" data-testid="history-position">
-            {navigationHistory.index + 1} / {navigationHistory.entries.length}
-          </span>
-          <button
-            type="button"
-            aria-label="下一個位置"
-            disabled={!canNavigateForward(navigationHistory)}
-            onClick={() => travelHistory(1)}
-          >
-            下一頁 →
-          </button>
-        </nav>
-        {error && <p role="alert">{error}</p>}
-        {selected ? (
-          <>
-            <header>
-              <h2>{selected.title}</h2>
-              <p data-testid="article-meta">
-                {selected.date} · 約 {selected.readingStats.estimatedMinutes} 分鐘 ·{' '}
-                {selected.tags.join('、')}
-              </p>
-            </header>
-            <section
-              ref={readerRef}
-              data-testid="reader"
-              dangerouslySetInnerHTML={{
-                __html: renderMarkdown(rewriteAssetLinks(selected.markdown, selected.assetRoot)),
-              }}
-            />
+                <div className="facet-heading">
+                  <strong>
+                    {selectedFacet
+                      ? `已篩選 ${shown.length} 篇`
+                      : `選擇${browseModes.find((x) => x.mode === browseMode)?.label}`}
+                  </strong>
+                  {selectedFacet && (
+                    <button type="button" className="clear-filter" onClick={clearFacet}>
+                      清除
+                    </button>
+                  )}
+                </div>
+                <div className="facet-list" data-testid="facet-list">
+                  {facets.map((facet) => (
+                    <button
+                      key={facet.key}
+                      type="button"
+                      aria-label={`${facet.label}（${facet.count} 篇）`}
+                      aria-pressed={selectedFacet === facet.key}
+                      onClick={() => selectFacet(facet.key)}
+                    >
+                      <span>{facet.label}</span>
+                      <small>{facet.count}</small>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
+            {loading && <p>載入中…</p>}
+            {!loading && !shown.length && <p data-testid="empty-results">沒有符合的文章</p>}
+            <ul className="article-list" data-testid="article-list">
+              {shown.map((a) => (
+                <li key={a.id}>
+                  <button
+                    type="button"
+                    aria-current={selected?.id === a.id ? 'page' : undefined}
+                    onClick={() => open(a.id)}
+                  >
+                    {a.title}
+                    <small>
+                      {a.category} · {a.date} · 約 {a.readingStats.estimatedMinutes} 分鐘
+                    </small>
+                  </button>
+                </li>
+              ))}
+            </ul>
           </>
-        ) : (
-          <p>請選擇文章</p>
-        )}
-      </article>
+        }
+      >
+        <article onClick={onArticleClick} onKeyDown={onArticleKeyDown}>
+          <nav className="navigation-toolbar" aria-label="閱讀歷史">
+            <button
+              type="button"
+              aria-label="上一個位置"
+              disabled={!canNavigateBack(navigationHistory)}
+              onClick={() => travelHistory(-1)}
+            >
+              ← 上一頁
+            </button>
+            <span aria-live="polite" data-testid="history-position">
+              {navigationHistory.index + 1} / {navigationHistory.entries.length}
+            </span>
+            <button
+              type="button"
+              aria-label="下一個位置"
+              disabled={!canNavigateForward(navigationHistory)}
+              onClick={() => travelHistory(1)}
+            >
+              下一頁 →
+            </button>
+          </nav>
+          {error && <p role="alert">{error}</p>}
+          {selected ? (
+            <>
+              <header>
+                <h2>{selected.title}</h2>
+                <p data-testid="article-meta">
+                  {selected.date} · 約 {selected.readingStats.estimatedMinutes} 分鐘 ·{' '}
+                  {selected.tags.join('、')}
+                </p>
+              </header>
+              <section
+                ref={readerRef}
+                data-testid="reader"
+                dangerouslySetInnerHTML={{
+                  __html: renderMarkdown(rewriteAssetLinks(selected.markdown, selected.assetRoot)),
+                }}
+              />
+            </>
+          ) : (
+            <p>請選擇文章</p>
+          )}
+        </article>
+      </ResizableLayout>
       {about && <AboutModal info={about} onClose={closeAbout} />}
       {lightbox && <ImageLightbox image={lightbox} onClose={closeImageLightbox} />}
-    </main>
+    </>
   );
 }
 
