@@ -7,6 +7,7 @@ const config: ForgeConfig = {
     asar: true,
     executableName: 'llm-research-archive-desktop',
     extraResource: ['apps/desktop-electron/resources/archive-manifest.json', 'docs'],
+    osxSign: { identity: '-' },
   },
   rebuildConfig: {},
   makers: [
@@ -19,7 +20,7 @@ const config: ForgeConfig = {
         setupExe: windowsSetupName(),
       },
     },
-    { name: '@electron-forge/maker-zip', platforms: ['win32', 'linux'], config: {} },
+    { name: '@electron-forge/maker-zip', platforms: ['win32', 'linux', 'darwin'], config: {} },
     {
       name: '@electron-forge/maker-deb',
       config: { options: { name: 'research-observatory', productName: 'Research Observatory' } },
