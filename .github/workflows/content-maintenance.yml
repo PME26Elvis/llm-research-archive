@@ -1,0 +1,159 @@
+name: Content Maintenance
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'README.md'
+      - 'docs/**'
+      - '_incoming/articles/**'
+      - 'tools/publish_article.py'
+      - 'tools/sync_readme_articles.py'
+      - 'tools/test_sync_readme_articles.py'
+      - '.github/workflows/content-maintenance.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: content-maintenance
+  cancel-in-progress: false
+
+jobs:
+  refresh-readme:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test article catalog generator
+        run: python -m unittest discover -s tools -p 'test_*.py'
+      - name: Refresh generated article catalog
+        run: python tools/sync_readme_articles.py
+      - name: Commit catalog when needed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- README.md; then
+            echo 'README article catalog is already current.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add README.md
+          git commit -m 'docs: refresh article catalog'
+          git push origin HEAD:main
+
+  sync-app-main:
+    needs: refresh-readme
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPOSITORY: ${{ github.repository }}
+      SYNC_BRANCH: automation/sync-main-content
+    steps:
+      - name: Checkout canonical content
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: main
+          path: canonical
+          fetch-depth: 1
+      - name: Checkout Desktop branch
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: app-main
+          path: desktop
+          fetch-depth: 0
+      - name: Synchronize canonical docs
+        id: sync
+        shell: bash
+        run: |
+          set -euo pipefail
+          rsync -a --delete canonical/docs/ desktop/docs/
+          if git -C desktop diff --quiet -- docs; then
+            echo 'changed=false' >> "$GITHUB_OUTPUT"
+            echo 'app-main already contains the canonical docs tree.'
+          else
+            echo 'changed=true' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Set up Node
+        if: steps.sync.outputs.changed == 'true'
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+      - name: Install Desktop dependencies
+        if: steps.sync.outputs.changed == 'true'
+        working-directory: desktop
+        run: npm ci
+      - name: Verify Desktop with synchronized content
+        if: steps.sync.outputs.changed == 'true'
+        working-directory: desktop
+        run: npm run verify
+      - name: Create and merge content synchronization PR
+        if: steps.sync.outputs.changed == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          canonical_sha=$(git -C canonical rev-parse HEAD)
+          cd desktop
+          git switch -C "$SYNC_BRANCH"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add docs
+          git commit -m "docs: sync canonical content from main (${canonical_sha:0:12})"
+          head_sha=$(git rev-parse HEAD)
+          git push --force origin "HEAD:refs/heads/$SYNC_BRANCH"
+
+          cat > /tmp/content-sync-pr.md <<EOF
+          ## Summary
+
+          Synchronize the canonical Markdown tree from \`main/docs\` into \`app-main/docs\`.
+
+          - canonical main commit: \`$canonical_sha\`
+          - validation: \`npm run verify\` on the synchronized Desktop tree
+          - merge policy: regular merge commit; source branch is retained
+
+          This pull request is generated and merged by the Content Maintenance workflow only after Desktop verification succeeds.
+          EOF
+
+          pr_number=$(gh pr list \
+            --repo "$REPOSITORY" \
+            --base app-main \
+            --head "$SYNC_BRANCH" \
+            --state open \
+            --json number \
+            --jq '.[0].number // empty')
+
+          if [[ -z "$pr_number" ]]; then
+            pr_url=$(gh pr create \
+              --repo "$REPOSITORY" \
+              --base app-main \
+              --head "$SYNC_BRANCH" \
+              --title 'Sync canonical articles from main' \
+              --body-file /tmp/content-sync-pr.md)
+            pr_number=${pr_url##*/}
+          else
+            gh pr edit "$pr_number" \
+              --repo "$REPOSITORY" \
+              --title 'Sync canonical articles from main' \
+              --body-file /tmp/content-sync-pr.md
+          fi
+
+          merged=$(gh api \
+            --method PUT \
+            "repos/$REPOSITORY/pulls/$pr_number/merge" \
+            -f merge_method=merge \
+            -f sha="$head_sha" \
+            --jq '.merged')
+          if [[ "$merged" != 'true' ]]; then
+            echo "Content synchronization PR #$pr_number was not merged." >&2
+            exit 1
+          fi
