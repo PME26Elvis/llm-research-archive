@@ -19,7 +19,7 @@
 - 可調整三欄版面、導覽歷史、閱讀偏好與視窗狀態持久化。
 - 原生檔案／資料夾選擇與四階段 Import Wizard。
 - Deterministic import plans、typed IPC、main-process filesystem authority、atomic publication、conflict rollback 與明確來源刪除。
-- Electron Forge Windows／Linux／macOS packaging、release manifest、packaged smoke、collision-free version selection 與 draft／stable release pipeline。
+- Electron Forge Windows／Linux／macOS packaging、release manifest、packaged smoke、collision-free version selection 與可驗證的 draft／stable release pipeline。
 
 ## 架構概覽
 
@@ -87,9 +87,10 @@ Desktop Release 的入口放在 default branch，避免使用者需要先切換 
 2. `target_ref` 使用預設的 `app-main`，或指定 tag／commit。
 3. `requested_version` 預設留白；workflow 會掃描 tags、drafts 與 published releases，自動使用 package version 或下一個可用 patch。
 4. 初次驗證使用 `channel=prerelease`、`publish=false`，先建立 draft。
-5. 檢查 Windows、Linux、macOS arm64／x64 assets 後，再使用 `publish=true`。
+5. 檢查 Windows、Linux、macOS arm64／x64 assets。
+6. 要發布同一 draft 時，在 `requested_version` 填入 draft 的精確版本、保持相同 `target_ref`，再設 `publish=true`。
 
-不需要手動輸入 tag；tag 會以 `v<resolved-version>` 自動建立。需要固定版本時，可在 `requested_version` 輸入精確 SemVer；若版本已存在，preflight 會提早拒絕。
+不需要手動輸入 tag；tag 會以 `v<resolved-version>` 自動建立。留白會把 draft 也視為已占用，因此再次留白會建立下一個 patch。明確填入既有 draft version 時，preflight 會先確認 draft 指向相同 target SHA，再允許刷新或晉升；已發布版本與 Git tag 仍不可覆寫。
 
 > macOS packages 使用 ad-hoc signing，尚未 Apple-notarized。第一次開啟時可能需要在 Finder 右鍵選擇 **Open**。
 
