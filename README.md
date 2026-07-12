@@ -138,7 +138,8 @@ python tools/publish_article.py _incoming/articles/my-new-report.md \
 3. 執行 generator unit tests。
 4. 將 `main/docs` 視為 canonical content，覆蓋同步到 `app-main/docs`。
 5. 在 `app-main` 的完整環境執行 `npm run verify`。
-6. 驗證成功後建立同步 PR，並使用 **一般 merge commit** 合併；不採 squash／rebase。
+6. 驗證成功後更新並保留 `automation/sync-main-content`，再用 no-ff **一般 merge commit** 推進 `app-main`；不採 squash／rebase。
+7. 若驗證期間 `app-main` 出現其他新提交，最後 push 會安全失敗，不會 force-overwrite 新進度。
 
 詳細 metadata、附件、citation 清理、Codex 行為與檢查清單請見 [`docs/article-publishing-workflow.md`](docs/article-publishing-workflow.md)。
 
@@ -226,7 +227,7 @@ npm run make:linux
 | Workflow | Branch / trigger | 責任 |
 | --- | --- | --- |
 | [`deploy.yml`](.github/workflows/deploy.yml) | PR to `main`、push to `main` | Generator tests、README generation validation、`mkdocs build --strict`；push 時部署 Pages。 |
-| [`content-maintenance.yml`](.github/workflows/content-maintenance.yml) | `main` content changes、manual dispatch | 自動 commit README catalog；驗證並 merge `docs/` 到 `app-main`。 |
+| [`content-maintenance.yml`](.github/workflows/content-maintenance.yml) | `main` content changes、manual dispatch | 自動 commit README catalog；完整驗證、保留同步 branch，再以 no-ff 一般 merge 更新 `app-main`。 |
 | [`desktop-ci.yml`](https://github.com/PME26Elvis/llm-research-archive/blob/app-main/.github/workflows/desktop-ci.yml) | `app-main` push / PR | Quality、E2E、Windows／Linux package smoke。 |
 | [`desktop-release.yml`](.github/workflows/desktop-release.yml) | manual dispatch on `main` | 呼叫 `app-main` reusable release pipeline。 |
 
