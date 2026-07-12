@@ -51,7 +51,20 @@ jobs:
       - name: Release assets
         run: npm run validate:release-assets
       - name: Unit tests
-        run: npm run test
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run test 2>&1 | tee unit-tests.log
+      - name: Upload unit-test diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: desktop-unit-test-diagnostics-${{ github.run_attempt }}
+          path: |
+            unit-tests.log
+            test-results/
+          if-no-files-found: warn
+          retention-days: 14
       - name: Security tests
         run: npm run test:security
       - name: Compatibility tests
