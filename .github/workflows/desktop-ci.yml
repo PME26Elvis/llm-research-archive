@@ -65,8 +65,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: windows-latest, platform: windows, artifact: desktop-windows-x64 }
-          - { os: ubuntu-latest, platform: linux, artifact: desktop-linux-x64 }
+          - { os: windows-latest, command: 'make:windows', artifact: desktop-windows-x64 }
+          - { os: ubuntu-latest, command: 'make:linux', artifact: desktop-linux-x64 }
+          - { os: macos-15, command: 'make:macos:arm64', artifact: desktop-macos-arm64 }
+          - { os: macos-15-intel, command: 'make:macos:x64', artifact: desktop-macos-x64 }
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
@@ -75,12 +77,12 @@ jobs:
       - if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y fakeroot rpm xvfb libgtk-3-0 libnss3 libasound2t64 libatk-bridge2.0-0 libxss1
       - run: npm ci
-      - run: npm run make:${{ matrix.platform }}
+      - run: npm run ${{ matrix.command }}
         env:
           RELEASE_TARGET_COMMIT: ${{ github.sha }}
       - if: runner.os == 'Linux'
         run: xvfb-run -a npm run smoke:packaged
-      - if: runner.os == 'Windows'
+      - if: runner.os != 'Linux'
         run: npm run smoke:packaged
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
