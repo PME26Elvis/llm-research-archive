@@ -38,4 +38,4 @@ python tools/sync_readme_articles.py --check
 mkdocs build --strict
 ```
 
-The Desktop sync workflow runs `npm run verify` on the synchronized `app-main` tree before creating and regular-merging the content PR.
+The Desktop sync workflow runs `npm run verify` on the synchronized `app-main` tree, writes the verified content to the retained `automation/sync-main-content` branch, and then publishes it through a no-ff regular merge commit. A concurrent `app-main` update causes the final push to fail safely rather than overwrite newer work.

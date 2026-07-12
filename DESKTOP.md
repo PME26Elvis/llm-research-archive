@@ -96,6 +96,7 @@ Desktop Release 的入口放在 default branch，避免使用者需要先切換 
 2. Automation checkout 最新 `app-main`。
 3. `main/docs` 完整同步到 `app-main/docs`。
 4. 在同步後的 Desktop tree 執行 `npm run verify`。
-5. 驗證成功才建立並以一般 merge commit 合併 content-sync PR。
+5. 驗證成功後更新並保留 `automation/sync-main-content`，再用 no-ff **一般 merge commit** 推進 `app-main`。
+6. 若驗證期間 `app-main` 被其他工作更新，最後 push 會安全失敗，不會 force-overwrite 新進度。
 
 因此 Desktop 不需要人工 cherry-pick 每篇新文章，也不會讓兩個 branch 各自演化出不同版本的文章。
