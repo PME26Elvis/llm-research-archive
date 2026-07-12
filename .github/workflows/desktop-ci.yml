@@ -18,12 +18,26 @@ jobs:
         run: |
           set -o pipefail
           npm run format:check 2>&1 | tee prettier-check.log
+      - name: Prepare formatting diagnostics
+        if: failure()
+        shell: bash
+        run: |
+          npm run format:write
+          git diff --binary > prettier-formatted.patch
+          mkdir -p prettier-formatted
+          while IFS= read -r file; do
+            mkdir -p "prettier-formatted/$(dirname "$file")"
+            cp "$file" "prettier-formatted/$file"
+          done < <(git diff --name-only)
       - name: Upload formatting diagnostics
         if: failure()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: desktop-formatting-diagnostics-${{ github.run_attempt }}
-          path: prettier-check.log
+          path: |
+            prettier-check.log
+            prettier-formatted.patch
+            prettier-formatted/
           if-no-files-found: error
           retention-days: 14
       - name: Architecture
