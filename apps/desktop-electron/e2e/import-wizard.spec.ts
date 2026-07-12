@@ -65,7 +65,11 @@ test('previews, edits, commits, retains, navigates, and reloads an imported arti
   await dialog.getByTestId('commit-import').click();
 
   await expect(first.page.getByRole('dialog', { name: '匯入文章' })).toBeHidden();
-  await expect(first.page.getByRole('heading', { name: 'Desktop Imported Article' })).toBeVisible();
+  await expect(
+    first.page
+      .getByTestId('reader')
+      .getByRole('heading', { name: 'Desktop Imported Article', level: 1 }),
+  ).toBeVisible();
   expect(fs.existsSync(fixture.source)).toBe(true);
   expect(fs.existsSync(path.join(fixture.workspace, 'llm', 'desktop-import-e2e', 'index.md'))).toBe(
     true,
