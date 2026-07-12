@@ -1,51 +1,9 @@
--| Dark mode                  | CSS                     | renderer              | implemented | apps/desktop-electron/src/renderer/preferences.test.ts; apps/desktop-electron/e2e/preferences.spec.ts               | System, light, and dark themes persist with bounded article text scaling and theme-aware code, Mermaid, and footnotes.                   |
--| Code copy                  | JS                      | renderer              | implemented | apps/desktop-electron/src/renderer/copy-code.test.ts; apps/desktop-electron/e2e/source.spec.ts                      | Every fenced block receives a keyboard-accessible copy control, live feedback, Clipboard API handling, and a packaged-renderer fallback. |
--| Syntax highlighting        | MkDocs                  | renderer              | implemented | apps/desktop-electron/src/renderer/syntax-highlight.test.ts; apps/desktop-electron/e2e/syntax-highlight.spec.ts     | Registered local grammars highlight near the viewport without auto-detection, while unknown languages remain plain text.                 |
--| Image lightbox             | JS/CSS                  | renderer              | implemented | apps/desktop-electron/e2e/source.spec.ts                                                                            | Local article images are keyboard focusable, lazy-loaded, and open in an accessible modal with Escape and focus restoration.             |
--| Mermaid                    | MkDocs                  | renderer              | implemented | apps/desktop-electron/src/renderer/mermaid-renderer.test.ts; apps/desktop-electron/e2e/mermaid.spec.ts              | Fenced Mermaid diagrams load near the viewport with strict mode, a second SVG allowlist, accessible output, and a source fallback.       |
--| Footnotes                  | Markdown                | renderer              | implemented | packages/renderer-ui/src/index.test.ts; apps/desktop-electron/e2e/footnotes.spec.ts                                 | Named, inline, multi-block, and repeated footnotes use deterministic accessible in-app navigation.                                       |
--| Internal links             | Markdown                | application/renderer  | implemented | packages/content-engine/src/index.test.ts; apps/desktop-electron/e2e/source.spec.ts                                 | Same-page and cross-article Unicode fragments remain inside the app shell.                                                               |
--| Reader navigation history  | browser navigation      | renderer              | implemented | apps/desktop-electron/src/renderer/navigation-history.test.ts; apps/desktop-electron/e2e/navigation-history.spec.ts | Semantic Back/Forward restores article, fragment, search, and facet state without changing the trusted renderer URL.                     |
--| Git revision date          | plugin                  | manifest              | planned     | planned                                                                                                             | Not in current reader UI.                                                                                                                |
--| Blog ordering              | MkDocs                  | content-engine        | implemented | packages/content-engine/src/index.test.ts                                                                           | Date sorting for formal articles.                                                                                                        |
--| Observatory                | docs page               | renderer              | planned     | planned                                                                                                             | Not in P1 reader slice.                                                                                                                  |
--| Article import             | publish_article.py      | application           | planned     | planned                                                                                                             | Not in P1 reader slice.                                                                                                                  |
--| Citation cleanup           | tools                   | content-engine/import | planned     | planned                                                                                                             | Import parity not implemented.                                                                                                           |
--| Category inference         | tools                   | content-engine        | implemented | packages/content-engine/src/index.test.ts                                                                           | Canonical path category.                                                                                                                 |
--| Slug generation            | tools                   | content-engine        | implemented | packages/content-engine/src/index.test.ts                                                                           | Canonical path slug.                                                                                                                     |
--| Assets copying             | tools                   | application           | planned     | planned                                                                                                             | Import flow not implemented.                                                                                                             |
--| Research appendix          | tools                   | application           | planned     | planned                                                                                                             | Import flow not implemented.                                                                                                             |
--| Generated word-count index | hook                    | manifest              | planned     | planned                                                                                                             | Manifest exists; page generation not replaced.                                                                                           |
--| GitHub Pages deployment    | workflow                | deploy.yml            | preserved   | .github/workflows/deploy.yml                                                                                        | Web deployment remains separate.                                                                                                         |
-+| Existing Feature | Current Source | New Owner | Status | Tests | Rationale |
-+| --- | --- | --- | --- | --- | --- |
-+| Search | MkDocs/material | search-engine | implemented | packages/search-engine/src/index.test.ts; apps/desktop-electron/e2e/source.spec.ts | Offline desktop search returns complete DTOs. |
-+| Categories | canonical content paths | renderer-ui | implemented | packages/renderer-ui/src/browse.test.ts; apps/desktop-electron/e2e/source.spec.ts | Category facets are derived from article DTOs and filter entirely offline. |
-+| Tags | front matter | renderer-ui | implemented | packages/renderer-ui/src/browse.test.ts; apps/desktop-electron/e2e/source.spec.ts | Tag facets preserve article order, show counts, and combine with search. |
-+| Timeline | blog dates | renderer-ui | implemented | packages/renderer-ui/src/browse.test.ts; apps/desktop-electron/e2e/source.spec.ts | Month facets sort newest first and filter without navigation. |
-+| Word counts | hooks/word_counts.py | content-engine | implemented | packages/content-engine/src/index.test.ts | Python-compatible CJK/Latin count. |
-+| Reading time | hooks/word_counts.py | content-engine | implemented | packages/content-engine/src/index.test.ts | 500-display-unit rule. |
-+| Dark mode | CSS | renderer | implemented | apps/desktop-electron/src/renderer/preferences.test.ts; apps/desktop-electron/e2e/preferences.spec.ts | System, light, and dark themes persist with bounded article text scaling and theme-aware code, Mermaid, and footnotes. |
-+| Code copy | JS | renderer | implemented | apps/desktop-electron/src/renderer/copy-code.test.ts; apps/desktop-electron/e2e/source.spec.ts | Every fenced block receives a keyboard-accessible copy control, live feedback, Clipboard API handling, and a packaged-renderer fallback. |
-+| Syntax highlighting | MkDocs | renderer | implemented | apps/desktop-electron/src/renderer/syntax-highlight.test.ts; apps/desktop-electron/e2e/syntax-highlight.spec.ts | Registered local grammars highlight near the viewport without auto-detection, while unknown languages remain plain text. |
-+| Image lightbox | JS/CSS | renderer | implemented | apps/desktop-electron/e2e/source.spec.ts | Local article images are keyboard focusable, lazy-loaded, and open in an accessible modal with Escape and focus restoration. |
-+| Mermaid | MkDocs | renderer | implemented | apps/desktop-electron/src/renderer/mermaid-renderer.test.ts; apps/desktop-electron/e2e/mermaid.spec.ts | Fenced Mermaid diagrams load near the viewport with strict mode, a second SVG allowlist, accessible output, and a source fallback. |
-+| Footnotes | Markdown | renderer | implemented | packages/renderer-ui/src/index.test.ts; apps/desktop-electron/e2e/footnotes.spec.ts | Named, inline, multi-block, and repeated footnotes use deterministic accessible in-app navigation. |
-+| Internal links | Markdown | application/renderer | implemented | packages/content-engine/src/index.test.ts; apps/desktop-electron/e2e/source.spec.ts | Same-page and cross-article Unicode fragments remain inside the app shell. |
-+| Reader navigation history | browser navigation | renderer | implemented | apps/desktop-electron/src/renderer/navigation-history.test.ts; apps/desktop-electron/e2e/navigation-history.spec.ts | Semantic Back/Forward restores article, fragment, search, and facet state without changing the trusted renderer URL. |
-+| Git revision date | plugin | manifest | planned | planned | Not in current reader UI. |
-+| Blog ordering | MkDocs | content-engine | implemented | packages/content-engine/src/index.test.ts | Date sorting for formal articles. |
-+| Observatory | docs page | renderer | planned | planned | Not in P1 reader slice. |
-+| Article import | publish_article.py | content-engine/main/renderer | implemented | packages/content-engine/src/article-import/index.test.ts; packages/content-engine/src/article-import/commit.test.ts; apps/desktop-electron/e2e/import-wizard.spec.ts | Native selection, deterministic preview, metadata correction, atomic commit, rollback, navigation, and restart persistence are available offline. |
-+| Citation cleanup | tools | content-engine/import | implemented | packages/content-engine/src/article-import/index.test.ts; apps/desktop-electron/e2e/import-wizard.spec.ts | Cleanup is previewed before write and shared by file and folder imports. |
-+| Category inference | tools | content-engine | implemented | packages/content-engine/src/index.test.ts | Canonical path category. |
-+| Slug generation | tools | content-engine | implemented | packages/content-engine/src/index.test.ts | Canonical path slug. |
+-| Assets copying | tools | application | planned | planned | Import flow not implemented. |
+-| Research appendix | tools | application | planned | planned | Import flow not implemented. |
 +| Assets copying | tools | content-engine/import | implemented | packages/content-engine/src/article-import/commit.test.ts; apps/desktop-electron/e2e/import-wizard.spec.ts | Assets are fingerprinted, staged, validated, and atomically published. |
 +| Research appendix | tools | content-engine/import | implemented | packages/content-engine/src/article-import/index.test.ts; packages/content-engine/src/article-import/commit.test.ts | Optional research activity is cleaned and embedded in the canonical article. |
-+| Generated word-count index | hook | manifest | planned | planned | Manifest exists; page generation not replaced. |
-+| GitHub Pages deployment | workflow | deploy.yml | preserved | .github/workflows/deploy.yml | Web deployment remains separate. |
- 
- | Persistent desktop layout | fixed browser viewport | main/renderer | implemented | apps/desktop-electron/src/main/window-state.test.ts; apps/desktop-electron/e2e/resizable-layout.spec.ts | Accessible pane resizing/collapse and validated native window bounds survive restart. |
+ | Generated word-count index | hook | manifest | planned | planned | Manifest exists; page generation not replaced. |
+ | GitHub Pages deployment | workflow | deploy.yml | preserved | .github/workflows/deploy.yml | Web deployment remains separate. |
  
 --- a/project-docs/product/desktop-product-spec.md
 +++ b/project-docs/product/desktop-product-spec.md
@@ -89,7 +47,7 @@
  | PR #32     | Manifest-derived Observatory graph foundation                  | New functional IDs cover graph, filtering, summary, and navigation. |
 --- a/project-docs/quality/acceptance-matrix.md
 +++ b/project-docs/quality/acceptance-matrix.md
-@@ -1,67 +1,67 @@
+@@ -1,7 +1,7 @@
  ---
  status: accepted
  owner: repository-maintainer
@@ -98,7 +56,151 @@
  related-adrs:
    - ADR-0001
  ---
- 
- # Acceptance Matrix
- 
--| ID      | Name                                    | Status      | Verification                                                                                                                                                                                                     |
+@@ -11,7 +11,7 @@
+ | ID | Name | Status | Verification |
+ | --- | --- | --- | --- |
+ | FR-001 | Offline bundled archive | implemented | packages/application/src/index.test.ts, apps/desktop-electron/e2e/source.spec.ts, scripts/packaged-smoke.mjs |
+-| FR-002 | Safe article import and publishing | planned | PR #27–#29 evidence defined in project-docs/product/desktop-requirement-catalog.md |
++| FR-002 | Safe article import and publishing | implemented | packages/content-engine/src/article-import/index.test.ts, packages/content-engine/src/article-import/commit.test.ts, packages/platform-contracts/src/import-contract.test.ts, apps/desktop-electron/src/main/import-session.test.ts, apps/desktop-electron/tests/security.spec.ts, apps/desktop-electron/e2e/import-wizard.spec.ts |
+ | FR-003 | Canonical article parsing | implemented | packages/content-engine/src/index.test.ts |
+ | FR-004 | Category browsing | implemented | packages/renderer-ui/src/browse.test.ts, apps/desktop-electron/e2e/source.spec.ts |
+ | FR-005 | Tag browsing | implemented | packages/renderer-ui/src/browse.test.ts, apps/desktop-electron/e2e/source.spec.ts |
+--- a/project-docs/traceability/requirements.yaml
++++ b/project-docs/traceability/requirements.yaml
+@@ -1,5 +1,5 @@
+ - {id: FR-001, title: Offline bundled archive, priority: P1, source: {document: project-docs/product/desktop-product-spec.md, section: FR-001}, implementation: {packages: &p [packages/application, packages/content-engine, apps/desktop-electron]}, verification: {tests: [packages/application/src/index.test.ts, apps/desktop-electron/e2e/source.spec.ts, scripts/packaged-smoke.mjs]}, status: implemented}
+-- {id: FR-002, title: Safe article import and publishing, priority: P2, source: {document: project-docs/product/desktop-product-spec.md, section: FR-002}, implementation: {packages: *p}, verification: {tests: []}, status: planned}
++- {id: FR-002, title: Safe article import and publishing, priority: P2, source: {document: project-docs/product/desktop-product-spec.md, section: FR-002}, implementation: {packages: *p}, verification: {tests: [packages/content-engine/src/article-import/index.test.ts, packages/content-engine/src/article-import/commit.test.ts, packages/platform-contracts/src/import-contract.test.ts, apps/desktop-electron/src/main/import-session.test.ts, apps/desktop-electron/tests/security.spec.ts, apps/desktop-electron/e2e/import-wizard.spec.ts]}, status: implemented}
+ - {id: FR-003, title: Canonical article parsing, priority: P1, source: {document: project-docs/product/desktop-product-spec.md, section: FR-003}, implementation: {packages: *p}, verification: {tests: [packages/content-engine/src/index.test.ts]}, status: implemented}
+ - {id: FR-004, title: Category browsing, priority: P2, source: {document: project-docs/product/desktop-product-spec.md, section: FR-004}, implementation: {packages: *p}, verification: {tests: [packages/renderer-ui/src/browse.test.ts, apps/desktop-electron/e2e/source.spec.ts]}, status: implemented}
+ - {id: FR-005, title: Tag browsing, priority: P2, source: {document: project-docs/product/desktop-product-spec.md, section: FR-005}, implementation: {packages: *p}, verification: {tests: [packages/renderer-ui/src/browse.test.ts, apps/desktop-electron/e2e/source.spec.ts]}, status: implemented}
+--- /dev/null
++++ b/apps/desktop-electron/e2e/import-wizard.spec.ts
+@@ -0,0 +1,127 @@
++import fs from 'node:fs';
++import os from 'node:os';
++import path from 'node:path';
++import type { ElectronApplication, Locator, Page } from '@playwright/test';
++import { expect, test } from './electron-test';
++
++function createWorkspaceFixture(title: string) {
++  const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'observatory-import-profile-'));
++  const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'observatory-import-workspace-'));
++  const sourceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'observatory-import-source-'));
++  const source = path.join(sourceRoot, 'article.md');
++  fs.writeFileSync(source, `# ${title}\n\nLLM GPU benchmark content.\n`);
++  return { profile, workspace, sourceRoot, source };
++}
++
++async function chooseMarkdownSource(
++  app: ElectronApplication,
++  page: Page,
++  source: string,
++): Promise<Locator> {
++  await app.evaluate(({ dialog }, selectedPath) => {
++    dialog.showOpenDialog = async () => ({
++      canceled: false,
++      filePaths: [selectedPath],
++    });
++  }, source);
++  await page.keyboard.press('Control+Shift+I');
++  const dialog = page.getByRole('dialog', { name: '匯入文章' });
++  await expect(dialog).toBeVisible();
++  await dialog.getByRole('button', { name: /選擇 Markdown 檔案/ }).click();
++  await expect(dialog.getByLabel('標題')).toBeVisible();
++  return dialog;
++}
++
++test('previews, edits, commits, retains, navigates, and reloads an imported article', async ({
++  launchElectron,
++}) => {
++  const fixture = createWorkspaceFixture('Desktop Imported Article');
++  const args = [`--user-data-dir=${fixture.profile}`];
++  const env = { ARCHIVE_CONTENT_ROOT: fixture.workspace };
++  const first = await launchElectron({
++    args,
++    env,
++    cleanupPaths: [fixture.profile, fixture.workspace, fixture.sourceRoot],
++  });
++  await expect(first.page.getByTestId('app-ready')).toBeVisible({
++    timeout: 30000,
++  });
++
++  const dialog = await chooseMarkdownSource(first.app, first.page, fixture.source);
++  await expect(dialog.getByTestId('import-target-path')).toHaveText(
++    'llm/desktop-imported-article/index.md',
++  );
++  await dialog.getByLabel('slug').fill('desktop-import-e2e');
++  await dialog.getByRole('button', { name: '更新並重新驗證預覽' }).click();
++  await expect(dialog.getByTestId('import-target-path')).toHaveText(
++    'llm/desktop-import-e2e/index.md',
++  );
++  await dialog.getByTestId('commit-import').click();
++
++  await expect(first.page.getByRole('dialog', { name: '匯入文章' })).toBeHidden();
++  await expect(first.page.getByRole('heading', { name: 'Desktop Imported Article' })).toBeVisible();
++  expect(fs.existsSync(fixture.source)).toBe(true);
++  expect(fs.existsSync(path.join(fixture.workspace, 'llm', 'desktop-import-e2e', 'index.md'))).toBe(
++    true,
++  );
++  await first.app.close();
++
++  const second = await launchElectron({ args, env });
++  await expect(second.page.getByTestId('app-ready')).toBeVisible({
++    timeout: 30000,
++  });
++  await expect(second.page.getByRole('button', { name: /Desktop Imported Article/ })).toBeVisible();
++});
++
++test('rejects a late target conflict without partial output or source deletion', async ({
++  launchElectron,
++}) => {
++  const fixture = createWorkspaceFixture('Late Conflict Article');
++  const session = await launchElectron({
++    env: { ARCHIVE_CONTENT_ROOT: fixture.workspace },
++    cleanupPaths: [fixture.profile, fixture.workspace, fixture.sourceRoot],
++    args: [`--user-data-dir=${fixture.profile}`],
++  });
++  await expect(session.page.getByTestId('app-ready')).toBeVisible({
++    timeout: 30000,
++  });
++
++  const dialog = await chooseMarkdownSource(session.app, session.page, fixture.source);
++  const target = path.join(fixture.workspace, 'llm', 'late-conflict-article');
++  fs.mkdirSync(target, { recursive: true });
++  const sentinel = path.join(target, 'keep.txt');
++  fs.writeFileSync(sentinel, 'keep');
++
++  await dialog.getByTestId('commit-import').click();
++  await expect(dialog.getByRole('alert')).toContainText('Target article directory now exists');
++  expect(fs.readFileSync(sentinel, 'utf8')).toBe('keep');
++  expect(fs.existsSync(fixture.source)).toBe(true);
++  expect(fs.existsSync(path.join(target, 'index.md'))).toBe(false);
++  const categoryEntries = fs.readdirSync(path.dirname(target));
++  expect(categoryEntries.some((entry) => entry.includes('.import-'))).toBe(false);
++  expect(categoryEntries.some((entry) => entry.endsWith('.import.lock'))).toBe(false);
++});
++
++test('removes the source only after explicit successful confirmation', async ({
++  launchElectron,
++}) => {
++  const fixture = createWorkspaceFixture('Disposable Source Article');
++  const session = await launchElectron({
++    env: { ARCHIVE_CONTENT_ROOT: fixture.workspace },
++    cleanupPaths: [fixture.profile, fixture.workspace, fixture.sourceRoot],
++    args: [`--user-data-dir=${fixture.profile}`],
++  });
++  await expect(session.page.getByTestId('app-ready')).toBeVisible({
++    timeout: 30000,
++  });
++
++  const dialog = await chooseMarkdownSource(session.app, session.page, fixture.source);
++  await dialog.getByLabel('匯入成功且再次驗證後，刪除原始來源').check();
++  await dialog.getByTestId('commit-import').click();
++
++  await expect(session.page.getByRole('dialog', { name: '匯入文章' })).toBeHidden();
++  expect(fs.existsSync(fixture.source)).toBe(false);
++  expect(
++    fs.existsSync(path.join(fixture.workspace, 'llm', 'disposable-source-article', 'index.md')),
++  ).toBe(true);
++});
