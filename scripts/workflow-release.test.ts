@@ -25,12 +25,13 @@ describe('desktop release workflow safety', () => {
     expect(workflow).toContain('gh release edit "$TAG" --draft=false');
   });
 
-  it('does not use nested heredocs in the draft refresh control flow', () => {
+  it('does not use nested heredocs and resolves draft targets before comparison', () => {
     const refresh = namedStep('Create or refresh draft release assets');
     expect(refresh).not.toContain("<<'NODE'");
     expect(refresh).toContain('spawnSync("gh"');
     expect(refresh).toContain('if(!r.isDraft)');
-    expect(refresh).toContain('r.targetCommitish !== process.env.TARGET_SHA');
+    expect(refresh).toContain('resolved_target=$(gh api');
+    expect(refresh).toContain('if [[ "$resolved_target" != "$TARGET_SHA" ]]');
   });
 
   it('verifies the release after upload and before optional publication', () => {
