@@ -36,7 +36,7 @@ Acceptance requires:
 6. The committed article is immediately available to article list, search, manifest, diagnostics, internal links, assets, and reader journeys.
 7. Unit, contract, security, and Electron E2E evidence covers preview, metadata correction, commit, rollback, restart persistence, and source retention.
 
-Current partial evidence: `packages/content-engine/src/article-import/index.test.ts` verifies deterministic write-free previews, constrained file and folder sources, cleanup, metadata inference and validation, asset inventory, source retention, missing-asset warnings, and blocking target conflicts. Atomic commit, rollback, source-removal authority, typed desktop integration, and Electron E2E are not present yet, so FR-002 remains `planned`.
+Current partial evidence: `packages/content-engine/src/article-import/index.test.ts` verifies deterministic write-free previews, constrained file and folder sources, cleanup, metadata inference and validation, asset inventory, source retention, missing-asset warnings, and blocking target conflicts. `packages/content-engine/src/article-import/commit.test.ts` verifies source and asset fingerprints, stale-plan and late-conflict rejection, owned concurrency locks, sibling staging, exclusive writes, post-write validation, atomic rename, rollback without residue, default source retention, and separately validated source removal. Typed desktop contracts, native selection, preview and metadata UI, workspace refresh and navigation, restart persistence, accessibility, and Electron E2E are not present yet, so FR-002 remains `planned`.
 
 ## Remaining non-functional requirements
 
@@ -70,13 +70,13 @@ Unexpected main, renderer, preference, search-index, workspace, and import failu
 
 ## Delivery sequence
 
-| Planned PR | Scope | Completion rule |
-| --- | --- | --- |
-| PR #27 | Import domain, cleanup, and deterministic preview | FR-002 remains planned. |
-| PR #28 | Atomic commit, conflict handling, and rollback | FR-002 remains planned. |
-| PR #29 | Desktop Import Wizard and complete E2E | FR-002 becomes implemented only after all journeys pass. |
-| PR #30 | Versioned user library and recent workspace management | New functional IDs are added before implementation. |
-| PR #31 | Serialized incremental search index and benchmarks | NFR-011 requires 10,000-article evidence. |
-| PR #32 | Manifest-derived Observatory graph foundation | New functional IDs cover graph, filtering, summary, and navigation. |
-| PR #33 | Observatory accessibility, reduced motion, and scale | NFR-014 requires all core journeys and accessible fallback. |
-| PR #34 | Coverage, startup, bundle, dependency, and logging convergence | Each NFR changes status independently from evidence. |
+| Planned PR | Scope                                                          | Completion rule                                                     |
+| ---------- | -------------------------------------------------------------- | ------------------------------------------------------------------- |
+| PR #27     | Import domain, cleanup, and deterministic preview              | FR-002 remains planned.                                             |
+| PR #28     | Atomic commit, conflict handling, and rollback                 | FR-002 remains planned.                                             |
+| PR #29     | Desktop Import Wizard and complete E2E                         | FR-002 becomes implemented only after all journeys pass.            |
+| PR #30     | Versioned user library and recent workspace management         | New functional IDs are added before implementation.                 |
+| PR #31     | Serialized incremental search index and benchmarks             | NFR-011 requires 10,000-article evidence.                           |
+| PR #32     | Manifest-derived Observatory graph foundation                  | New functional IDs cover graph, filtering, summary, and navigation. |
+| PR #33     | Observatory accessibility, reduced motion, and scale           | NFR-014 requires all core journeys and accessible fallback.         |
+| PR #34     | Coverage, startup, bundle, dependency, and logging convergence | Each NFR changes status independently from evidence.                |
