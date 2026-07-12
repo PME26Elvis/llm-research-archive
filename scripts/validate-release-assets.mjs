@@ -15,10 +15,7 @@ import {
 const version = rootPackageVersion();
 const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const forge = fs.readFileSync('forge.config.ts', 'utf8');
-const releaseWorkflow = fs.readFileSync(
-  '.github/workflows/desktop-release-reusable.yml',
-  'utf8',
-);
+const releaseWorkflow = fs.readFileSync('.github/workflows/desktop-release-reusable.yml', 'utf8');
 if (!forge.includes('windowsSetupName()')) {
   throw new Error('Forge Squirrel setup filename must come from windowsSetupName()');
 }
