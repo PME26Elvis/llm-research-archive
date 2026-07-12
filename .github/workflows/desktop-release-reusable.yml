@@ -3,7 +3,7 @@ on:
   workflow_call:
     inputs:
       target_ref: { type: string, required: false, default: app-main }
-      requested_version: { type: string, required: false, default: '' }
+      requested_version: { type: string, required: false, default: "" }
       channel: { type: string, required: false, default: prerelease }
       publish: { type: boolean, required: false, default: false }
 concurrency:
@@ -23,10 +23,10 @@ jobs:
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
-          ref: '${{ inputs.target_ref }}'
+          ref: "${{ inputs.target_ref }}"
           fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with: { node-version: '24', cache: npm }
+        with: { node-version: "24", cache: npm }
       - run: npm ci
       - name: Resolve a collision-free release version
         id: release
@@ -89,16 +89,32 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - { os: windows-latest, command: 'make:windows', artifact: desktop-windows-x64 }
-          - { os: ubuntu-latest, command: 'make:linux', artifact: desktop-linux-x64 }
-          - { os: macos-15, command: 'make:macos:arm64', artifact: desktop-macos-arm64 }
-          - { os: macos-15-intel, command: 'make:macos:x64', artifact: desktop-macos-x64 }
+          - {
+              os: windows-latest,
+              command: "make:windows",
+              artifact: desktop-windows-x64,
+            }
+          - {
+              os: ubuntu-latest,
+              command: "make:linux",
+              artifact: desktop-linux-x64,
+            }
+          - {
+              os: macos-15,
+              command: "make:macos:arm64",
+              artifact: desktop-macos-arm64,
+            }
+          - {
+              os: macos-15-intel,
+              command: "make:macos:x64",
+              artifact: desktop-macos-x64,
+            }
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
-        with: { ref: '${{ needs.preflight.outputs.sha }}' }
+        with: { ref: "${{ needs.preflight.outputs.sha }}" }
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with: { node-version: '24', cache: npm }
+        with: { node-version: "24", cache: npm }
       - if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y fakeroot rpm xvfb libgtk-3-0 libnss3 libasound2t64 libatk-bridge2.0-0 libxss1
       - run: npm ci
@@ -114,15 +130,15 @@ jobs:
       - if: runner.os != 'Linux'
         run: npm run smoke:packaged
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with: { name: '${{ matrix.artifact }}', path: dist/release-assets/* }
+        with: { name: "${{ matrix.artifact }}", path: dist/release-assets/* }
   aggregate:
     needs: [preflight, build]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
-        with: { ref: '${{ needs.preflight.outputs.sha }}' }
+        with: { ref: "${{ needs.preflight.outputs.sha }}" }
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with: { node-version: '24', cache: npm }
+        with: { node-version: "24", cache: npm }
       - run: npm ci
       - name: Apply resolved release version
         run: npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
@@ -146,10 +162,10 @@ jobs:
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
-          ref: '${{ needs.preflight.outputs.sha }}'
+          ref: "${{ needs.preflight.outputs.sha }}"
           fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with: { node-version: '24', cache: npm }
+        with: { node-version: "24", cache: npm }
       - run: npm ci
       - name: Apply resolved release version
         run: npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
