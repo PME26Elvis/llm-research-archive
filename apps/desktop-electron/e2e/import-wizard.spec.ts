@@ -8,7 +8,13 @@ function createWorkspaceFixture(title: string) {
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'observatory-import-profile-'));
   const workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'observatory-import-workspace-'));
   const sourceRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'observatory-import-source-'));
+  const baseline = path.join(workspace, 'baseline', 'existing');
   const source = path.join(sourceRoot, 'article.md');
+  fs.mkdirSync(baseline, { recursive: true });
+  fs.writeFileSync(
+    path.join(baseline, 'index.md'),
+    '---\ndate: 2026-07-01\ntags: [baseline]\n---\n# Existing Workspace Article\n\nBaseline body.\n',
+  );
   fs.writeFileSync(source, `# ${title}\n\nLLM GPU benchmark content.\n`);
   return { profile, workspace, sourceRoot, source };
 }
