@@ -21,6 +21,8 @@ describe('release scripts', () => {
       'research-observatory-1.2.3-linux-x64-portable.zip',
       'research-observatory-1.2.3-linux-x64.deb',
       'research-observatory-1.2.3-linux-x64.rpm',
+      'research-observatory-1.2.3-macos-arm64.zip',
+      'research-observatory-1.2.3-macos-x64.zip',
     ]);
     expect(windowsSetupName('1.2.3')).toBe('research-observatory-1.2.3-windows-x64-setup.exe');
   });
@@ -67,6 +69,6 @@ describe('release scripts', () => {
     const version = '1.2.3';
     const manifest = { artifacts: artifactNames(version).map((name) => ({ name, size: 1 })) };
     const assets = [...artifactNames(version), 'SHA256SUMS.txt', 'release-manifest.json', 'sbom.cdx.json', 'debug.log'].map((name) => ({ name, size: 1 }));
-    expect(() => verifyExactReleaseAssets({ assets, manifest, version, targetCommit: 'abc', releaseTarget: 'abc' })).toThrow(/expected exactly 8/);
+    expect(() => verifyExactReleaseAssets({ assets, manifest, version, targetCommit: 'abc', releaseTarget: 'abc' })).toThrow(/expected exactly 10/);
   });
 });

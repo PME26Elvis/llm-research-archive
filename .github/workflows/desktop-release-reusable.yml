@@ -18,54 +18,81 @@ jobs:
       sha: ${{ steps.release.outputs.sha }}
       version: ${{ steps.release.outputs.version }}
       tag: ${{ steps.release.outputs.tag }}
+      version_source: ${{ steps.release.outputs.version_source }}
+      highest_existing: ${{ steps.release.outputs.highest_existing }}
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
-        with: { ref: '${{ inputs.target_ref }}' }
+        with:
+          ref: '${{ inputs.target_ref }}'
+          fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with: { node-version: '24', cache: npm }
       - run: npm ci
-      - id: release
+      - name: Resolve a collision-free release version
+        id: release
         shell: bash
         env:
+          GH_TOKEN: ${{ github.token }}
           REQUESTED_VERSION: ${{ inputs.requested_version }}
           CHANNEL: ${{ inputs.channel }}
         run: |
-          node - <<'NODE' >> "$GITHUB_OUTPUT"
-          const semver = require('semver');
-          const { execSync } = require('node:child_process');
-          const pkg = require('./package.json');
+          set -euo pipefail
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" --jq '.[].tag_name' > /tmp/release-tags.txt
+          git tag --list 'v*' > /tmp/git-tags.txt
+          node --input-type=module - <<'NODE' >> "$GITHUB_OUTPUT"
+          import fs from 'node:fs';
+          import { execSync } from 'node:child_process';
+          import { rootPackageVersion, selectReleaseVersion } from './scripts/release-version.mjs';
+
+          const existingTags = [
+            ...fs.readFileSync('/tmp/release-tags.txt', 'utf8').split(/\r?\n/),
+            ...fs.readFileSync('/tmp/git-tags.txt', 'utf8').split(/\r?\n/),
+          ].filter(Boolean);
+          const selected = selectReleaseVersion({
+            packageVersion: rootPackageVersion(),
+            requestedVersion: process.env.REQUESTED_VERSION,
+            channel: process.env.CHANNEL,
+            existingTags,
+          });
           const sha = execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim();
-          const requested = process.env.REQUESTED_VERSION || '';
-          const channel = process.env.CHANNEL || '';
-          if (!['stable', 'prerelease'].includes(channel)) throw new Error(`channel must be stable or prerelease: ${channel}`);
-          if (!semver.valid(pkg.version)) throw new Error(`package.json version is not valid SemVer: ${pkg.version}`);
-          if (requested) {
-            if (!semver.valid(requested)) throw new Error(`requested_version is not valid SemVer: ${requested}`);
-            if (requested !== pkg.version) throw new Error(`requested_version (${requested}) does not match package.json version (${pkg.version})`);
-          }
-          if (channel === 'stable' && semver.prerelease(pkg.version)) throw new Error(`stable channel cannot release prerelease version: ${pkg.version}`);
           console.log(`sha=${sha}`);
-          console.log(`version=${pkg.version}`);
-          console.log(`tag=v${pkg.version}`);
+          console.log(`version=${selected.version}`);
+          console.log(`tag=${selected.tag}`);
+          console.log(`version_source=${selected.source}`);
+          console.log(`highest_existing=${selected.highestExisting}`);
           NODE
+      - name: Apply resolved version to the verification workspace
+        run: npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
+        env:
+          RELEASE_VERSION: ${{ steps.release.outputs.version }}
       - run: npm run verify
         env:
           RELEASE_TARGET_COMMIT: ${{ steps.release.outputs.sha }}
-      - run: |
-          if gh release view "$TAG" --json isDraft >/tmp/release.json 2>/dev/null; then
-            node -e "const r=require('/tmp/release.json'); if(!r.isDraft){console.error('release ' + process.env.TAG + ' is already published'); process.exit(1)}"
-          fi
-        env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.release.outputs.tag }}
+      - name: Preflight summary
+        shell: bash
+        run: |
+          {
+            echo '### Release preflight'
+            echo
+            echo "- target ref: \`${{ inputs.target_ref }}\`"
+            echo "- resolved SHA: \`${{ steps.release.outputs.sha }}\`"
+            echo "- version: \`${{ steps.release.outputs.version }}\`"
+            echo "- tag: \`${{ steps.release.outputs.tag }}\`"
+            echo "- version source: \`${{ steps.release.outputs.version_source }}\`"
+            if [[ -n '${{ steps.release.outputs.highest_existing }}' ]]; then
+              echo "- highest existing release/tag: \`${{ steps.release.outputs.highest_existing }}\`"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
   build:
     needs: preflight
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { os: windows-latest, platform: windows, artifact: desktop-windows-x64 }
-          - { os: ubuntu-latest, platform: linux, artifact: desktop-linux-x64 }
+          - { os: windows-latest, command: 'make:windows', artifact: desktop-windows-x64 }
+          - { os: ubuntu-latest, command: 'make:linux', artifact: desktop-linux-x64 }
+          - { os: macos-15, command: 'make:macos:arm64', artifact: desktop-macos-arm64 }
+          - { os: macos-15-intel, command: 'make:macos:x64', artifact: desktop-macos-x64 }
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
@@ -75,12 +102,16 @@ jobs:
       - if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install -y fakeroot rpm xvfb libgtk-3-0 libnss3 libasound2t64 libatk-bridge2.0-0 libxss1
       - run: npm ci
-      - run: npm run make:${{ matrix.platform }}
+      - name: Apply resolved release version
+        run: npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
+        env:
+          RELEASE_VERSION: ${{ needs.preflight.outputs.version }}
+      - run: npm run ${{ matrix.command }}
         env:
           RELEASE_TARGET_COMMIT: ${{ needs.preflight.outputs.sha }}
       - if: runner.os == 'Linux'
         run: xvfb-run -a npm run smoke:packaged
-      - if: runner.os == 'Windows'
+      - if: runner.os != 'Linux'
         run: npm run smoke:packaged
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with: { name: '${{ matrix.artifact }}', path: dist/release-assets/* }
@@ -93,6 +124,10 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with: { node-version: '24', cache: npm }
       - run: npm ci
+      - name: Apply resolved release version
+        run: npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
+        env:
+          RELEASE_VERSION: ${{ needs.preflight.outputs.version }}
       - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
         with: { path: dist/downloaded }
       - run: mkdir -p dist/release-assets && find dist/downloaded -type f \( -name '*.exe' -o -name '*.zip' -o -name '*.deb' -o -name '*.rpm' \) -exec cp {} dist/release-assets/ \;
@@ -110,10 +145,16 @@ jobs:
     permissions: { contents: write }
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
-        with: { ref: '${{ needs.preflight.outputs.sha }}' }
+        with:
+          ref: '${{ needs.preflight.outputs.sha }}'
+          fetch-depth: 0
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with: { node-version: '24', cache: npm }
       - run: npm ci
+      - name: Apply resolved release version
+        run: npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
+        env:
+          RELEASE_VERSION: ${{ needs.preflight.outputs.version }}
       - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
         with: { name: aggregate-release-assets, path: dist/aggregate-release }
       - name: Create or refresh draft release assets
@@ -122,70 +163,97 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.preflight.outputs.tag }}
           TARGET_SHA: ${{ needs.preflight.outputs.sha }}
+          VERSION_SOURCE: ${{ needs.preflight.outputs.version_source }}
         run: |
           set -euo pipefail
-          if gh release view "$TAG" --json isDraft,targetCommitish,assets >/tmp/release-before.json 2>/dev/null; then
-            node -e 'const r=require("/tmp/release-before.json"); if(!r.isDraft){console.error(`release ${process.env.TAG} is already published`); process.exit(1);} if(r.targetCommitish !== process.env.TARGET_SHA){console.error(`draft ${process.env.TAG} targets ${r.targetCommitish}, expected ${process.env.TARGET_SHA}`); process.exit(1);}'
+          if gh release view "$TAG" --json isDraft,targetCommitish,assets > /tmp/release-before.json 2>/dev/null; then
+            node -e 'const r=require("/tmp/release-before.json"); if(!r.isDraft){console.error(`release ${process.env.TAG} is already published`); process.exit(1);}'
+            draft_target=$(node -p 'require("/tmp/release-before.json").targetCommitish')
+            resolved_target=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${draft_target}" --jq '.sha')
+            if [[ "$resolved_target" != "$TARGET_SHA" ]]; then
+              echo "draft $TAG resolves to $resolved_target, expected $TARGET_SHA" >&2
+              exit 1
+            fi
             node -e 'const { spawnSync }=require("node:child_process"); const r=require("/tmp/release-before.json"); for(const a of r.assets){const result=spawnSync("gh",["release","delete-asset",process.env.TAG,a.name,"-y"],{stdio:"inherit"}); if(result.status!==0) process.exit(result.status ?? 1);}'
           else
-            gh release create "$TAG" --draft --target "$TARGET_SHA" --title "$TAG" --notes "Desktop release $TAG"
+            gh release create "$TAG" --draft --target "$TARGET_SHA" --title "$TAG" --notes "Desktop release $TAG (${VERSION_SOURCE})"
           fi
           gh release upload "$TAG" dist/aggregate-release/* --clobber
       - name: Verify GitHub release assets
-        run: |
-          gh release view "$TAG" --json assets,targetCommitish,isDraft > /tmp/release-after.json
-          node - <<'NODE'
-          (async () => {
-            const { verifyExactReleaseAssets } = await import('./scripts/verify-release-assets.mjs');
-            const r=require('/tmp/release-after.json');
-            const m=require('./dist/aggregate-release/release-manifest.json');
-            if(!r.isDraft) throw new Error('release was published before verification completed');
-            verifyExactReleaseAssets({ assets: r.assets, manifest: m, version: process.env.VERSION, targetCommit: process.env.TARGET_SHA, releaseTarget: r.targetCommitish });
-          })().catch((error) => { console.error(error); process.exit(1); });
-          NODE
+        shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.preflight.outputs.tag }}
           VERSION: ${{ needs.preflight.outputs.version }}
           TARGET_SHA: ${{ needs.preflight.outputs.sha }}
+        run: |
+          set -euo pipefail
+          gh release view "$TAG" --json assets,targetCommitish,isDraft > /tmp/release-after.json
+          release_target=$(node -p 'require("/tmp/release-after.json").targetCommitish')
+          resolved_target=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${release_target}" --jq '.sha')
+          RELEASE_TARGET_SHA="$resolved_target" node - <<'NODE'
+          (async () => {
+            const { verifyExactReleaseAssets } = await import('./scripts/verify-release-assets.mjs');
+            const release = require('/tmp/release-after.json');
+            const manifest = require('./dist/aggregate-release/release-manifest.json');
+            if (!release.isDraft) throw new Error('release was published before verification completed');
+            verifyExactReleaseAssets({
+              assets: release.assets,
+              manifest,
+              version: process.env.VERSION,
+              targetCommit: process.env.TARGET_SHA,
+              releaseTarget: process.env.RELEASE_TARGET_SHA,
+            });
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
+          });
+          NODE
       - if: inputs.publish
         run: gh release edit "$TAG" --draft=false --prerelease=$PRERELEASE
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ needs.preflight.outputs.tag }}
           PRERELEASE: ${{ inputs.channel == 'prerelease' }}
-      - run: |
+      - name: Release summary
+        run: |
           node - <<'NODE' >> "$GITHUB_STEP_SUMMARY"
-          const m=require('./dist/aggregate-release/release-manifest.json');
+          const manifest = require('./dist/aggregate-release/release-manifest.json');
+          const releaseAssetCount = manifest.artifacts.length + 3;
           console.log('# Desktop Release\n');
           console.log(`Version: ${process.env.VERSION}`);
           console.log(`Tag: ${process.env.TAG}`);
+          console.log(`Version source: ${process.env.VERSION_SOURCE}`);
           console.log(`Target ref: ${process.env.TARGET_REF}`);
           console.log(`Resolved SHA: ${process.env.TARGET_SHA}`);
           console.log(`Channel: ${process.env.CHANNEL}`);
           console.log(`Publish requested: ${process.env.PUBLISH}\n`);
           console.log('## Build verification');
           console.log('- Quality gate: passed');
-          console.log('- Windows make: passed');
-          console.log('- Windows packaged smoke: passed');
-          console.log('- Linux make: passed');
-          console.log('- Linux packaged smoke: passed\n');
+          console.log('- Windows x64 make and packaged smoke: passed');
+          console.log('- Linux x64 make and packaged smoke: passed');
+          console.log('- macOS Apple Silicon make and packaged smoke: passed');
+          console.log('- macOS Intel make and packaged smoke: passed\n');
           console.log('## Artifacts');
           console.log('| Name | Size | SHA-256 |');
           console.log('| --- | ---: | --- |');
-          for (const a of m.artifacts) console.log(`| ${a.name} | ${a.size} | ${a.sha256} |`);
+          for (const artifact of manifest.artifacts) {
+            console.log(`| ${artifact.name} | ${artifact.size} | ${artifact.sha256} |`);
+          }
           console.log('\n## GitHub Release verification');
-          console.log('- Exact eight-asset set: passed');
+          console.log(`- Exact ${releaseAssetCount}-asset set: passed`);
           console.log('- No duplicate assets: passed');
           console.log('- No zero-byte assets: passed');
           console.log('- Binary sizes match manifest: passed');
-          console.log('- Target commit matches: passed\n');
+          console.log('- Resolved target commit matches: passed\n');
           console.log('## Result');
           console.log(process.env.PUBLISH === 'true' ? 'Release published' : 'Draft created');
+          console.log('\n> macOS ZIPs are ad-hoc signed but not Apple-notarized; Gatekeeper may require an explicit Open action.');
           NODE
         env:
           VERSION: ${{ needs.preflight.outputs.version }}
           TAG: ${{ needs.preflight.outputs.tag }}
+          VERSION_SOURCE: ${{ needs.preflight.outputs.version_source }}
           TARGET_REF: ${{ inputs.target_ref }}
           TARGET_SHA: ${{ needs.preflight.outputs.sha }}
           CHANNEL: ${{ inputs.channel }}
