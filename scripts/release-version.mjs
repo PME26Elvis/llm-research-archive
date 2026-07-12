@@ -17,22 +17,29 @@ export function versionFromTag(tag) {
   return semver.valid(value) ? value : null;
 }
 
+function normalizedVersions(tags) {
+  return [...new Set(tags.map(versionFromTag).filter(Boolean))].sort(semver.compare);
+}
+
 export function selectReleaseVersion({
   packageVersion,
   requestedVersion = '',
   channel = 'prerelease',
   existingTags = [],
+  reusableDraftTags = [],
 }) {
   const packageSemver = assertValidSemver(packageVersion, 'package.json version');
   if (!['stable', 'prerelease'].includes(channel)) {
     throw new Error(`channel must be stable or prerelease: ${channel}`);
   }
 
-  const existingVersions = [...new Set(existingTags.map(versionFromTag).filter(Boolean))].sort(
-    semver.compare,
-  );
-  const existing = new Set(existingVersions);
-  const highestExisting = existingVersions.at(-1) ?? null;
+  const blockedVersions = normalizedVersions(existingTags);
+  const draftVersions = normalizedVersions(reusableDraftTags);
+  const blocked = new Set(blockedVersions);
+  const drafts = new Set(draftVersions);
+  const occupiedVersions = normalizedVersions([...blockedVersions, ...draftVersions]);
+  const occupied = new Set(occupiedVersions);
+  const highestExisting = occupiedVersions.at(-1) ?? null;
   const requested = String(requestedVersion ?? '').trim();
 
   if (requested) {
@@ -40,15 +47,15 @@ export function selectReleaseVersion({
     if (channel === 'stable' && semver.prerelease(version)) {
       throw new Error(`stable channel cannot release prerelease version: ${version}`);
     }
-    if (existing.has(version)) {
+    if (blocked.has(version)) {
       throw new Error(
-        `requested_version ${version} already exists as a tag, draft, or published release; choose another version or leave it blank for automatic selection`,
+        `requested_version ${version} already exists as a Git tag or published release; choose another version or leave it blank for automatic selection`,
       );
     }
     return {
       version,
       tag: `v${version}`,
-      source: 'requested',
+      source: drafts.has(version) ? 'requested-draft' : 'requested',
       highestExisting: highestExisting ?? '',
     };
   }
@@ -60,7 +67,7 @@ export function selectReleaseVersion({
   if (highestExisting && semver.gte(highestExisting, candidate)) {
     candidate = semver.inc(highestExisting, 'patch');
   }
-  while (existing.has(candidate)) candidate = semver.inc(candidate, 'patch');
+  while (occupied.has(candidate)) candidate = semver.inc(candidate, 'patch');
 
   return {
     version: candidate,
