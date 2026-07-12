@@ -8,7 +8,7 @@ on:
         required: true
         default: app-main
       requested_version:
-        description: Optional; blank uses package.json version from target_ref
+        description: Optional exact SemVer; blank auto-selects package version or the next free patch
         required: false
         default: ''
       channel:
