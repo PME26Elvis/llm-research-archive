@@ -1,0 +1,533 @@
+--- a/apps/desktop-electron/src/main/import-session.test.ts
++++ b/apps/desktop-electron/src/main/import-session.test.ts
+@@ -60,6 +60,13 @@
+     expect(refreshed.preview.planId).not.toBe(first.preview.planId);
+     expect(refreshed.preview.targetArticleRelativePath).toBe('llm/custom-report/index.md');
+     expect(refreshed.preview.canCommit).toBe(true);
++    expect(
++      service.commit({ planId: first.preview.planId, removeSource: false }, workspace),
++    ).toEqual({
++      ok: false,
++      code: 'plan-not-found',
++      message: '匯入預覽已過期；請重新建立預覽。',
++    });
+   });
+ 
+   it('commits only cached plans and retains the source by default', () => {
+--- a/apps/desktop-electron/src/main/import-session.ts
++++ b/apps/desktop-electron/src/main/import-session.ts
+@@ -156,6 +156,7 @@
+         issueMessage(result.issues),
+       );
+     }
++    this.plans.clear();
+     this.store(result.plan);
+     return {
+       status: 'preview',
+@@ -184,6 +185,7 @@
+     if (!result.ok) {
+       return rejectedPreview('invalid-metadata', issueMessage(result.issues));
+     }
++    this.plans.delete(planId);
+     this.store(result.plan);
+     return {
+       status: 'preview',
+--- a/apps/desktop-electron/src/renderer/renderer.tsx
++++ b/apps/desktop-electron/src/renderer/renderer.tsx
+@@ -15,11 +15,17 @@
+   DesktopCommand,
+   WorkspaceInfoDto,
+   WorkspaceSelectionResult,
++  ImportCommitRequest,
++  ImportCommitResult,
++  ImportPreviewRefreshRequest,
++  ImportPreviewResult,
++  ImportSourceKind,
+ } from '@research-observatory/platform-contracts';
+ import { CommandPalette } from './command-palette';
+ import { copyText } from './copy-code';
+ import { mountFootnoteNavigation } from './footnotes';
+ import { mountMermaidBlocks } from './mermaid-dom';
++import { ImportWizard } from './import-wizard';
+ import {
+   canNavigateBack,
+   canNavigateForward,
+@@ -46,6 +52,9 @@
+       clearCommandHandler(): void;
+       workspaceInfo(): Promise<WorkspaceInfoDto>;
+       selectWorkspace(): Promise<WorkspaceSelectionResult>;
++      selectImportSource(kind: ImportSourceKind): Promise<ImportPreviewResult>;
++      refreshImportPreview(request: ImportPreviewRefreshRequest): Promise<ImportPreviewResult>;
++      commitImport(request: ImportCommitRequest): Promise<ImportCommitResult>;
+       diagnostics(): Promise<{
+         warnings: string[];
+         invalidFiles: string[];
+@@ -264,8 +273,10 @@
+   const [navigationHistory, setNavigationHistory] = useState(createNavigationHistory);
+   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+   const [workspace, setWorkspace] = useState<WorkspaceInfoDto | null>(null);
++  const [importWizardOpen, setImportWizardOpen] = useState(false);
+   const searchInputRef = useRef<HTMLInputElement>(null);
+   const aboutButtonRef = useRef<HTMLButtonElement>(null);
++  const importButtonRef = useRef<HTMLButtonElement>(null);
+   const readerRef = useRef<HTMLElement>(null);
+   const lightboxTriggerRef = useRef<HTMLImageElement | null>(null);
+   const browseModel = useMemo(() => buildArchiveBrowseModel(articles), [articles]);
+@@ -373,6 +384,19 @@
+     await refreshWorkspace(result.workspace);
+   }
+ 
++  function closeImportWizard() {
++    setImportWizardOpen(false);
++    requestAnimationFrame(() => importButtonRef.current?.focus());
++  }
++
++  async function handleImportCommitted(
++    result: Extract<ImportCommitResult, { status: 'committed' }>,
++  ) {
++    await refreshWorkspace(result.workspace);
++    await open(result.articleId);
++    if (result.message) setError(result.message);
++  }
++
+   function executeDesktopCommand(command: DesktopCommand) {
+     if (command === 'palette.open') {
+       setCommandPaletteOpen(true);
+@@ -385,6 +409,8 @@
+       travelHistory(1);
+     } else if (command === 'workspace.open') {
+       void chooseWorkspace();
++    } else if (command === 'import.open') {
++      setImportWizardOpen(true);
+     } else if (command === 'about.open') {
+       void openAbout();
+     }
+@@ -393,14 +419,19 @@
+   useEffect(() => {
+     window.observatory.onCommand(executeDesktopCommand);
+     const onShortcut = (event: KeyboardEvent) => {
+-      if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return;
+-      if (event.key.toLocaleLowerCase() === 'k') {
++      if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
++      const key = event.key.toLocaleLowerCase();
++      if (event.shiftKey && key === 'i') {
++        event.preventDefault();
++        executeDesktopCommand('import.open');
++      } else if (event.shiftKey) return;
++      else if (key === 'k') {
+         event.preventDefault();
+         executeDesktopCommand('palette.open');
+-      } else if (event.key.toLocaleLowerCase() === 'f') {
++      } else if (key === 'f') {
+         event.preventDefault();
+         executeDesktopCommand('search.focus');
+-      } else if (event.key.toLocaleLowerCase() === 'o') {
++      } else if (key === 'o') {
+         event.preventDefault();
+         executeDesktopCommand('workspace.open');
+       }
+@@ -669,9 +700,18 @@
+                     {workspace.displayName}
+                   </small>
+                 </div>
+-                <button type="button" onClick={() => void chooseWorkspace()}>
+-                  開啟資料夾
+-                </button>
++                <div className="workspace-actions">
++                  <button type="button" onClick={() => void chooseWorkspace()}>
++                    開啟資料夾
++                  </button>
++                  <button
++                    ref={importButtonRef}
++                    type="button"
++                    onClick={() => setImportWizardOpen(true)}
++                  >
++                    匯入文章
++                  </button>
++                </div>
+                 {(workspace.warnings.length > 0 || workspace.invalidFiles.length > 0) && (
+                   <details data-testid="workspace-diagnostics" open>
+                     <summary>工作區診斷</summary>
+@@ -814,6 +854,13 @@
+         onExecute={executeDesktopCommand}
+       />
+       {about && <AboutModal info={about} onClose={closeAbout} />}
++      <ImportWizard
++        open={importWizardOpen}
++        workspace={workspace}
++        onClose={closeImportWizard}
++        onChooseWorkspace={chooseWorkspace}
++        onCommitted={handleImportCommitted}
++      />
+       {lightbox && <ImageLightbox image={lightbox} onClose={closeImageLightbox} />}
+     </>
+   );
+--- a/apps/desktop-electron/src/renderer/style.css
++++ b/apps/desktop-electron/src/renderer/style.css
+@@ -43,11 +43,7 @@
+ 
+ body {
+   margin: 0;
+-  font-family:
+-    system-ui,
+-    -apple-system,
+-    'Noto Sans TC',
+-    sans-serif;
++  font-family: system-ui, -apple-system, 'Noto Sans TC', sans-serif;
+   background: var(--surface-body);
+   color: var(--text-primary);
+ }
+@@ -434,6 +430,7 @@
+   }
+ }
+ 
++
+ .navigation-toolbar {
+   display: flex;
+   align-items: center;
+@@ -465,6 +462,7 @@
+   background: var(--selected-bg);
+ }
+ 
++
+ .pane-separator {
+   grid-column: 2;
+   position: relative;
+@@ -512,6 +510,7 @@
+   user-select: none;
+ }
+ 
++
+ @media (max-width: 800px) {
+   .pane-separator {
+     display: none;
+@@ -523,6 +522,7 @@
+   }
+ }
+ 
++
+ .command-palette {
+   width: min(92vw, 680px);
+   padding: 1rem;
+@@ -558,6 +558,7 @@
+   font-size: 0.85rem;
+ }
+ 
++
+ .workspace-panel {
+   display: grid;
+   gap: 0.55rem;
+@@ -593,3 +594,200 @@
+   padding-left: 1.2rem;
+   overflow-wrap: anywhere;
+ }
++
++.workspace-actions {
++  display: grid;
++  grid-template-columns: repeat(2, minmax(0, 1fr));
++  gap: 0.45rem;
++}
++
++.workspace-actions button {
++  margin: 0;
++  text-align: center;
++}
++
++.import-wizard-backdrop {
++  padding: 1rem;
++  overflow: auto;
++}
++
++.import-wizard {
++  width: min(94vw, 860px);
++  max-width: 860px;
++  max-height: calc(100vh - 2rem);
++  overflow: auto;
++}
++
++.import-wizard-header,
++.import-section-heading {
++  display: flex;
++  align-items: flex-start;
++  justify-content: space-between;
++  gap: 1rem;
++}
++
++.import-wizard-header h2,
++.import-wizard-header p,
++.import-section h3,
++.import-section h4 {
++  margin-top: 0;
++}
++
++.import-wizard-header p {
++  margin-bottom: 0;
++  color: var(--text-muted);
++}
++
++.icon-button,
++.compact-button,
++.primary-action {
++  width: auto;
++  text-align: center;
++}
++
++.import-target,
++.import-section,
++.import-blocker,
++.import-source-options {
++  margin-top: 1rem;
++  padding: 1rem;
++  border: 1px solid var(--border);
++  border-radius: 10px;
++  background: var(--surface-panel);
++}
++
++.import-blocker {
++  border-color: var(--danger);
++}
++
++.import-source-options {
++  display: grid;
++  gap: 0.55rem;
++}
++
++.import-source-options h3 {
++  margin: 0 0 0.25rem;
++}
++
++.import-source-options button {
++  margin: 0;
++}
++
++.import-metadata-grid {
++  display: grid;
++  grid-template-columns: repeat(2, minmax(0, 1fr));
++  gap: 0 0.8rem;
++  margin-top: 1rem;
++}
++
++.import-tags-field {
++  grid-column: 1 / -1;
++}
++
++.import-summary-grid {
++  display: grid;
++  grid-template-columns: repeat(2, minmax(0, 1fr));
++  gap: 0.75rem;
++  margin: 0 0 1rem;
++}
++
++.import-summary-grid > div {
++  min-width: 0;
++  padding: 0.75rem;
++  border: 1px solid var(--border);
++  border-radius: 8px;
++}
++
++.import-summary-grid dt {
++  color: var(--text-muted);
++  font-size: 0.85rem;
++}
++
++.import-summary-grid dd {
++  margin: 0.25rem 0 0;
++  overflow-wrap: anywhere;
++}
++
++.import-messages {
++  margin: 0.75rem 0;
++  padding: 0.75rem 0.9rem;
++  border-left: 4px solid var(--accent);
++  background: var(--surface-control);
++}
++
++.import-conflicts {
++  border-left-color: var(--danger);
++}
++
++.import-messages ul,
++.import-file-list {
++  margin-bottom: 0;
++  padding-left: 1.2rem;
++}
++
++.import-file-list {
++  max-height: 220px;
++  overflow: auto;
++}
++
++.import-file-list li {
++  display: flex;
++  justify-content: space-between;
++  gap: 1rem;
++  margin: 0.35rem 0;
++}
++
++.import-file-list span {
++  min-width: 0;
++  overflow-wrap: anywhere;
++}
++
++.import-file-list small {
++  flex: none;
++}
++
++.import-remove-source {
++  display: flex;
++  align-items: flex-start;
++  gap: 0.55rem;
++  margin-bottom: 0.35rem;
++}
++
++.import-remove-source input {
++  flex: none;
++  width: auto;
++  margin-top: 0.2rem;
++}
++
++.import-inline-note,
++.import-live-region {
++  color: var(--text-muted);
++}
++
++.import-live-region {
++  min-height: 1.5rem;
++  margin-top: 0.8rem;
++}
++
++.import-error {
++  margin-top: 0.5rem;
++  overflow-wrap: anywhere;
++}
++
++@media (max-width: 640px) {
++  .workspace-actions,
++  .import-metadata-grid,
++  .import-summary-grid {
++    grid-template-columns: 1fr;
++  }
++
++  .import-tags-field {
++    grid-column: auto;
++  }
++
++  .import-wizard-header,
++  .import-section-heading {
++    align-items: stretch;
++    flex-direction: column;
++  }
++}
+--- a/apps/desktop-electron/tests/security.spec.ts
++++ b/apps/desktop-electron/tests/security.spec.ts
+@@ -11,9 +11,32 @@
+     expect(main).toContain('setWindowOpenHandler');
+     expect(main).toContain('will-navigate');
+   });
++
+   it('does not expose raw ipcRenderer API', () => {
+     const preload = fs.readFileSync('apps/desktop-electron/src/preload/preload.ts', 'utf8');
+     expect(preload).toContain('contextBridge.exposeInMainWorld');
+     expect(preload).not.toContain("exposeInMainWorld('electron'");
+   });
++
++  it('keeps import filesystem authority and plans in the main process', () => {
++    const main = fs.readFileSync('apps/desktop-electron/src/main/main.ts', 'utf8');
++    const preload = fs.readFileSync('apps/desktop-electron/src/preload/preload.ts', 'utf8');
++    const renderer = fs.readFileSync(
++      'apps/desktop-electron/src/renderer/import-wizard.tsx',
++      'utf8',
++    );
++
++    expect(main).toContain('ImportSessionService');
++    expect(main).toContain('ImportSourceSelectionRequestSchema.parse');
++    expect(main).toContain('ImportPreviewRefreshRequestSchema.parse');
++    expect(main).toContain('ImportCommitRequestSchema.parse');
++    expect(main).toContain('dialog.showOpenDialog');
++    expect(preload).toContain('ImportPreviewResultSchema.parse');
++    expect(preload).toContain('ImportCommitResultSchema.parse');
++    expect(preload).not.toContain('sourcePath');
++    expect(preload).not.toContain('targetDirectory');
++    expect(renderer).not.toContain('node:fs');
++    expect(renderer).not.toContain('sourcePath');
++    expect(renderer).not.toContain('targetDirectory');
++  });
+ });
+--- a/packages/platform-contracts/src/import-contract.test.ts
++++ b/packages/platform-contracts/src/import-contract.test.ts
+@@ -58,7 +58,6 @@
+     expect(
+       ImportPlanPreviewDtoSchema.safeParse({
+         ...preview,
+-        planId: '../target',
+         sourcePath: '/tmp/x',
+       }).success,
+     ).toBe(false);
+@@ -84,20 +83,21 @@
+       planId: preview.planId,
+       removeSource: false,
+     });
+-    expect(
+-      ImportCommitResultSchema.parse({
+-        status: 'committed',
+-        articleId: 'llm/report',
+-        workspace: {
+-          kind: 'local',
+-          rootPath: '/tmp/archive',
+-          displayName: 'archive',
+-          articleCount: 2,
+-          warnings: [],
+-          invalidFiles: [],
+-        },
+-        sourceStatus: 'retained',
+-      }).articleId,
+-    ).toBe('llm/report');
++    const result = ImportCommitResultSchema.parse({
++      status: 'committed',
++      articleId: 'llm/report',
++      workspace: {
++        kind: 'local',
++        rootPath: '/tmp/archive',
++        displayName: 'archive',
++        articleCount: 2,
++        warnings: [],
++        invalidFiles: [],
++      },
++      sourceStatus: 'retained',
++    });
++    expect(result.status).toBe('committed');
++    if (result.status !== 'committed') return;
++    expect(result.articleId).toBe('llm/report');
+   });
+ });
+--- a/project-docs/architecture/adr/0017-read-only-import-plans.md
++++ b/project-docs/architecture/adr/0017-read-only-import-plans.md
+@@ -31,4 +31,4 @@
+ - Renderer and future CLI adapters can share one import contract instead of duplicating cleanup, path, commit, or rollback logic.
+ - Existing targets, path traversal, source or asset symlinks, malformed front matter, invalid explicit metadata, stale plans, concurrent commits, write failures, validation failures, and rename failures are handled before exposing partial output.
+ - Source deletion is never implicit and cannot proceed after either side of the receipt changes.
+-- PR #27 and PR #28 provide domain evidence only; FR-002 remains planned until typed Electron integration, complete import journeys, restart persistence, and Electron E2E are implemented in PR #29.
++- PR #27 through PR #29 provide complete domain, typed Desktop, security, restart-persistence, and Electron E2E evidence; FR-002 is implemented.
+--- a/project-docs/migration/mkdocs-feature-parity-matrix.md
++++ b/project-docs/migration/mkdocs-feature-parity-matrix.md
+@@ -1,7 +1,7 @@
+ ---
+ status: accepted
+ owner: repository-maintainer
+-last-verified: 2026-07-11
++last-verified: 2026-07-12
+ related-adrs:
+   - ADR-0008
+   - ADR-0009
+@@ -9,33 +9,33 @@
+ 
+ # MkDocs Feature Parity Matrix
+ 
+-| Existing Feature           | Current Source          | New Owner             | Status      | Tests                                                                                                               | Rationale                                                                                                                                |
+-| -------------------------- | ----------------------- | --------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+-| Search                     | MkDocs/material         | search-engine         | implemented | packages/search-engine/src/index.test.ts; apps/desktop-electron/e2e/source.spec.ts                                  | Offline desktop search returns complete DTOs.                                                                                            |
+-| Categories                 | canonical content paths | renderer-ui           | implemented | packages/renderer-ui/src/browse.test.ts; apps/desktop-electron/e2e/source.spec.ts                                   | Category facets are derived from article DTOs and filter entirely offline.                                                               |
+-| Tags                       | front matter            | renderer-ui           | implemented | packages/renderer-ui/src/browse.test.ts; apps/desktop-electron/e2e/source.spec.ts                                   | Tag facets preserve article order, show counts, and combine with search.                                                                 |
+-| Timeline                   | blog dates              | renderer-ui           | implemented | packages/renderer-ui/src/browse.test.ts; apps/desktop-electron/e2e/source.spec.ts                                   | Month facets sort newest first and filter without navigation.                                                                            |
+-| Word counts                | hooks/word_counts.py    | content-engine        | implemented | packages/content-engine/src/index.test.ts                                                                           | Python-compatible CJK/Latin count.                                                                                                       |
+-| Reading time               | hooks/word_counts.py    | content-engine        | implemented | packages/content-engine/src/index.test.ts                                                                           | 500-display-unit rule.                                                                                                                   |
