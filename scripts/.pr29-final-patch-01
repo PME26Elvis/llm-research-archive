@@ -1,0 +1,104 @@
+-| Dark mode                  | CSS                     | renderer              | implemented | apps/desktop-electron/src/renderer/preferences.test.ts; apps/desktop-electron/e2e/preferences.spec.ts               | System, light, and dark themes persist with bounded article text scaling and theme-aware code, Mermaid, and footnotes.                   |
+-| Code copy                  | JS                      | renderer              | implemented | apps/desktop-electron/src/renderer/copy-code.test.ts; apps/desktop-electron/e2e/source.spec.ts                      | Every fenced block receives a keyboard-accessible copy control, live feedback, Clipboard API handling, and a packaged-renderer fallback. |
+-| Syntax highlighting        | MkDocs                  | renderer              | implemented | apps/desktop-electron/src/renderer/syntax-highlight.test.ts; apps/desktop-electron/e2e/syntax-highlight.spec.ts     | Registered local grammars highlight near the viewport without auto-detection, while unknown languages remain plain text.                 |
+-| Image lightbox             | JS/CSS                  | renderer              | implemented | apps/desktop-electron/e2e/source.spec.ts                                                                            | Local article images are keyboard focusable, lazy-loaded, and open in an accessible modal with Escape and focus restoration.             |
+-| Mermaid                    | MkDocs                  | renderer              | implemented | apps/desktop-electron/src/renderer/mermaid-renderer.test.ts; apps/desktop-electron/e2e/mermaid.spec.ts              | Fenced Mermaid diagrams load near the viewport with strict mode, a second SVG allowlist, accessible output, and a source fallback.       |
+-| Footnotes                  | Markdown                | renderer              | implemented | packages/renderer-ui/src/index.test.ts; apps/desktop-electron/e2e/footnotes.spec.ts                                 | Named, inline, multi-block, and repeated footnotes use deterministic accessible in-app navigation.                                       |
+-| Internal links             | Markdown                | application/renderer  | implemented | packages/content-engine/src/index.test.ts; apps/desktop-electron/e2e/source.spec.ts                                 | Same-page and cross-article Unicode fragments remain inside the app shell.                                                               |
+-| Reader navigation history  | browser navigation      | renderer              | implemented | apps/desktop-electron/src/renderer/navigation-history.test.ts; apps/desktop-electron/e2e/navigation-history.spec.ts | Semantic Back/Forward restores article, fragment, search, and facet state without changing the trusted renderer URL.                     |
+-| Git revision date          | plugin                  | manifest              | planned     | planned                                                                                                             | Not in current reader UI.                                                                                                                |
+-| Blog ordering              | MkDocs                  | content-engine        | implemented | packages/content-engine/src/index.test.ts                                                                           | Date sorting for formal articles.                                                                                                        |
+-| Observatory                | docs page               | renderer              | planned     | planned                                                                                                             | Not in P1 reader slice.                                                                                                                  |
+-| Article import             | publish_article.py      | application           | planned     | planned                                                                                                             | Not in P1 reader slice.                                                                                                                  |
+-| Citation cleanup           | tools                   | content-engine/import | planned     | planned                                                                                                             | Import parity not implemented.                                                                                                           |
+-| Category inference         | tools                   | content-engine        | implemented | packages/content-engine/src/index.test.ts                                                                           | Canonical path category.                                                                                                                 |
+-| Slug generation            | tools                   | content-engine        | implemented | packages/content-engine/src/index.test.ts                                                                           | Canonical path slug.                                                                                                                     |
+-| Assets copying             | tools                   | application           | planned     | planned                                                                                                             | Import flow not implemented.                                                                                                             |
+-| Research appendix          | tools                   | application           | planned     | planned                                                                                                             | Import flow not implemented.                                                                                                             |
+-| Generated word-count index | hook                    | manifest              | planned     | planned                                                                                                             | Manifest exists; page generation not replaced.                                                                                           |
+-| GitHub Pages deployment    | workflow                | deploy.yml            | preserved   | .github/workflows/deploy.yml                                                                                        | Web deployment remains separate.                                                                                                         |
++| Existing Feature | Current Source | New Owner | Status | Tests | Rationale |
++| --- | --- | --- | --- | --- | --- |
++| Search | MkDocs/material | search-engine | implemented | packages/search-engine/src/index.test.ts; apps/desktop-electron/e2e/source.spec.ts | Offline desktop search returns complete DTOs. |
++| Categories | canonical content paths | renderer-ui | implemented | packages/renderer-ui/src/browse.test.ts; apps/desktop-electron/e2e/source.spec.ts | Category facets are derived from article DTOs and filter entirely offline. |
++| Tags | front matter | renderer-ui | implemented | packages/renderer-ui/src/browse.test.ts; apps/desktop-electron/e2e/source.spec.ts | Tag facets preserve article order, show counts, and combine with search. |
++| Timeline | blog dates | renderer-ui | implemented | packages/renderer-ui/src/browse.test.ts; apps/desktop-electron/e2e/source.spec.ts | Month facets sort newest first and filter without navigation. |
++| Word counts | hooks/word_counts.py | content-engine | implemented | packages/content-engine/src/index.test.ts | Python-compatible CJK/Latin count. |
++| Reading time | hooks/word_counts.py | content-engine | implemented | packages/content-engine/src/index.test.ts | 500-display-unit rule. |
++| Dark mode | CSS | renderer | implemented | apps/desktop-electron/src/renderer/preferences.test.ts; apps/desktop-electron/e2e/preferences.spec.ts | System, light, and dark themes persist with bounded article text scaling and theme-aware code, Mermaid, and footnotes. |
++| Code copy | JS | renderer | implemented | apps/desktop-electron/src/renderer/copy-code.test.ts; apps/desktop-electron/e2e/source.spec.ts | Every fenced block receives a keyboard-accessible copy control, live feedback, Clipboard API handling, and a packaged-renderer fallback. |
++| Syntax highlighting | MkDocs | renderer | implemented | apps/desktop-electron/src/renderer/syntax-highlight.test.ts; apps/desktop-electron/e2e/syntax-highlight.spec.ts | Registered local grammars highlight near the viewport without auto-detection, while unknown languages remain plain text. |
++| Image lightbox | JS/CSS | renderer | implemented | apps/desktop-electron/e2e/source.spec.ts | Local article images are keyboard focusable, lazy-loaded, and open in an accessible modal with Escape and focus restoration. |
++| Mermaid | MkDocs | renderer | implemented | apps/desktop-electron/src/renderer/mermaid-renderer.test.ts; apps/desktop-electron/e2e/mermaid.spec.ts | Fenced Mermaid diagrams load near the viewport with strict mode, a second SVG allowlist, accessible output, and a source fallback. |
++| Footnotes | Markdown | renderer | implemented | packages/renderer-ui/src/index.test.ts; apps/desktop-electron/e2e/footnotes.spec.ts | Named, inline, multi-block, and repeated footnotes use deterministic accessible in-app navigation. |
++| Internal links | Markdown | application/renderer | implemented | packages/content-engine/src/index.test.ts; apps/desktop-electron/e2e/source.spec.ts | Same-page and cross-article Unicode fragments remain inside the app shell. |
++| Reader navigation history | browser navigation | renderer | implemented | apps/desktop-electron/src/renderer/navigation-history.test.ts; apps/desktop-electron/e2e/navigation-history.spec.ts | Semantic Back/Forward restores article, fragment, search, and facet state without changing the trusted renderer URL. |
++| Git revision date | plugin | manifest | planned | planned | Not in current reader UI. |
++| Blog ordering | MkDocs | content-engine | implemented | packages/content-engine/src/index.test.ts | Date sorting for formal articles. |
++| Observatory | docs page | renderer | planned | planned | Not in P1 reader slice. |
++| Article import | publish_article.py | content-engine/main/renderer | implemented | packages/content-engine/src/article-import/index.test.ts; packages/content-engine/src/article-import/commit.test.ts; apps/desktop-electron/e2e/import-wizard.spec.ts | Native selection, deterministic preview, metadata correction, atomic commit, rollback, navigation, and restart persistence are available offline. |
++| Citation cleanup | tools | content-engine/import | implemented | packages/content-engine/src/article-import/index.test.ts; apps/desktop-electron/e2e/import-wizard.spec.ts | Cleanup is previewed before write and shared by file and folder imports. |
++| Category inference | tools | content-engine | implemented | packages/content-engine/src/index.test.ts | Canonical path category. |
++| Slug generation | tools | content-engine | implemented | packages/content-engine/src/index.test.ts | Canonical path slug. |
++| Assets copying | tools | content-engine/import | implemented | packages/content-engine/src/article-import/commit.test.ts; apps/desktop-electron/e2e/import-wizard.spec.ts | Assets are fingerprinted, staged, validated, and atomically published. |
++| Research appendix | tools | content-engine/import | implemented | packages/content-engine/src/article-import/index.test.ts; packages/content-engine/src/article-import/commit.test.ts | Optional research activity is cleaned and embedded in the canonical article. |
++| Generated word-count index | hook | manifest | planned | planned | Manifest exists; page generation not replaced. |
++| GitHub Pages deployment | workflow | deploy.yml | preserved | .github/workflows/deploy.yml | Web deployment remains separate. |
+ 
+ | Persistent desktop layout | fixed browser viewport | main/renderer | implemented | apps/desktop-electron/src/main/window-state.test.ts; apps/desktop-electron/e2e/resizable-layout.spec.ts | Accessible pane resizing/collapse and validated native window bounds survive restart. |
+ 
+--- a/project-docs/product/desktop-product-spec.md
++++ b/project-docs/product/desktop-product-spec.md
+@@ -29,7 +29,7 @@
+ 
+ **Name:** Safe article import and publishing.
+ 
+-Status: `planned`. Verification: planned for PR #27 through PR #29. The requirement remains planned until preview, atomic commit, rollback, source retention, typed desktop integration, and complete Electron E2E all pass as defined in the requirement catalog.
++Status: `implemented`. Verification: packages/content-engine/src/article-import/index.test.ts, packages/content-engine/src/article-import/commit.test.ts, packages/platform-contracts/src/import-contract.test.ts, apps/desktop-electron/src/main/import-session.test.ts, apps/desktop-electron/tests/security.spec.ts, apps/desktop-electron/e2e/import-wizard.spec.ts.
+ 
+ ## FR-003
+ 
+--- a/project-docs/product/desktop-requirement-catalog.md
++++ b/project-docs/product/desktop-requirement-catalog.md
+@@ -20,7 +20,7 @@
+ - Status, traceability, acceptance evidence, and parity documentation change in the same pull request.
+ - Catalog changes alone never implement runtime behavior.
+ 
+-## Remaining functional requirement
++## Implemented functional requirement
+ 
+ ### FR-002 — Safe article import and publishing
+ 
+@@ -36,7 +36,7 @@
+ 6. The committed article is immediately available to article list, search, manifest, diagnostics, internal links, assets, and reader journeys.
+ 7. Unit, contract, security, and Electron E2E evidence covers preview, metadata correction, commit, rollback, restart persistence, and source retention.
+ 
+-Current partial evidence: `packages/content-engine/src/article-import/index.test.ts` verifies deterministic write-free previews, constrained file and folder sources, cleanup, metadata inference and validation, asset inventory, source retention, missing-asset warnings, and blocking target conflicts. `packages/content-engine/src/article-import/commit.test.ts` verifies source and asset fingerprints, stale-plan and late-conflict rejection, owned concurrency locks, sibling staging, exclusive writes, post-write validation, atomic rename, rollback without residue, default source retention, and separately validated source removal. Typed desktop contracts, native selection, preview and metadata UI, workspace refresh and navigation, restart persistence, accessibility, and Electron E2E are not present yet, so FR-002 remains `planned`.
++Implementation evidence: `packages/content-engine/src/article-import/index.test.ts` verifies deterministic write-free previews, constrained file and folder sources, cleanup, metadata inference and validation, asset inventory, source retention, missing-asset warnings, and blocking target conflicts. `packages/content-engine/src/article-import/commit.test.ts` verifies source and asset fingerprints, stale-plan and late-conflict rejection, owned concurrency locks, sibling staging, exclusive writes, post-write validation, atomic rename, rollback without residue, default source retention, and separately validated source removal. `packages/platform-contracts/src/import-contract.test.ts`, `apps/desktop-electron/src/main/import-session.test.ts`, and `apps/desktop-electron/tests/security.spec.ts` verify the typed main-owned boundary, sanitized previews, opaque plan authority, native selection, and renderer isolation. `apps/desktop-electron/e2e/import-wizard.spec.ts` verifies keyboard launch, preview, metadata correction, atomic commit, immediate navigation, restart persistence, late-conflict rollback, default source retention, and explicit validated source removal. FR-002 is `implemented`.
+ 
+ ## Remaining non-functional requirements
+ 
+@@ -74,7 +74,7 @@
+ | ---------- | -------------------------------------------------------------- | ------------------------------------------------------------------- |
+ | PR #27     | Import domain, cleanup, and deterministic preview              | FR-002 remains planned.                                             |
+ | PR #28     | Atomic commit, conflict handling, and rollback                 | FR-002 remains planned.                                             |
+-| PR #29     | Desktop Import Wizard and complete E2E                         | FR-002 becomes implemented only after all journeys pass.            |
++| PR #29     | Desktop Import Wizard and complete E2E                         | FR-002 implemented with typed Desktop and Electron E2E evidence.     |
+ | PR #30     | Versioned user library and recent workspace management         | New functional IDs are added before implementation.                 |
+ | PR #31     | Serialized incremental search index and benchmarks             | NFR-011 requires 10,000-article evidence.                           |
+ | PR #32     | Manifest-derived Observatory graph foundation                  | New functional IDs cover graph, filtering, summary, and navigation. |
+--- a/project-docs/quality/acceptance-matrix.md
++++ b/project-docs/quality/acceptance-matrix.md
+@@ -1,67 +1,67 @@
+ ---
+ status: accepted
+ owner: repository-maintainer
+-last-verified: 2026-07-11
++last-verified: 2026-07-12
+ related-adrs:
+   - ADR-0001
+ ---
+ 
+ # Acceptance Matrix
+ 
+-| ID      | Name                                    | Status      | Verification                                                                                                                                                                                                     |
