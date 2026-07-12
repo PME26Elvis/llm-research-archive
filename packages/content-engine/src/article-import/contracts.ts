@@ -95,8 +95,7 @@ export interface ImportPlan {
 }
 
 export type ImportPlanResult =
-  | { ok: true; plan: ImportPlan }
-  | { ok: false; issues: ImportIssue[] };
+  { ok: true; plan: ImportPlan } | { ok: false; issues: ImportIssue[] };
 
 export interface CreateImportPlanInput {
   sourcePath: string;
