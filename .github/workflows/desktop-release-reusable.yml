@@ -90,7 +90,7 @@ jobs:
             exit 1
           fi
       - name: Apply resolved version to the verification workspace
-        run: npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
+        run: node scripts/apply-release-version.mjs
         env:
           RELEASE_VERSION: ${{ steps.release.outputs.version }}
       - run: npm run verify
@@ -131,7 +131,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y fakeroot rpm xvfb libgtk-3-0 libnss3 libasound2t64 libatk-bridge2.0-0 libxss1
       - run: npm ci
       - name: Apply resolved release version
-        run: npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
+        run: node scripts/apply-release-version.mjs
         env:
           RELEASE_VERSION: ${{ needs.preflight.outputs.version }}
       - run: npm run ${{ matrix.command }}
@@ -153,7 +153,7 @@ jobs:
         with: { node-version: '24', cache: npm }
       - run: npm ci
       - name: Apply resolved release version
-        run: npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
+        run: node scripts/apply-release-version.mjs
         env:
           RELEASE_VERSION: ${{ needs.preflight.outputs.version }}
       - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
@@ -180,7 +180,7 @@ jobs:
         with: { node-version: '24', cache: npm }
       - run: npm ci
       - name: Apply resolved release version
-        run: npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
+        run: node scripts/apply-release-version.mjs
         env:
           RELEASE_VERSION: ${{ needs.preflight.outputs.version }}
       - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0

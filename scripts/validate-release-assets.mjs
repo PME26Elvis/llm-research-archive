@@ -1,5 +1,8 @@
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import semver from 'semver';
+import { applyReleaseVersion } from './apply-release-version.mjs';
 import {
   artifactNames,
   releaseAssetNames,
@@ -12,11 +15,22 @@ import {
 const version = rootPackageVersion();
 const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 const forge = fs.readFileSync('forge.config.ts', 'utf8');
+const releaseWorkflow = fs.readFileSync('.github/workflows/desktop-release-reusable.yml', 'utf8');
 if (!forge.includes('windowsSetupName()')) {
   throw new Error('Forge Squirrel setup filename must come from windowsSetupName()');
 }
 if (!forge.includes('platforms: ["win32", "linux", "darwin"]')) {
   throw new Error('Forge ZIP maker must support win32, linux, and darwin');
+}
+const applyVersionCommand = 'run: node scripts/apply-release-version.mjs';
+const applyVersionStepCount = releaseWorkflow.split(applyVersionCommand).length - 1;
+if (applyVersionStepCount !== 4) {
+  throw new Error(
+    `all four release stages must use the cross-platform version applicator; found ${applyVersionStepCount}`,
+  );
+}
+if (releaseWorkflow.includes('npm version "$RELEASE_VERSION"')) {
+  throw new Error('release workflow must not use shell-specific RELEASE_VERSION expansion');
 }
 const artifacts = artifactNames(version);
 if (artifacts.length !== 7)
@@ -44,6 +58,42 @@ if (pkg.scripts['release:assets'] !== 'node scripts/release-assets.mjs all') {
 }
 for (const invalid of ['01.0.0', '1.0', '1.0.0-', '1.0.0-alpha..1']) {
   if (validateSemver(invalid)) throw new Error(`invalid SemVer accepted: ${invalid}`);
+}
+
+const versionWorkspace = fs.mkdtempSync(path.join(os.tmpdir(), 'release-version-'));
+try {
+  fs.writeFileSync(
+    path.join(versionWorkspace, 'package.json'),
+    `${JSON.stringify({ name: 'fixture', version: '0.1.0' }, null, 2)}\n`,
+  );
+  fs.writeFileSync(
+    path.join(versionWorkspace, 'package-lock.json'),
+    `${JSON.stringify(
+      {
+        name: 'fixture',
+        version: '0.1.0',
+        lockfileVersion: 3,
+        packages: { '': { name: 'fixture', version: '0.1.0' } },
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  applyReleaseVersion('2.3.4', versionWorkspace);
+  const appliedPackage = JSON.parse(
+    fs.readFileSync(path.join(versionWorkspace, 'package.json'), 'utf8'),
+  );
+  const appliedLock = JSON.parse(
+    fs.readFileSync(path.join(versionWorkspace, 'package-lock.json'), 'utf8'),
+  );
+  if (appliedPackage.version !== '2.3.4') {
+    throw new Error('cross-platform version applicator did not update package.json');
+  }
+  if (appliedLock.version !== '2.3.4' || appliedLock.packages[''].version !== '2.3.4') {
+    throw new Error('cross-platform version applicator did not update package-lock.json');
+  }
+} finally {
+  fs.rmSync(versionWorkspace, { recursive: true, force: true });
 }
 
 const first = selectReleaseVersion({
@@ -107,5 +157,5 @@ try {
 if (!collisionRejected) throw new Error('explicit published version collision was not rejected');
 
 console.log(
-  `release validation passed for ${version}: automatic versioning, draft promotion, and Windows/Linux/macOS artifact names are valid`,
+  `release validation passed for ${version}: cross-platform version application, automatic versioning, draft promotion, and Windows/Linux/macOS artifact names are valid`,
 );
