@@ -9,6 +9,7 @@ on:
       - '_incoming/articles/**'
       - 'tools/publish_article.py'
       - 'tools/sync_readme_articles.py'
+      - 'tools/test_publish_article.py'
       - 'tools/test_sync_readme_articles.py'
       - '.github/workflows/content-maintenance.yml'
   workflow_dispatch:
@@ -21,7 +22,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  refresh-readme:
+  maintain-canonical-content:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
@@ -31,26 +32,60 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Test article catalog generator
+      - name: Test publishing and catalog tools
         run: python -m unittest discover -s tools -p 'test_*.py'
-      - name: Refresh generated article catalog
-        run: python tools/sync_readme_articles.py
-      - name: Commit catalog when needed
+      - name: Publish one staged incoming article
+        id: incoming
         shell: bash
         run: |
           set -euo pipefail
-          if git diff --quiet -- README.md; then
-            echo 'README article catalog is already current.'
+          mapfile -d '' inputs < <(
+            find _incoming/articles \
+              -mindepth 1 \
+              -maxdepth 1 \
+              ! -name 'README.md' \
+              ! -name '.*' \
+              -print0 | sort -z
+          )
+
+          if (( ${#inputs[@]} == 0 )); then
+            echo 'published=false' >> "$GITHUB_OUTPUT"
+            echo 'No staged incoming article found.'
             exit 0
           fi
+
+          if (( ${#inputs[@]} > 1 )); then
+            echo 'Content Maintenance publishes exactly one incoming item per run.' >&2
+            printf 'Found: %q\n' "${inputs[@]}" >&2
+            echo 'Publish items separately so category, slug and rollback remain reviewable.' >&2
+            exit 1
+          fi
+
+          python tools/publish_article.py "${inputs[0]}"
+          echo 'published=true' >> "$GITHUB_OUTPUT"
+      - name: Refresh generated article catalog
+        run: python tools/sync_readme_articles.py
+      - name: Commit canonical maintenance changes when needed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ -z "$(git status --porcelain -- README.md docs _incoming/articles)" ]]; then
+            echo 'Canonical content and README catalog are already current.'
+            exit 0
+          fi
+
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add README.md
-          git commit -m 'docs: refresh article catalog'
+          git add -A README.md docs _incoming/articles
+          if [[ '${{ steps.incoming.outputs.published }}' == 'true' ]]; then
+            git commit -m 'docs: publish staged incoming article'
+          else
+            git commit -m 'docs: refresh article catalog'
+          fi
           git push origin HEAD:main
 
   sync-app-main:
-    needs: refresh-readme
+    needs: maintain-canonical-content
     runs-on: ubuntu-latest
     env:
       SYNC_BRANCH: automation/sync-main-content

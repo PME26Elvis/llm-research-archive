@@ -6,7 +6,7 @@
 
 一個以 **canonical Markdown** 為核心的繁體中文長文研究知識庫，同時提供可搜尋的 **MkDocs Material 網站**與離線優先的 **Research Observatory Desktop**。內容涵蓋 LLM／AI、算力與軟體工程、碳排與能源、Computer Science，以及可持續擴充的跨主題研究文章。
 
-> `main` 是文章與網站的唯一內容來源；`app-main` 是 Electron 桌面應用程式主線。正式文章合併到 `main` 後，維護工作流會更新本文的文章目錄，驗證 Desktop，再以一般 merge 將 canonical `docs/` 同步到 `app-main`。
+> `main` 是文章與網站的唯一內容來源；`app-main` 是 Electron 桌面應用程式主線。正式文章或單一 `_incoming/articles` 項目進入 `main` 後，維護工作流會安全發布、更新本文的文章目錄、驗證 Desktop，再以一般 merge 將 canonical `docs/` 同步到 `app-main`。
 
 ## 快速入口
 
@@ -16,19 +16,19 @@
 | [目前所有文章](#目前所有文章) | 讀者／維護者 | 由正式 Markdown 自動產生的可點擊文章清單。 |
 | [Desktop 獨立入口](DESKTOP.md) | 桌面使用者／開發者 | 功能、架構、開發、驗證、封裝與發布入口。 |
 | [`app-main` branch](https://github.com/PME26Elvis/llm-research-archive/tree/app-main) | Desktop 開發者 | Electron／TypeScript monorepo 與完整桌面應用程式碼。 |
-| [新文章上架 SOP](docs/article-publishing-workflow.md) | 維護者／Codex | 從 raw Markdown 到正式文章、README 與 Desktop 同步的完整流程。 |
+| [新文章上架 SOP](docs/article-publishing-workflow.md) | 維護者／Codex | 手動新增、publisher 與 `_incoming/articles` 自動發布流程。 |
 | [Desktop Release](docs/desktop-release.md) | 發布維護者 | 從 `main` 手動 dispatch Windows／Linux Desktop release。 |
 
 ## 兩條產品主線
 
 | Branch | 定位 | Source of truth | 自動化 |
 | --- | --- | --- | --- |
-| [`main`](https://github.com/PME26Elvis/llm-research-archive/tree/main) | 研究內容、MkDocs 網站、文章發布工具與 release dispatcher | `docs/` | README 文章目錄、MkDocs validation／deploy、Desktop 內容同步 |
+| [`main`](https://github.com/PME26Elvis/llm-research-archive/tree/main) | 研究內容、MkDocs 網站、文章發布工具與 release dispatcher | `docs/` | Incoming publication、README 文章目錄、MkDocs validation／deploy、Desktop 內容同步 |
 | [`app-main`](https://github.com/PME26Elvis/llm-research-archive/tree/app-main) | Research Observatory Desktop | 應用程式碼與桌面規格；文章內容由 `main/docs` 同步 | TypeScript／security／compatibility／Electron E2E／Windows & Linux package smoke |
 
 ```mermaid
 flowchart LR
-    A[Raw Markdown\n_incoming/articles] --> B[Publish tool / Codex]
+    A[Raw Markdown\n_incoming/articles] --> B[Publish tool / Content Maintenance]
     B --> C[main / docs\nCanonical Markdown]
     C --> D[MkDocs Material\nGitHub Pages]
     C --> E[Generated README\nArticle catalog]
@@ -45,7 +45,7 @@ flowchart LR
 - **長文內容模型**：正式文章使用 `docs/<category>/<slug>/index.md`，以 YAML front matter 記錄日期與 Tags。
 - **字數與閱讀時間**：`hooks/word_counts.py` 在 build 時產生文章統計與 [`docs/word-counts.md`](docs/word-counts.md)。
 - **Tags、Timeline 與圖片閱讀**：整合 tags、blog 與 `mkdocs-glightbox`。
-- **嚴格部署驗證**：GitHub Actions 在發布前執行文章目錄測試與 `mkdocs build --strict`。
+- **嚴格部署驗證**：GitHub Actions 在發布前執行 publishing／catalog tests 與 `mkdocs build --strict`。
 
 ### Research Observatory Desktop
 
@@ -98,13 +98,14 @@ flowchart LR
 | LLM / AI | [`docs/llm/`](docs/llm/) | 模型、agentic AI、inference、算力、benchmark 與實務開發。 |
 | Carbon / Energy | [`docs/carbon/`](docs/carbon/) | 碳排、電力、再生能源、供應結構與政策。 |
 | Computer Science | [`docs/cs/`](docs/cs/) | 軟體工程、演算法、資料結構、分類法與技術棧。 |
+| Health | [`docs/health/`](docs/health/) | 健康、醫療、營養、睡眠、運動與生活型態研究。 |
 | Timeline | [`docs/timeline/`](docs/timeline/) | 跨主題時間軸、短筆記與補充紀錄。 |
 | Tags | [`docs/tags.md`](docs/tags.md) | 跨分類標籤索引。 |
 | 字數總表 | [`docs/word-counts.md`](docs/word-counts.md) | 自動統計字數與預估閱讀時間。 |
 
 ## 新文章上架
 
-### 最短流程
+### 路徑 A：本機或 Codex 先發布
 
 1. 把 raw Markdown 放入：
 
@@ -129,17 +130,27 @@ python tools/publish_article.py _incoming/articles/my-new-report.md \
   --tags "LLM,Agentic AI"
 ```
 
-### 手動新增也會被接住
+### 路徑 B：直接提交一個 incoming item
+
+把 **一個** Markdown 檔案或 article folder 合併到 `main/_incoming/articles/`，Content Maintenance 會自動呼叫 publisher。安全規則如下：
+
+- 0 個待處理項目：跳過發布。
+- 1 個待處理項目：建立正式文章與 README catalog，全部成功後才移除 raw input。
+- 2 個以上：workflow 明確失敗並保留所有 inputs；請拆成個別提交或逐一發布。
+- category／metadata 無法可靠推論、目標已存在或 catalog 更新失敗：停止並保留 raw input，不留下半成品。
+
+### 手動新增正式文章也會被接住
 
 直接新增或修改 `docs/**` 也可以，不必手動維護文章清單。變更進入 `main` 後，[Content Maintenance](.github/workflows/content-maintenance.yml) 會：
 
-1. 掃描所有具 `date` 與 H1 的正式文章。
-2. 更新本 README 的 generated catalog。
-3. 執行 generator unit tests。
-4. 將 `main/docs` 視為 canonical content，覆蓋同步到 `app-main/docs`。
-5. 在 `app-main` 的完整環境執行 `npm run verify`。
-6. 驗證成功後更新並保留 `automation/sync-main-content`，再用 no-ff **一般 merge commit** 推進 `app-main`；不採 squash／rebase。
-7. 若驗證期間 `app-main` 出現其他新提交，最後 push 會安全失敗，不會 force-overwrite 新進度。
+1. 安全處理至多一個 `_incoming/articles` 項目。
+2. 掃描所有具 `date` 與 H1 的正式文章。
+3. 更新本 README 的 generated catalog。
+4. 執行 publishing／catalog unit tests。
+5. 將 `main/docs` 視為 canonical content，覆蓋同步到 `app-main/docs`。
+6. 在 `app-main` 的完整環境執行 `npm run verify`。
+7. 驗證成功後更新並保留 `automation/sync-main-content`，再用 no-ff **一般 merge commit** 推進 `app-main`；不採 squash／rebase。
+8. 若驗證期間 `app-main` 出現其他新提交，最後 push 會安全失敗，不會 force-overwrite 新進度。
 
 詳細 metadata、附件、citation 清理、Codex 行為與檢查清單請見 [`docs/article-publishing-workflow.md`](docs/article-publishing-workflow.md)。
 
@@ -164,6 +175,7 @@ python tools/sync_readme_articles.py --stdout
 .
 ├── README.md                         # Repository landing page + generated article catalog
 ├── DESKTOP.md                        # Desktop 獨立入口
+├── AGENTS.md                         # Codex／agent 維護契約
 ├── docs/                             # Canonical Markdown；網站與 Desktop 共用
 │   ├── index.md
 │   ├── article-publishing-workflow.md
@@ -176,13 +188,14 @@ python tools/sync_readme_articles.py --stdout
 ├── tools/
 │   ├── publish_article.py            # Raw article → canonical article
 │   ├── sync_readme_articles.py       # Canonical docs → README catalog
-│   ├── test_sync_readme_articles.py  # Generator unit tests
+│   ├── test_publish_article.py       # Publication transaction tests
+│   ├── test_sync_readme_articles.py  # Catalog generator tests
 │   ├── new_note.py
 │   └── remove_citations.py
-├── _incoming/articles/               # 待上架 raw Markdown
+├── _incoming/articles/               # 待上架 raw Markdown；單一項目可自動發布
 ├── .github/workflows/
 │   ├── deploy.yml                    # Website CI + GitHub Pages
-│   ├── content-maintenance.yml       # README refresh + app-main content sync
+│   ├── content-maintenance.yml       # Incoming publish + README + app-main sync
 │   └── desktop-release.yml           # Default-branch release dispatcher
 ├── mkdocs.yml
 └── requirements.txt
@@ -226,8 +239,8 @@ npm run make:linux
 
 | Workflow | Branch / trigger | 責任 |
 | --- | --- | --- |
-| [`deploy.yml`](.github/workflows/deploy.yml) | PR to `main`、push to `main` | Generator tests、README generation validation、`mkdocs build --strict`；push 時部署 Pages。 |
-| [`content-maintenance.yml`](.github/workflows/content-maintenance.yml) | `main` content changes、manual dispatch | 自動 commit README catalog；完整驗證、保留同步 branch，再以 no-ff 一般 merge 更新 `app-main`。 |
+| [`deploy.yml`](.github/workflows/deploy.yml) | PR to `main`、push to `main` | Publishing／catalog tests、README generation validation、`mkdocs build --strict`；push 時部署 Pages。 |
+| [`content-maintenance.yml`](.github/workflows/content-maintenance.yml) | `main` content changes、manual dispatch | 安全發布單一 incoming item、自動 commit README catalog、完整驗證並以 no-ff 一般 merge 更新 `app-main`。 |
 | [`desktop-ci.yml`](https://github.com/PME26Elvis/llm-research-archive/blob/app-main/.github/workflows/desktop-ci.yml) | `app-main` push / PR | Quality、E2E、Windows／Linux package smoke。 |
 | [`desktop-release.yml`](.github/workflows/desktop-release.yml) | manual dispatch on `main` | 呼叫 `app-main` reusable release pipeline。 |
 
@@ -240,4 +253,4 @@ npm run make:linux
 - 不手動編輯 generated article catalog；請修改文章 metadata 或執行 generator。
 - 新分類需補 `docs/<category>/index.md` 與必要的 `.meta.yml`。
 - 上架 AI 研究輸出時，清理 citation marker、entity wrapper、無資產 image placeholder 與不適合讀者的工具紀錄。
-- 修改內容後至少執行 generator tests 與 `mkdocs build --strict`。
+- 修改內容後至少執行 publishing／catalog tests 與 `mkdocs build --strict`。
