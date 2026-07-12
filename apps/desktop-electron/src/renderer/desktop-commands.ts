@@ -33,6 +33,12 @@ export const DESKTOP_COMMANDS: DesktopCommandDescriptor[] = [
     shortcut: 'Ctrl+O',
   },
   {
+    id: 'import.open',
+    label: '匯入文章',
+    keywords: ['import', 'markdown', 'publish', '匯入', '文章', '發布'],
+    shortcut: 'Ctrl+Shift+I',
+  },
+  {
     id: 'about.open',
     label: '開啟關於資訊',
     keywords: ['about', 'version', 'build', '關於', '版本'],

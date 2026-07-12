@@ -15,11 +15,17 @@ import type {
   DesktopCommand,
   WorkspaceInfoDto,
   WorkspaceSelectionResult,
+  ImportCommitRequest,
+  ImportCommitResult,
+  ImportPreviewRefreshRequest,
+  ImportPreviewResult,
+  ImportSourceKind,
 } from '@research-observatory/platform-contracts';
 import { CommandPalette } from './command-palette';
 import { copyText } from './copy-code';
 import { mountFootnoteNavigation } from './footnotes';
 import { mountMermaidBlocks } from './mermaid-dom';
+import { ImportWizard } from './import-wizard';
 import {
   canNavigateBack,
   canNavigateForward,
@@ -46,6 +52,9 @@ declare global {
       clearCommandHandler(): void;
       workspaceInfo(): Promise<WorkspaceInfoDto>;
       selectWorkspace(): Promise<WorkspaceSelectionResult>;
+      selectImportSource(kind: ImportSourceKind): Promise<ImportPreviewResult>;
+      refreshImportPreview(request: ImportPreviewRefreshRequest): Promise<ImportPreviewResult>;
+      commitImport(request: ImportCommitRequest): Promise<ImportCommitResult>;
       diagnostics(): Promise<{
         warnings: string[];
         invalidFiles: string[];
@@ -81,7 +90,10 @@ function hrefParts(href: string) {
   const path = href.slice(0, hash);
   const rawFragment = href.slice(hash + 1);
   try {
-    return { path, fragment: rawFragment ? decodeURIComponent(rawFragment) : '' };
+    return {
+      path,
+      fragment: rawFragment ? decodeURIComponent(rawFragment) : '',
+    };
   } catch {
     return { path, fragment: rawFragment };
   }
@@ -261,8 +273,10 @@ function App() {
   const [navigationHistory, setNavigationHistory] = useState(createNavigationHistory);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [workspace, setWorkspace] = useState<WorkspaceInfoDto | null>(null);
+  const [importWizardOpen, setImportWizardOpen] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const aboutButtonRef = useRef<HTMLButtonElement>(null);
+  const importButtonRef = useRef<HTMLButtonElement>(null);
   const readerRef = useRef<HTMLElement>(null);
   const lightboxTriggerRef = useRef<HTMLImageElement | null>(null);
   const browseModel = useMemo(() => buildArchiveBrowseModel(articles), [articles]);
@@ -370,6 +384,19 @@ function App() {
     await refreshWorkspace(result.workspace);
   }
 
+  function closeImportWizard() {
+    setImportWizardOpen(false);
+    requestAnimationFrame(() => importButtonRef.current?.focus());
+  }
+
+  async function handleImportCommitted(
+    result: Extract<ImportCommitResult, { status: 'committed' }>,
+  ) {
+    await refreshWorkspace(result.workspace);
+    await open(result.articleId);
+    if (result.message) setError(result.message);
+  }
+
   function executeDesktopCommand(command: DesktopCommand) {
     if (command === 'palette.open') {
       setCommandPaletteOpen(true);
@@ -382,6 +409,8 @@ function App() {
       travelHistory(1);
     } else if (command === 'workspace.open') {
       void chooseWorkspace();
+    } else if (command === 'import.open') {
+      setImportWizardOpen(true);
     } else if (command === 'about.open') {
       void openAbout();
     }
@@ -390,14 +419,19 @@ function App() {
   useEffect(() => {
     window.observatory.onCommand(executeDesktopCommand);
     const onShortcut = (event: KeyboardEvent) => {
-      if (!(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return;
-      if (event.key.toLocaleLowerCase() === 'k') {
+      if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
+      const key = event.key.toLocaleLowerCase();
+      if (event.shiftKey && key === 'i') {
+        event.preventDefault();
+        executeDesktopCommand('import.open');
+      } else if (event.shiftKey) return;
+      else if (key === 'k') {
         event.preventDefault();
         executeDesktopCommand('palette.open');
-      } else if (event.key.toLocaleLowerCase() === 'f') {
+      } else if (key === 'f') {
         event.preventDefault();
         executeDesktopCommand('search.focus');
-      } else if (event.key.toLocaleLowerCase() === 'o') {
+      } else if (key === 'o') {
         event.preventDefault();
         executeDesktopCommand('workspace.open');
       }
@@ -666,9 +700,18 @@ function App() {
                     {workspace.displayName}
                   </small>
                 </div>
-                <button type="button" onClick={() => void chooseWorkspace()}>
-                  開啟資料夾
-                </button>
+                <div className="workspace-actions">
+                  <button type="button" onClick={() => void chooseWorkspace()}>
+                    開啟資料夾
+                  </button>
+                  <button
+                    ref={importButtonRef}
+                    type="button"
+                    onClick={() => setImportWizardOpen(true)}
+                  >
+                    匯入文章
+                  </button>
+                </div>
                 {(workspace.warnings.length > 0 || workspace.invalidFiles.length > 0) && (
                   <details data-testid="workspace-diagnostics" open>
                     <summary>工作區診斷</summary>
@@ -811,6 +854,13 @@ function App() {
         onExecute={executeDesktopCommand}
       />
       {about && <AboutModal info={about} onClose={closeAbout} />}
+      <ImportWizard
+        open={importWizardOpen}
+        workspace={workspace}
+        onClose={closeImportWizard}
+        onChooseWorkspace={chooseWorkspace}
+        onCommitted={handleImportCommitted}
+      />
       {lightbox && <ImageLightbox image={lightbox} onClose={closeImageLightbox} />}
     </>
   );

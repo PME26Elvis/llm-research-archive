@@ -7,6 +7,7 @@ describe('DesktopCommandSchema', () => {
     expect(DesktopCommandSchema.parse('search.focus')).toBe('search.focus');
     expect(DesktopCommandSchema.parse('navigation.back')).toBe('navigation.back');
     expect(DesktopCommandSchema.parse('navigation.forward')).toBe('navigation.forward');
+    expect(DesktopCommandSchema.parse('import.open')).toBe('import.open');
     expect(DesktopCommandSchema.parse('about.open')).toBe('about.open');
   });
 

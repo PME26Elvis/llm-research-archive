@@ -29,7 +29,7 @@ Status: `implemented`. Verification: packages/application/src/index.test.ts, app
 
 **Name:** Safe article import and publishing.
 
-Status: `planned`. Verification: planned for PR #27 through PR #29. The requirement remains planned until preview, atomic commit, rollback, source retention, typed desktop integration, and complete Electron E2E all pass as defined in the requirement catalog.
+Status: `implemented`. Verification: packages/content-engine/src/article-import/index.test.ts, packages/content-engine/src/article-import/commit.test.ts, packages/platform-contracts/src/import-contract.test.ts, apps/desktop-electron/src/main/import-session.test.ts, apps/desktop-electron/tests/security.spec.ts, apps/desktop-electron/e2e/import-wizard.spec.ts.
 
 ## FR-003
 

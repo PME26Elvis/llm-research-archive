@@ -18,6 +18,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import fs from 'node:fs/promises';
 import { resolveSafeAssetPath } from './asset-path';
 import { loadWindowState, saveWindowState } from './window-state';
+import { ImportSessionService } from './import-session';
 import {
   DEFAULT_WORKSPACE_STATE,
   loadWorkspaceState,
@@ -35,6 +36,11 @@ import {
   ExternalUrlSchema,
   AppInfoResponseSchema,
   DesktopCommandSchema,
+  ImportCommitRequestSchema,
+  ImportCommitResultSchema,
+  ImportPreviewRefreshRequestSchema,
+  ImportPreviewResultSchema,
+  ImportSourceSelectionRequestSchema,
   WorkspaceInfoSchema,
   WorkspaceSelectionResultSchema,
   type DesktopCommand,
@@ -50,6 +56,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 let core: ResearchObservatoryApp;
 let activeContentRoot = '';
 let activeWorkspace: WorkspaceInfoDto;
+const importSessions = new ImportSessionService();
 let workspaceRecoveryWarnings: string[] = [];
 let trustedRendererUrl = '';
 let trustedRendererOrigin = '';
@@ -78,6 +85,7 @@ function workspaceInfo(kind: 'bundled' | 'local', rootPath: string): WorkspaceIn
   });
 }
 function activateWorkspace(rootPath: string, kind: 'bundled' | 'local'): WorkspaceInfoDto {
+  importSessions.clear();
   activeContentRoot = rootPath;
   core = new ResearchObservatoryApp(rootPath);
   activeWorkspace = workspaceInfo(kind, rootPath);
@@ -133,18 +141,31 @@ function installApplicationMenu(win: BrowserWindow): void {
         { label: '上一個閱讀位置', click: () => send('navigation.back') },
         { label: '下一個閱讀位置', click: () => send('navigation.forward') },
         { type: 'separator' },
-        { label: '聚焦搜尋', accelerator: 'CmdOrCtrl+F', click: () => send('search.focus') },
+        {
+          label: '聚焦搜尋',
+          accelerator: 'CmdOrCtrl+F',
+          click: () => send('search.focus'),
+        },
         {
           label: '開啟本機工作區',
           accelerator: 'CmdOrCtrl+O',
           click: () => send('workspace.open'),
+        },
+        {
+          label: '匯入文章…',
+          accelerator: 'CmdOrCtrl+Shift+I',
+          click: () => send('import.open'),
         },
       ],
     },
     {
       label: '檢視',
       submenu: [
-        { label: '指令面板', accelerator: 'CmdOrCtrl+K', click: () => send('palette.open') },
+        {
+          label: '指令面板',
+          accelerator: 'CmdOrCtrl+K',
+          click: () => send('palette.open'),
+        },
       ],
     },
     {
@@ -260,13 +281,68 @@ ipcMain.handle('workspace:select', async (event) => {
       schemaVersion: 1,
       rootPath: selected.rootPath,
     });
-    return WorkspaceSelectionResultSchema.parse({ status: 'selected', workspace });
+    return WorkspaceSelectionResultSchema.parse({
+      status: 'selected',
+      workspace,
+    });
   } catch (error) {
     return WorkspaceSelectionResultSchema.parse({
       status: 'rejected',
       message: `無法開啟工作區：${error instanceof Error ? error.message : String(error)}`,
     });
   }
+});
+ipcMain.handle('import:select-source', async (event, rawRequest: unknown) => {
+  validateSender(event.sender, event.senderFrame);
+  const request = ImportSourceSelectionRequestSchema.parse(rawRequest);
+  if (activeWorkspace.kind !== 'local') {
+    return ImportPreviewResultSchema.parse(importSessions.createPreview('', activeWorkspace));
+  }
+  const owner = BrowserWindow.fromWebContents(event.sender);
+  const options: OpenDialogOptions = {
+    title:
+      request.kind === 'markdown-file' ? '選擇要匯入的 Markdown 檔案' : '選擇要匯入的文章資料夾',
+    properties: request.kind === 'markdown-file' ? ['openFile'] : ['openDirectory'],
+    ...(request.kind === 'markdown-file'
+      ? { filters: [{ name: 'Markdown', extensions: ['md'] }] }
+      : {}),
+  };
+  const selection = owner
+    ? await dialog.showOpenDialog(owner, options)
+    : await dialog.showOpenDialog(options);
+  if (selection.canceled || !selection.filePaths[0]) {
+    return ImportPreviewResultSchema.parse({ status: 'cancelled' });
+  }
+  return ImportPreviewResultSchema.parse(
+    importSessions.createPreview(selection.filePaths[0], activeWorkspace),
+  );
+});
+ipcMain.handle('import:refresh-preview', (event, rawRequest: unknown) => {
+  validateSender(event.sender, event.senderFrame);
+  const request = ImportPreviewRefreshRequestSchema.parse(rawRequest);
+  return ImportPreviewResultSchema.parse(
+    importSessions.refreshPreview(request.planId, request.metadata, activeWorkspace),
+  );
+});
+ipcMain.handle('import:commit', (event, rawRequest: unknown) => {
+  validateSender(event.sender, event.senderFrame);
+  const request = ImportCommitRequestSchema.parse(rawRequest);
+  const committed = importSessions.commit(request, activeWorkspace);
+  if (!committed.ok) {
+    return ImportCommitResultSchema.parse({
+      status: 'rejected',
+      code: committed.code,
+      message: committed.message,
+    });
+  }
+  const refreshedWorkspace = activateWorkspace(activeContentRoot, 'local');
+  return ImportCommitResultSchema.parse({
+    status: 'committed',
+    articleId: committed.articleId,
+    workspace: refreshedWorkspace,
+    sourceStatus: committed.sourceStatus,
+    ...(committed.message ? { message: committed.message } : {}),
+  });
 });
 ipcMain.handle('diagnostics:get', (event) => {
   validateSender(event.sender, event.senderFrame);

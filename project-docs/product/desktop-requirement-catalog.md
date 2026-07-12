@@ -20,7 +20,7 @@ This catalog gives every traceable requirement a stable product name and defines
 - Status, traceability, acceptance evidence, and parity documentation change in the same pull request.
 - Catalog changes alone never implement runtime behavior.
 
-## Remaining functional requirement
+## Implemented functional requirement
 
 ### FR-002 — Safe article import and publishing
 
@@ -36,7 +36,7 @@ Acceptance requires:
 6. The committed article is immediately available to article list, search, manifest, diagnostics, internal links, assets, and reader journeys.
 7. Unit, contract, security, and Electron E2E evidence covers preview, metadata correction, commit, rollback, restart persistence, and source retention.
 
-Current partial evidence: `packages/content-engine/src/article-import/index.test.ts` verifies deterministic write-free previews, constrained file and folder sources, cleanup, metadata inference and validation, asset inventory, source retention, missing-asset warnings, and blocking target conflicts. `packages/content-engine/src/article-import/commit.test.ts` verifies source and asset fingerprints, stale-plan and late-conflict rejection, owned concurrency locks, sibling staging, exclusive writes, post-write validation, atomic rename, rollback without residue, default source retention, and separately validated source removal. Typed desktop contracts, native selection, preview and metadata UI, workspace refresh and navigation, restart persistence, accessibility, and Electron E2E are not present yet, so FR-002 remains `planned`.
+Implementation evidence: `packages/content-engine/src/article-import/index.test.ts` verifies deterministic write-free previews, constrained file and folder sources, cleanup, metadata inference and validation, asset inventory, source retention, missing-asset warnings, and blocking target conflicts. `packages/content-engine/src/article-import/commit.test.ts` verifies source and asset fingerprints, stale-plan and late-conflict rejection, owned concurrency locks, sibling staging, exclusive writes, post-write validation, atomic rename, rollback without residue, default source retention, and separately validated source removal. `packages/platform-contracts/src/import-contract.test.ts`, `apps/desktop-electron/src/main/import-session.test.ts`, and `apps/desktop-electron/tests/security.spec.ts` verify the typed main-owned boundary, sanitized previews, opaque plan authority, native selection, and renderer isolation. `apps/desktop-electron/e2e/import-wizard.spec.ts` verifies keyboard launch, preview, metadata correction, atomic commit, immediate navigation, restart persistence, late-conflict rollback, default source retention, and explicit validated source removal. FR-002 is `implemented`.
 
 ## Remaining non-functional requirements
 
@@ -74,7 +74,7 @@ Unexpected main, renderer, preference, search-index, workspace, and import failu
 | ---------- | -------------------------------------------------------------- | ------------------------------------------------------------------- |
 | PR #27     | Import domain, cleanup, and deterministic preview              | FR-002 remains planned.                                             |
 | PR #28     | Atomic commit, conflict handling, and rollback                 | FR-002 remains planned.                                             |
-| PR #29     | Desktop Import Wizard and complete E2E                         | FR-002 becomes implemented only after all journeys pass.            |
+| PR #29     | Desktop Import Wizard and complete E2E                         | FR-002 implemented with typed Desktop and Electron E2E evidence.     |
 | PR #30     | Versioned user library and recent workspace management         | New functional IDs are added before implementation.                 |
 | PR #31     | Serialized incremental search index and benchmarks             | NFR-011 requires 10,000-article evidence.                           |
 | PR #32     | Manifest-derived Observatory graph foundation                  | New functional IDs cover graph, filtering, summary, and navigation. |

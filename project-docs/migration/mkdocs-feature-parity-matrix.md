@@ -1,7 +1,7 @@
 ---
 status: accepted
 owner: repository-maintainer
-last-verified: 2026-07-11
+last-verified: 2026-07-12
 related-adrs:
   - ADR-0008
   - ADR-0009
@@ -28,12 +28,12 @@ related-adrs:
 | Git revision date | plugin | manifest | planned | planned | Not in current reader UI. |
 | Blog ordering | MkDocs | content-engine | implemented | packages/content-engine/src/index.test.ts | Date sorting for formal articles. |
 | Observatory | docs page | renderer | planned | planned | Not in P1 reader slice. |
-| Article import | publish_article.py | application | planned | planned | Not in P1 reader slice. |
-| Citation cleanup | tools | content-engine/import | planned | planned | Import parity not implemented. |
+| Article import | publish_article.py | content-engine/main/renderer | implemented | packages/content-engine/src/article-import/index.test.ts; packages/content-engine/src/article-import/commit.test.ts; apps/desktop-electron/e2e/import-wizard.spec.ts | Native selection, deterministic preview, metadata correction, atomic commit, rollback, navigation, and restart persistence are available offline. |
+| Citation cleanup | tools | content-engine/import | implemented | packages/content-engine/src/article-import/index.test.ts; apps/desktop-electron/e2e/import-wizard.spec.ts | Cleanup is previewed before write and shared by file and folder imports. |
 | Category inference | tools | content-engine | implemented | packages/content-engine/src/index.test.ts | Canonical path category. |
 | Slug generation | tools | content-engine | implemented | packages/content-engine/src/index.test.ts | Canonical path slug. |
-| Assets copying | tools | application | planned | planned | Import flow not implemented. |
-| Research appendix | tools | application | planned | planned | Import flow not implemented. |
+| Assets copying | tools | content-engine/import | implemented | packages/content-engine/src/article-import/commit.test.ts; apps/desktop-electron/e2e/import-wizard.spec.ts | Assets are fingerprinted, staged, validated, and atomically published. |
+| Research appendix | tools | content-engine/import | implemented | packages/content-engine/src/article-import/index.test.ts; packages/content-engine/src/article-import/commit.test.ts | Optional research activity is cleaned and embedded in the canonical article. |
 | Generated word-count index | hook | manifest | planned | planned | Manifest exists; page generation not replaced. |
 | GitHub Pages deployment | workflow | deploy.yml | preserved | .github/workflows/deploy.yml | Web deployment remains separate. |
 

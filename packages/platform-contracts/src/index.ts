@@ -47,7 +47,9 @@ export const SearchResultDtoSchema = ArticleSummaryDtoSchema.extend({
   score: z.number().nonnegative(),
 });
 export const SearchRequestSchema = z.object({ query: z.string().max(200) });
-export const ArticleRequestSchema = z.object({ id: z.string().min(1).max(300) });
+export const ArticleRequestSchema = z.object({
+  id: z.string().min(1).max(300),
+});
 export const ExternalUrlSchema = z
   .string()
   .url()
@@ -59,6 +61,7 @@ export const DesktopCommandSchema = z.enum([
   'navigation.forward',
   'about.open',
   'workspace.open',
+  'import.open',
 ]);
 export const WorkspaceInfoSchema = z.object({
   kind: z.enum(['bundled', 'local']),
@@ -73,11 +76,145 @@ export const WorkspaceSelectionResultSchema = z.discriminatedUnion('status', [
   z.object({ status: z.literal('selected'), workspace: WorkspaceInfoSchema }),
   z.object({ status: z.literal('rejected'), message: z.string().min(1) }),
 ]);
+export const ImportSourceKindSchema = z.enum(['markdown-file', 'article-folder']);
+export const ImportMetadataDtoSchema = z.object({
+  title: z.string().trim().min(1).max(200),
+  category: z
+    .string()
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+    .max(80),
+  slug: z
+    .string()
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+    .max(80),
+  tags: z.array(z.string().trim().min(1).max(80)).min(1).max(8),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+});
+export const ImportCleanupSummaryDtoSchema = z.object({
+  citationMarkersRemoved: z.number().int().nonnegative(),
+  entityWrappersUnwrapped: z.number().int().nonnegative(),
+  imagePlaceholdersRemoved: z.number().int().nonnegative(),
+  nonPortableImagesRemoved: z.number().int().nonnegative(),
+});
+export const ImportIssueCodeSchema = z.enum([
+  'source-not-found',
+  'unsupported-source',
+  'source-symlink',
+  'source-escape',
+  'article-not-found',
+  'invalid-frontmatter',
+  'invalid-metadata',
+  'category-fallback',
+  'slug-fallback',
+  'ignored-source-entry',
+  'asset-symlink',
+  'asset-escape',
+  'missing-asset-reference',
+  'target-symlink',
+]);
+export const ImportIssueDtoSchema = z.object({
+  severity: z.enum(['warning', 'error']),
+  code: ImportIssueCodeSchema,
+  message: z.string().min(1).max(500),
+  path: z.string().min(1).max(300).optional(),
+});
+export const ImportConflictDtoSchema = z.object({
+  code: z.literal('target-exists'),
+  message: z.string().min(1).max(500),
+  path: z.string().min(1).max(300),
+});
+export const ImportAssetPreviewDtoSchema = z.object({
+  relativePath: z.string().min(1).max(300),
+  outputPath: z.string().min(1).max(300),
+  sizeBytes: z.number().int().nonnegative(),
+});
+export const ImportOutputFilePreviewDtoSchema = z.object({
+  kind: z.enum(['article', 'asset']),
+  relativePath: z.string().min(1).max(300),
+  sizeBytes: z.number().int().nonnegative(),
+});
+export const ImportPlanPreviewDtoSchema = z
+  .object({
+    planId: z.string().regex(/^[a-f0-9]{64}$/),
+    source: z.object({
+      kind: ImportSourceKindSchema,
+      displayName: z.string().min(1).max(200),
+    }),
+    targetWorkspaceName: z.string().min(1).max(200),
+    targetArticleRelativePath: z.string().min(1).max(300),
+    metadata: ImportMetadataDtoSchema,
+    cleanup: ImportCleanupSummaryDtoSchema,
+    assets: z.array(ImportAssetPreviewDtoSchema).max(5000),
+    outputFiles: z.array(ImportOutputFilePreviewDtoSchema).min(1).max(5001),
+    warnings: z.array(ImportIssueDtoSchema).max(1000),
+    conflicts: z.array(ImportConflictDtoSchema).max(100),
+    requiresMetadataConfirmation: z.boolean(),
+    canCommit: z.boolean(),
+  })
+  .strict();
+export const ImportSourceSelectionRequestSchema = z.object({
+  kind: ImportSourceKindSchema,
+});
+export const ImportPreviewRefreshRequestSchema = z.object({
+  planId: z.string().regex(/^[a-f0-9]{64}$/),
+  metadata: ImportMetadataDtoSchema,
+});
+export const ImportPreviewResultSchema = z.discriminatedUnion('status', [
+  z.object({ status: z.literal('cancelled') }),
+  z.object({
+    status: z.literal('preview'),
+    preview: ImportPlanPreviewDtoSchema,
+  }),
+  z.object({
+    status: z.literal('rejected'),
+    code: z.enum(['workspace-read-only', 'plan-not-found', 'invalid-source', 'invalid-metadata']),
+    message: z.string().min(1).max(1000),
+  }),
+]);
+export const ImportCommitRequestSchema = z.object({
+  planId: z.string().regex(/^[a-f0-9]{64}$/),
+  removeSource: z.boolean().default(false),
+});
+export const ImportCommitErrorCodeSchema = z.enum([
+  'workspace-read-only',
+  'plan-not-found',
+  'plan-not-committable',
+  'stale-plan',
+  'target-conflict',
+  'commit-in-progress',
+  'stage-failed',
+  'validation-failed',
+  'commit-failed',
+  'rollback-failed',
+]);
+export const ImportCommitResultSchema = z.discriminatedUnion('status', [
+  z.object({
+    status: z.literal('committed'),
+    articleId: z.string().min(1).max(300),
+    workspace: WorkspaceInfoSchema,
+    sourceStatus: z.enum(['retained', 'removed', 'removal-failed']),
+    message: z.string().min(1).max(1000).optional(),
+  }),
+  z.object({
+    status: z.literal('rejected'),
+    code: ImportCommitErrorCodeSchema,
+    message: z.string().min(1).max(1000),
+  }),
+]);
 export const ArticleListResponseSchema = z.array(ArticleSummaryDtoSchema);
 export const SearchResponseSchema = z.array(SearchResultDtoSchema);
 export type DesktopCommand = z.infer<typeof DesktopCommandSchema>;
 export type WorkspaceInfoDto = z.infer<typeof WorkspaceInfoSchema>;
 export type WorkspaceSelectionResult = z.infer<typeof WorkspaceSelectionResultSchema>;
+export type ImportSourceKind = z.infer<typeof ImportSourceKindSchema>;
+export type ImportMetadataDto = z.infer<typeof ImportMetadataDtoSchema>;
+export type ImportIssueDto = z.infer<typeof ImportIssueDtoSchema>;
+export type ImportPlanPreviewDto = z.infer<typeof ImportPlanPreviewDtoSchema>;
+export type ImportSourceSelectionRequest = z.infer<typeof ImportSourceSelectionRequestSchema>;
+export type ImportPreviewRefreshRequest = z.infer<typeof ImportPreviewRefreshRequestSchema>;
+export type ImportPreviewResult = z.infer<typeof ImportPreviewResultSchema>;
+export type ImportCommitRequest = z.infer<typeof ImportCommitRequestSchema>;
+export type ImportCommitResult = z.infer<typeof ImportCommitResultSchema>;
 export type ArticleSummaryDto = z.infer<typeof ArticleSummaryDtoSchema>;
 export type ArticleDto = z.infer<typeof ArticleDtoSchema>;
 export type SearchResultDto = z.infer<typeof SearchResultDtoSchema>;

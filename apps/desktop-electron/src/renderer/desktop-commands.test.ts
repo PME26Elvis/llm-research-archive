@@ -12,6 +12,7 @@ describe('desktop command catalog', () => {
       'navigation.back',
     ]);
     expect(filterDesktopCommands('version').map((command) => command.id)).toEqual(['about.open']);
+    expect(filterDesktopCommands('匯入').map((command) => command.id)).toEqual(['import.open']);
   });
 
   it('returns no arbitrary action for an unknown query', () => {

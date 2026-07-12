@@ -2,6 +2,11 @@ import { contextBridge, ipcRenderer } from 'electron';
 import {
   AppInfoResponseSchema,
   DesktopCommandSchema,
+  ImportCommitRequestSchema,
+  ImportCommitResultSchema,
+  ImportPreviewRefreshRequestSchema,
+  ImportPreviewResultSchema,
+  ImportSourceSelectionRequestSchema,
   WorkspaceInfoSchema,
   WorkspaceSelectionResultSchema,
   type AppInfoDto,
@@ -9,6 +14,11 @@ import {
   type ArticleSummaryDto,
   type SearchResultDto,
   type DesktopCommand,
+  type ImportCommitRequest,
+  type ImportCommitResult,
+  type ImportPreviewRefreshRequest,
+  type ImportPreviewResult,
+  type ImportSourceKind,
   type WorkspaceInfoDto,
   type WorkspaceSelectionResult,
 } from '@research-observatory/platform-contracts';
@@ -25,6 +35,27 @@ contextBridge.exposeInMainWorld('observatory', {
     WorkspaceInfoSchema.parse(await ipcRenderer.invoke('workspace:info')),
   selectWorkspace: async (): Promise<WorkspaceSelectionResult> =>
     WorkspaceSelectionResultSchema.parse(await ipcRenderer.invoke('workspace:select')),
+
+  selectImportSource: async (kind: ImportSourceKind): Promise<ImportPreviewResult> =>
+    ImportPreviewResultSchema.parse(
+      await ipcRenderer.invoke(
+        'import:select-source',
+        ImportSourceSelectionRequestSchema.parse({ kind }),
+      ),
+    ),
+  refreshImportPreview: async (
+    request: ImportPreviewRefreshRequest,
+  ): Promise<ImportPreviewResult> =>
+    ImportPreviewResultSchema.parse(
+      await ipcRenderer.invoke(
+        'import:refresh-preview',
+        ImportPreviewRefreshRequestSchema.parse(request),
+      ),
+    ),
+  commitImport: async (request: ImportCommitRequest): Promise<ImportCommitResult> =>
+    ImportCommitResultSchema.parse(
+      await ipcRenderer.invoke('import:commit', ImportCommitRequestSchema.parse(request)),
+    ),
 
   onCommand: (listener: (command: DesktopCommand) => void) => {
     ipcRenderer.removeAllListeners('app:command');
