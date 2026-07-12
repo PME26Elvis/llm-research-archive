@@ -1,42 +1,50 @@
-import fs from 'node:fs';
-import semver from 'semver';
+import fs from "node:fs";
+import semver from "semver";
 
 export function rootPackageVersion(root = process.cwd()) {
-  return JSON.parse(fs.readFileSync(`${root}/package.json`, 'utf8')).version;
+  return JSON.parse(fs.readFileSync(`${root}/package.json`, "utf8")).version;
 }
 
-export function assertValidSemver(version, label = 'version') {
-  if (!semver.valid(version)) throw new Error(`${label} is not valid SemVer: ${version}`);
+export function assertValidSemver(version, label = "version") {
+  if (!semver.valid(version))
+    throw new Error(`${label} is not valid SemVer: ${version}`);
   return version;
 }
 
 export function versionFromTag(tag) {
-  const value = String(tag ?? '').trim().replace(/^v/, '');
+  const value = String(tag ?? "")
+    .trim()
+    .replace(/^v/, "");
   return semver.valid(value) ? value : null;
 }
 
 export function selectReleaseVersion({
   packageVersion,
-  requestedVersion = '',
-  channel = 'prerelease',
+  requestedVersion = "",
+  channel = "prerelease",
   existingTags = [],
 }) {
-  const packageSemver = assertValidSemver(packageVersion, 'package.json version');
-  if (!['stable', 'prerelease'].includes(channel)) {
+  const packageSemver = assertValidSemver(
+    packageVersion,
+    "package.json version",
+  );
+  if (!["stable", "prerelease"].includes(channel)) {
     throw new Error(`channel must be stable or prerelease: ${channel}`);
   }
 
-  const existingVersions = [...new Set(existingTags.map(versionFromTag).filter(Boolean))].sort(
-    semver.compare,
-  );
+  const existingVersions = [
+    ...new Set(existingTags.map(versionFromTag).filter(Boolean)),
+  ].sort(semver.compare);
   const existing = new Set(existingVersions);
   const highestExisting = existingVersions.at(-1) ?? null;
-  const requested = String(requestedVersion ?? '').trim();
+  const requested = String(requestedVersion ?? "").trim();
 
   if (requested) {
-    const version = assertValidSemver(requested, 'requested_version');
-    if (channel === 'stable' && semver.prerelease(version)) {
-      throw new Error(`stable channel cannot release prerelease version: ${version}`);
+    const version = assertValidSemver(requested, "requested_version");
+    if (channel === "stable" && semver.prerelease(version)) {
+      throw new Error(
+        `stable channel cannot release prerelease version: ${version}`,
+      );
     }
     if (existing.has(version)) {
       throw new Error(
@@ -46,30 +54,30 @@ export function selectReleaseVersion({
     return {
       version,
       tag: `v${version}`,
-      source: 'requested',
-      highestExisting: highestExisting ?? '',
+      source: "requested",
+      highestExisting: highestExisting ?? "",
     };
   }
 
   let candidate = packageSemver;
-  if (channel === 'stable' && semver.prerelease(candidate)) {
-    candidate = semver.inc(candidate, 'patch');
+  if (channel === "stable" && semver.prerelease(candidate)) {
+    candidate = semver.inc(candidate, "patch");
   }
   if (highestExisting && semver.gte(highestExisting, candidate)) {
-    candidate = semver.inc(highestExisting, 'patch');
+    candidate = semver.inc(highestExisting, "patch");
   }
-  while (existing.has(candidate)) candidate = semver.inc(candidate, 'patch');
+  while (existing.has(candidate)) candidate = semver.inc(candidate, "patch");
 
   return {
     version: candidate,
     tag: `v${candidate}`,
-    source: candidate === packageSemver ? 'package-version' : 'auto-next-patch',
-    highestExisting: highestExisting ?? '',
+    source: candidate === packageSemver ? "package-version" : "auto-next-patch",
+    highestExisting: highestExisting ?? "",
   };
 }
 
 export function artifactNames(version = rootPackageVersion()) {
-  assertValidSemver(version, 'artifact version');
+  assertValidSemver(version, "artifact version");
   return [
     `research-observatory-${version}-windows-x64-setup.exe`,
     `research-observatory-${version}-windows-x64-portable.zip`,
@@ -82,7 +90,12 @@ export function artifactNames(version = rootPackageVersion()) {
 }
 
 export function releaseAssetNames(version = rootPackageVersion()) {
-  return [...artifactNames(version), 'SHA256SUMS.txt', 'release-manifest.json', 'sbom.cdx.json'];
+  return [
+    ...artifactNames(version),
+    "SHA256SUMS.txt",
+    "release-manifest.json",
+    "sbom.cdx.json",
+  ];
 }
 
 export function windowsSetupName(version = rootPackageVersion()) {
