@@ -14,7 +14,18 @@ jobs:
         with: { node-version: "24", cache: npm }
       - run: npm ci
       - name: Formatting
-        run: npm run format:check
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run format:check 2>&1 | tee prettier-check.log
+      - name: Upload formatting diagnostics
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: desktop-formatting-diagnostics-${{ github.run_attempt }}
+          path: prettier-check.log
+          if-no-files-found: error
+          retention-days: 14
       - name: Architecture
         run: npm run lint
       - name: TypeScript
