@@ -2,7 +2,7 @@
 
 Research Observatory Desktop 的程式碼與 reusable release pipeline 位於 [`app-main`](https://github.com/PME26Elvis/llm-research-archive/tree/app-main)。Default branch `main` 保留一個薄的手動 dispatcher，讓 GitHub Actions 的發布入口永遠可見。
 
-完整 Desktop 入口請見 [`DESKTOP.md`](../DESKTOP.md)。
+完整 Desktop 入口請見 [`DESKTOP.md`](https://github.com/PME26Elvis/llm-research-archive/blob/main/DESKTOP.md)。
 
 ## 建立 draft release
 
