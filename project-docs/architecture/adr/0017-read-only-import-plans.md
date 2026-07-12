@@ -31,4 +31,4 @@ Successful commit returns a receipt and retains the source. `removeImportedSourc
 - Renderer and future CLI adapters can share one import contract instead of duplicating cleanup, path, commit, or rollback logic.
 - Existing targets, path traversal, source or asset symlinks, malformed front matter, invalid explicit metadata, stale plans, concurrent commits, write failures, validation failures, and rename failures are handled before exposing partial output.
 - Source deletion is never implicit and cannot proceed after either side of the receipt changes.
-- PR #27 through PR #29 provide complete domain, typed Desktop, security, restart-persistence, and Electron E2E evidence; FR-002 is implemented.
+- PR #27 through PR #29 provide complete domain, typed Desktop, security, restart persistence, and Electron E2E evidence; FR-002 is implemented.
