@@ -25,6 +25,17 @@ describe('desktop release workflow safety', () => {
     expect(workflow).toContain('gh release edit "$TAG" --draft=false');
   });
 
+  it('separates published collisions from reusable drafts', () => {
+    const resolve = namedStep('Resolve a collision-free release version');
+    expect(resolve).toContain("[.tag_name, .draft] | @tsv");
+    expect(resolve).toContain('reusableDraftTags:');
+    expect(resolve).toContain('release.draft');
+    const validateDraft = namedStep('Validate reusable draft target');
+    expect(validateDraft).toContain("version_source == 'requested-draft'");
+    expect(validateDraft).toContain('resolved_target=$(gh api');
+    expect(validateDraft).toContain('if [[ "$resolved_target" != "$TARGET_SHA" ]]');
+  });
+
   it('does not use nested heredocs and resolves draft targets before comparison', () => {
     const refresh = namedStep('Create or refresh draft release assets');
     expect(refresh).not.toContain("<<'NODE'");

@@ -37,22 +37,33 @@ jobs:
           CHANNEL: ${{ inputs.channel }}
         run: |
           set -euo pipefail
-          gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" --jq '.[].tag_name' > /tmp/release-tags.txt
+          gh api --paginate "repos/${GITHUB_REPOSITORY}/releases?per_page=100" --jq '.[] | [.tag_name, .draft] | @tsv' > /tmp/releases.tsv
           git tag --list 'v*' > /tmp/git-tags.txt
           node --input-type=module - <<'NODE' >> "$GITHUB_OUTPUT"
           import fs from 'node:fs';
           import { execSync } from 'node:child_process';
           import { rootPackageVersion, selectReleaseVersion } from './scripts/release-version.mjs';
 
-          const existingTags = [
-            ...fs.readFileSync('/tmp/release-tags.txt', 'utf8').split(/\r?\n/),
-            ...fs.readFileSync('/tmp/git-tags.txt', 'utf8').split(/\r?\n/),
-          ].filter(Boolean);
+          const releaseRows = fs
+            .readFileSync('/tmp/releases.tsv', 'utf8')
+            .split(/\r?\n/)
+            .filter(Boolean)
+            .map((row) => {
+              const [tag, draft] = row.split('\t');
+              return { tag, draft: draft === 'true' };
+            });
+          const gitTags = fs.readFileSync('/tmp/git-tags.txt', 'utf8').split(/\r?\n/).filter(Boolean);
           const selected = selectReleaseVersion({
             packageVersion: rootPackageVersion(),
             requestedVersion: process.env.REQUESTED_VERSION,
             channel: process.env.CHANNEL,
-            existingTags,
+            existingTags: [
+              ...gitTags,
+              ...releaseRows.filter((release) => !release.draft).map((release) => release.tag),
+            ],
+            reusableDraftTags: releaseRows
+              .filter((release) => release.draft)
+              .map((release) => release.tag),
           });
           const sha = execSync('git rev-parse HEAD', { encoding: 'utf8' }).trim();
           console.log(`sha=${sha}`);
@@ -61,6 +72,23 @@ jobs:
           console.log(`version_source=${selected.source}`);
           console.log(`highest_existing=${selected.highestExisting}`);
           NODE
+      - name: Validate reusable draft target
+        if: steps.release.outputs.version_source == 'requested-draft'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          TARGET_SHA: ${{ steps.release.outputs.sha }}
+        run: |
+          set -euo pipefail
+          gh release view "$TAG" --json targetCommitish,isDraft > /tmp/reusable-draft.json
+          node -e 'const r=require("/tmp/reusable-draft.json"); if(!r.isDraft) process.exit(1);'
+          draft_target=$(node -p 'require("/tmp/reusable-draft.json").targetCommitish')
+          resolved_target=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${draft_target}" --jq '.sha')
+          if [[ "$resolved_target" != "$TARGET_SHA" ]]; then
+            echo "draft $TAG resolves to $resolved_target, expected $TARGET_SHA" >&2
+            exit 1
+          fi
       - name: Apply resolved version to the verification workspace
         run: npm version "$RELEASE_VERSION" --no-git-tag-version --allow-same-version
         env:
