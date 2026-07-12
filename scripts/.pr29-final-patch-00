@@ -62,7 +62,19 @@
        diagnostics(): Promise<{
          warnings: string[];
          invalidFiles: string[];
-@@ -264,8 +273,10 @@
+@@ -81,7 +90,10 @@
+   const path = href.slice(0, hash);
+   const rawFragment = href.slice(hash + 1);
+   try {
+-    return { path, fragment: rawFragment ? decodeURIComponent(rawFragment) : '' };
++    return {
++      path,
++      fragment: rawFragment ? decodeURIComponent(rawFragment) : '',
++    };
+   } catch {
+     return { path, fragment: rawFragment };
+   }
+@@ -261,8 +273,10 @@
    const [navigationHistory, setNavigationHistory] = useState(createNavigationHistory);
    const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
    const [workspace, setWorkspace] = useState<WorkspaceInfoDto | null>(null);
@@ -73,7 +85,7 @@
    const readerRef = useRef<HTMLElement>(null);
    const lightboxTriggerRef = useRef<HTMLImageElement | null>(null);
    const browseModel = useMemo(() => buildArchiveBrowseModel(articles), [articles]);
-@@ -373,6 +384,19 @@
+@@ -370,6 +384,19 @@
      await refreshWorkspace(result.workspace);
    }
  
@@ -93,7 +105,7 @@
    function executeDesktopCommand(command: DesktopCommand) {
      if (command === 'palette.open') {
        setCommandPaletteOpen(true);
-@@ -385,6 +409,8 @@
+@@ -382,6 +409,8 @@
        travelHistory(1);
      } else if (command === 'workspace.open') {
        void chooseWorkspace();
@@ -102,7 +114,7 @@
      } else if (command === 'about.open') {
        void openAbout();
      }
-@@ -393,14 +419,19 @@
+@@ -390,14 +419,19 @@
    useEffect(() => {
      window.observatory.onCommand(executeDesktopCommand);
      const onShortcut = (event: KeyboardEvent) => {
@@ -126,7 +138,7 @@
          event.preventDefault();
          executeDesktopCommand('workspace.open');
        }
-@@ -669,9 +700,18 @@
+@@ -666,9 +700,18 @@
                      {workspace.displayName}
                    </small>
                  </div>
@@ -148,7 +160,7 @@
                  {(workspace.warnings.length > 0 || workspace.invalidFiles.length > 0) && (
                    <details data-testid="workspace-diagnostics" open>
                      <summary>工作區診斷</summary>
-@@ -814,6 +854,13 @@
+@@ -811,6 +854,13 @@
          onExecute={executeDesktopCommand}
        />
        {about && <AboutModal info={about} onClose={closeAbout} />}
@@ -164,60 +176,7 @@
    );
 --- a/apps/desktop-electron/src/renderer/style.css
 +++ b/apps/desktop-electron/src/renderer/style.css
-@@ -43,11 +43,7 @@
- 
- body {
-   margin: 0;
--  font-family:
--    system-ui,
--    -apple-system,
--    'Noto Sans TC',
--    sans-serif;
-+  font-family: system-ui, -apple-system, 'Noto Sans TC', sans-serif;
-   background: var(--surface-body);
-   color: var(--text-primary);
- }
-@@ -434,6 +430,7 @@
-   }
- }
- 
-+
- .navigation-toolbar {
-   display: flex;
-   align-items: center;
-@@ -465,6 +462,7 @@
-   background: var(--selected-bg);
- }
- 
-+
- .pane-separator {
-   grid-column: 2;
-   position: relative;
-@@ -512,6 +510,7 @@
-   user-select: none;
- }
- 
-+
- @media (max-width: 800px) {
-   .pane-separator {
-     display: none;
-@@ -523,6 +522,7 @@
-   }
- }
- 
-+
- .command-palette {
-   width: min(92vw, 680px);
-   padding: 1rem;
-@@ -558,6 +558,7 @@
-   font-size: 0.85rem;
- }
- 
-+
- .workspace-panel {
-   display: grid;
-   gap: 0.55rem;
-@@ -593,3 +594,200 @@
+@@ -594,3 +594,200 @@
    padding-left: 1.2rem;
    overflow-wrap: anywhere;
  }
@@ -519,15 +478,13 @@
  related-adrs:
    - ADR-0008
    - ADR-0009
-@@ -9,33 +9,33 @@
- 
- # MkDocs Feature Parity Matrix
- 
--| Existing Feature           | Current Source          | New Owner             | Status      | Tests                                                                                                               | Rationale                                                                                                                                |
--| -------------------------- | ----------------------- | --------------------- | ----------- | ------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
--| Search                     | MkDocs/material         | search-engine         | implemented | packages/search-engine/src/index.test.ts; apps/desktop-electron/e2e/source.spec.ts                                  | Offline desktop search returns complete DTOs.                                                                                            |
--| Categories                 | canonical content paths | renderer-ui           | implemented | packages/renderer-ui/src/browse.test.ts; apps/desktop-electron/e2e/source.spec.ts                                   | Category facets are derived from article DTOs and filter entirely offline.                                                               |
--| Tags                       | front matter            | renderer-ui           | implemented | packages/renderer-ui/src/browse.test.ts; apps/desktop-electron/e2e/source.spec.ts                                   | Tag facets preserve article order, show counts, and combine with search.                                                                 |
--| Timeline                   | blog dates              | renderer-ui           | implemented | packages/renderer-ui/src/browse.test.ts; apps/desktop-electron/e2e/source.spec.ts                                   | Month facets sort newest first and filter without navigation.                                                                            |
--| Word counts                | hooks/word_counts.py    | content-engine        | implemented | packages/content-engine/src/index.test.ts                                                                           | Python-compatible CJK/Latin count.                                                                                                       |
--| Reading time               | hooks/word_counts.py    | content-engine        | implemented | packages/content-engine/src/index.test.ts                                                                           | 500-display-unit rule.                                                                                                                   |
+@@ -28,12 +28,12 @@
+ | Git revision date | plugin | manifest | planned | planned | Not in current reader UI. |
+ | Blog ordering | MkDocs | content-engine | implemented | packages/content-engine/src/index.test.ts | Date sorting for formal articles. |
+ | Observatory | docs page | renderer | planned | planned | Not in P1 reader slice. |
+-| Article import | publish_article.py | application | planned | planned | Not in P1 reader slice. |
+-| Citation cleanup | tools | content-engine/import | planned | planned | Import parity not implemented. |
++| Article import | publish_article.py | content-engine/main/renderer | implemented | packages/content-engine/src/article-import/index.test.ts; packages/content-engine/src/article-import/commit.test.ts; apps/desktop-electron/e2e/import-wizard.spec.ts | Native selection, deterministic preview, metadata correction, atomic commit, rollback, navigation, and restart persistence are available offline. |
++| Citation cleanup | tools | content-engine/import | implemented | packages/content-engine/src/article-import/index.test.ts; apps/desktop-electron/e2e/import-wizard.spec.ts | Cleanup is previewed before write and shared by file and folder imports. |
+ | Category inference | tools | content-engine | implemented | packages/content-engine/src/index.test.ts | Canonical path category. |
+ | Slug generation | tools | content-engine | implemented | packages/content-engine/src/index.test.ts | Canonical path slug. |
