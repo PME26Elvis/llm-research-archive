@@ -9,11 +9,13 @@
 ## Publishing articles
 
 1. Follow `docs/article-publishing-workflow.md`.
-2. Prefer `python tools/publish_article.py` for `_incoming/articles/` inputs.
-3. Formal articles use `docs/<category>/<english-kebab-case-slug>/index.md` and require YAML `date`, recommended `tags`, and an H1.
-4. Do not overwrite an existing article path.
-5. Preserve user-protected report or attachment text exactly when instructed.
-6. Remove unsupported citation/entity/image wrappers unless the user explicitly requires the original text to remain unchanged.
+2. Prefer `python tools/publish_article.py` for `_incoming/articles/` inputs when working interactively.
+3. A merge to `main` containing exactly one top-level incoming item is auto-published by Content Maintenance. Zero items are skipped; multiple items fail safely and must be split or published one by one.
+4. Formal articles use `docs/<category>/<english-kebab-case-slug>/index.md` and require YAML `date`, recommended `tags`, and an H1.
+5. Do not overwrite an existing article path.
+6. Preserve user-protected report or attachment text exactly when instructed.
+7. Remove unsupported citation/entity/image wrappers unless the user explicitly requires the original text to remain unchanged.
+8. If category or metadata inference is ambiguous, do not force publication. Leave the raw input in place and request an explicit override.
 
 ## Generated README catalog
 
@@ -27,6 +29,7 @@
 
 - `tools/publish_article.py` refreshes the catalog automatically.
 - Manual article additions are repaired after merge by `.github/workflows/content-maintenance.yml`.
+- Incoming publication is transactional: a catalog failure removes the new target and retains the raw input.
 
 ## Validation
 
