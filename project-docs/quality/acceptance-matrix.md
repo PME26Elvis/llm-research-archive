@@ -1,7 +1,7 @@
 ---
 status: accepted
 owner: repository-maintainer
-last-verified: 2026-07-11
+last-verified: 2026-07-12
 related-adrs:
   - ADR-0001
 ---
@@ -11,7 +11,7 @@ related-adrs:
 | ID | Name | Status | Verification |
 | --- | --- | --- | --- |
 | FR-001 | Offline bundled archive | implemented | packages/application/src/index.test.ts, apps/desktop-electron/e2e/source.spec.ts, scripts/packaged-smoke.mjs |
-| FR-002 | Safe article import and publishing | planned | PR #27–#29 evidence defined in project-docs/product/desktop-requirement-catalog.md |
+| FR-002 | Safe article import and publishing | implemented | packages/content-engine/src/article-import/index.test.ts, packages/content-engine/src/article-import/commit.test.ts, packages/platform-contracts/src/import-contract.test.ts, apps/desktop-electron/src/main/import-session.test.ts, apps/desktop-electron/tests/security.spec.ts, apps/desktop-electron/e2e/import-wizard.spec.ts |
 | FR-003 | Canonical article parsing | implemented | packages/content-engine/src/index.test.ts |
 | FR-004 | Category browsing | implemented | packages/renderer-ui/src/browse.test.ts, apps/desktop-electron/e2e/source.spec.ts |
 | FR-005 | Tag browsing | implemented | packages/renderer-ui/src/browse.test.ts, apps/desktop-electron/e2e/source.spec.ts |

@@ -1,20 +1,18 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from 'react';
 import type {
   ImportCommitResult,
   ImportMetadataDto,
   ImportPlanPreviewDto,
   ImportSourceKind,
   WorkspaceInfoDto,
-} from "@research-observatory/platform-contracts";
+} from '@research-observatory/platform-contracts';
 
 interface ImportWizardProps {
   open: boolean;
   workspace: WorkspaceInfoDto | null;
   onClose(): void;
   onChooseWorkspace(): Promise<void>;
-  onCommitted(
-    result: Extract<ImportCommitResult, { status: "committed" }>,
-  ): Promise<void>;
+  onCommitted(result: Extract<ImportCommitResult, { status: 'committed' }>): Promise<void>;
 }
 
 const kebabCasePattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -30,7 +28,7 @@ function metadataFromPreview(preview: ImportPlanPreviewDto) {
     title: preview.metadata.title,
     category: preview.metadata.category,
     slug: preview.metadata.slug,
-    tags: preview.metadata.tags.join(", "),
+    tags: preview.metadata.tags.join(', '),
     date: preview.metadata.date,
   };
 }
@@ -46,39 +44,39 @@ export function ImportWizard({
   const firstButtonRef = useRef<HTMLButtonElement>(null);
   const [preview, setPreview] = useState<ImportPlanPreviewDto | null>(null);
   const [metadata, setMetadata] = useState({
-    title: "",
-    category: "",
-    slug: "",
-    tags: "",
-    date: "",
+    title: '',
+    category: '',
+    slug: '',
+    tags: '',
+    date: '',
   });
   const [dirty, setDirty] = useState(false);
   const [removeSource, setRemoveSource] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [status, setStatus] = useState("");
+  const [error, setError] = useState('');
+  const [status, setStatus] = useState('');
 
   useEffect(() => {
     if (!open) return;
     setPreview(null);
-    setMetadata({ title: "", category: "", slug: "", tags: "", date: "" });
+    setMetadata({ title: '', category: '', slug: '', tags: '', date: '' });
     setDirty(false);
     setRemoveSource(false);
     setBusy(false);
-    setError("");
-    setStatus("");
+    setError('');
+    setStatus('');
     requestAnimationFrame(() => firstButtonRef.current?.focus());
   }, [open, workspace?.rootPath]);
 
   useEffect(() => {
     if (!open) return;
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape" && !busy) {
+      if (event.key === 'Escape' && !busy) {
         event.preventDefault();
         onClose();
         return;
       }
-      if (event.key !== "Tab" || !dialogRef.current) return;
+      if (event.key !== 'Tab' || !dialogRef.current) return;
       const focusable = Array.from(
         dialogRef.current.querySelectorAll<HTMLElement>(
           'button:not(:disabled), input:not(:disabled), [href], select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])',
@@ -95,8 +93,8 @@ export function ImportWizard({
         first.focus();
       }
     };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
   }, [busy, onClose, open]);
 
   if (!open) return null;
@@ -105,32 +103,30 @@ export function ImportWizard({
     setPreview(next);
     setMetadata(metadataFromPreview(next));
     setDirty(false);
-    setError("");
+    setError('');
     setStatus(
       next.canCommit
-        ? "預覽已更新，可以提交。"
+        ? '預覽已更新，可以提交。'
         : next.requiresMetadataConfirmation
-          ? "請確認分類、slug 與其他 metadata 後更新預覽。"
-          : "預覽包含阻擋提交的衝突。",
+          ? '請確認分類、slug 與其他 metadata 後更新預覽。'
+          : '預覽包含阻擋提交的衝突。',
     );
   }
 
   async function chooseSource(kind: ImportSourceKind) {
     setBusy(true);
-    setError("");
-    setStatus(
-      kind === "markdown-file" ? "正在讀取 Markdown…" : "正在掃描文章資料夾…",
-    );
+    setError('');
+    setStatus(kind === 'markdown-file' ? '正在讀取 Markdown…' : '正在掃描文章資料夾…');
     try {
       const result = await window.observatory.selectImportSource(kind);
-      if (result.status === "preview") acceptPreview(result.preview);
-      else if (result.status === "rejected") {
+      if (result.status === 'preview') acceptPreview(result.preview);
+      else if (result.status === 'rejected') {
         setError(result.message);
-        setStatus("");
-      } else setStatus("已取消選擇來源。");
+        setStatus('');
+      } else setStatus('已取消選擇來源。');
     } catch (cause) {
       setError(`無法建立匯入預覽：${String(cause)}`);
-      setStatus("");
+      setStatus('');
     } finally {
       setBusy(false);
     }
@@ -138,27 +134,27 @@ export function ImportWizard({
 
   function validatedMetadata(): ImportMetadataDto | undefined {
     const tags = metadata.tags
-      .split(",")
+      .split(',')
       .map((tag) => tag.trim())
       .filter(Boolean);
     if (!metadata.title.trim()) {
-      setError("標題不可為空。");
+      setError('標題不可為空。');
       return undefined;
     }
     if (!kebabCasePattern.test(metadata.category)) {
-      setError("分類必須是小寫英文 kebab-case，例如 llm-research。");
+      setError('分類必須是小寫英文 kebab-case，例如 llm-research。');
       return undefined;
     }
     if (!kebabCasePattern.test(metadata.slug)) {
-      setError("slug 必須是小寫英文 kebab-case，例如 model-report。");
+      setError('slug 必須是小寫英文 kebab-case，例如 model-report。');
       return undefined;
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(metadata.date)) {
-      setError("日期必須是 YYYY-MM-DD。");
+      setError('日期必須是 YYYY-MM-DD。');
       return undefined;
     }
     if (!tags.length || tags.length > 8) {
-      setError("請輸入 1 到 8 個標籤，並以逗號分隔。");
+      setError('請輸入 1 到 8 個標籤，並以逗號分隔。');
       return undefined;
     }
     return {
@@ -175,21 +171,21 @@ export function ImportWizard({
     const nextMetadata = validatedMetadata();
     if (!nextMetadata) return;
     setBusy(true);
-    setError("");
-    setStatus("正在重新驗證 metadata 與輸出路徑…");
+    setError('');
+    setStatus('正在重新驗證 metadata 與輸出路徑…');
     try {
       const result = await window.observatory.refreshImportPreview({
         planId: preview.planId,
         metadata: nextMetadata,
       });
-      if (result.status === "preview") acceptPreview(result.preview);
-      else if (result.status === "rejected") {
+      if (result.status === 'preview') acceptPreview(result.preview);
+      else if (result.status === 'rejected') {
         setError(result.message);
-        setStatus("");
+        setStatus('');
       }
     } catch (cause) {
       setError(`無法更新匯入預覽：${String(cause)}`);
-      setStatus("");
+      setStatus('');
     } finally {
       setBusy(false);
     }
@@ -198,30 +194,30 @@ export function ImportWizard({
   async function commit() {
     if (!preview || dirty || !preview.canCommit) return;
     setBusy(true);
-    setError("");
-    setStatus("正在原子寫入並驗證文章…");
+    setError('');
+    setStatus('正在原子寫入並驗證文章…');
     try {
       const result = await window.observatory.commitImport({
         planId: preview.planId,
         removeSource,
       });
-      if (result.status === "rejected") {
+      if (result.status === 'rejected') {
         setError(result.message);
-        setStatus("提交失敗；工作區不應包含部分輸出。");
+        setStatus('提交失敗；工作區不應包含部分輸出。');
         return;
       }
-      setStatus("匯入完成，正在重新載入工作區…");
+      setStatus('匯入完成，正在重新載入工作區…');
       await onCommitted(result);
       onClose();
     } catch (cause) {
       setError(`匯入提交失敗：${String(cause)}`);
-      setStatus("");
+      setStatus('');
     } finally {
       setBusy(false);
     }
   }
 
-  const writable = workspace?.kind === "local";
+  const writable = workspace?.kind === 'local';
 
   return (
     <div
@@ -243,25 +239,19 @@ export function ImportWizard({
           <div>
             <h2 id="import-wizard-title">匯入文章</h2>
             <p id="import-wizard-description">
-              先建立唯讀預覽；確認
-              metadata、資產與輸出檔案後，才會原子寫入工作區。
+              先建立唯讀預覽；確認 metadata、資產與輸出檔案後，才會原子寫入工作區。
             </p>
           </div>
-          <button
-            type="button"
-            className="icon-button"
-            onClick={onClose}
-            disabled={busy}
-          >
+          <button type="button" className="icon-button" onClick={onClose} disabled={busy}>
             關閉
           </button>
         </div>
 
         <div className="import-target" data-testid="import-target-workspace">
-          <strong>目標工作區：</strong>{" "}
+          <strong>目標工作區：</strong>{' '}
           {workspace
-            ? `${workspace.displayName}（${workspace.kind === "local" ? "可寫入" : "唯讀"}）`
-            : "載入中"}
+            ? `${workspace.displayName}（${workspace.kind === 'local' ? '可寫入' : '唯讀'}）`
+            : '載入中'}
         </div>
 
         {!writable && (
@@ -284,7 +274,7 @@ export function ImportWizard({
             <button
               ref={firstButtonRef}
               type="button"
-              onClick={() => void chooseSource("markdown-file")}
+              onClick={() => void chooseSource('markdown-file')}
               disabled={busy}
             >
               選擇 Markdown 檔案…
@@ -292,7 +282,7 @@ export function ImportWizard({
             </button>
             <button
               type="button"
-              onClick={() => void chooseSource("article-folder")}
+              onClick={() => void chooseSource('article-folder')}
               disabled={busy}
             >
               選擇文章資料夾…
@@ -303,10 +293,7 @@ export function ImportWizard({
 
         {writable && preview && (
           <>
-            <section
-              className="import-section"
-              aria-labelledby="import-metadata-title"
-            >
+            <section className="import-section" aria-labelledby="import-metadata-title">
               <div className="import-section-heading">
                 <div>
                   <h3 id="import-metadata-title">2. 檢查 metadata</h3>
@@ -317,8 +304,8 @@ export function ImportWizard({
                   className="compact-button"
                   onClick={() => {
                     setPreview(null);
-                    setError("");
-                    setStatus("");
+                    setError('');
+                    setStatus('');
                   }}
                   disabled={busy}
                 >
@@ -413,17 +400,12 @@ export function ImportWizard({
               </button>
             </section>
 
-            <section
-              className="import-section"
-              aria-labelledby="import-plan-title"
-            >
+            <section className="import-section" aria-labelledby="import-plan-title">
               <h3 id="import-plan-title">3. 寫入計畫</h3>
               <dl className="import-summary-grid">
                 <div>
                   <dt>目標文章</dt>
-                  <dd data-testid="import-target-path">
-                    {preview.targetArticleRelativePath}
-                  </dd>
+                  <dd data-testid="import-target-path">{preview.targetArticleRelativePath}</dd>
                 </div>
                 <div>
                   <dt>資產</dt>
@@ -436,26 +418,19 @@ export function ImportWizard({
                 <div>
                   <dt>清理項目</dt>
                   <dd>
-                    {Object.values(preview.cleanup).reduce(
-                      (total, value) => total + value,
-                      0,
-                    )}{" "}
-                    個
+                    {Object.values(preview.cleanup).reduce((total, value) => total + value, 0)} 個
                   </dd>
                 </div>
               </dl>
 
               {!!preview.warnings.length && (
-                <div
-                  className="import-messages"
-                  aria-labelledby="import-warning-title"
-                >
+                <div className="import-messages" aria-labelledby="import-warning-title">
                   <h4 id="import-warning-title">警告</h4>
                   <ul>
                     {preview.warnings.map((warning, index) => (
                       <li key={`${warning.code}-${warning.path || index}`}>
                         {warning.message}
-                        {warning.path ? `（${warning.path}）` : ""}
+                        {warning.path ? `（${warning.path}）` : ''}
                       </li>
                     ))}
                   </ul>
@@ -502,18 +477,10 @@ export function ImportWizard({
                 />
                 匯入成功且再次驗證後，刪除原始來源
               </label>
-              <small>
-                預設保留來源。刪除是獨立且不可復原的動作；任一驗證失敗都會保留來源。
-              </small>
-              {dirty && (
-                <p className="import-inline-note">
-                  metadata 已變更；請先更新預覽。
-                </p>
-              )}
+              <small>預設保留來源。刪除是獨立且不可復原的動作；任一驗證失敗都會保留來源。</small>
+              {dirty && <p className="import-inline-note">metadata 已變更；請先更新預覽。</p>}
               {!preview.canCommit && !dirty && (
-                <p className="import-inline-note">
-                  目前預覽不可提交；請修正 metadata 或衝突。
-                </p>
+                <p className="import-inline-note">目前預覽不可提交；請修正 metadata 或衝突。</p>
               )}
               <button
                 type="button"
@@ -522,17 +489,13 @@ export function ImportWizard({
                 onClick={() => void commit()}
                 disabled={busy || dirty || !preview.canCommit}
               >
-                {busy ? "處理中…" : "原子匯入文章"}
+                {busy ? '處理中…' : '原子匯入文章'}
               </button>
             </section>
           </>
         )}
 
-        <div
-          className="import-live-region"
-          aria-live="polite"
-          aria-atomic="true"
-        >
+        <div className="import-live-region" aria-live="polite" aria-atomic="true">
           {status}
         </div>
         {error && (

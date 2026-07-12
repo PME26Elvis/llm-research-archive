@@ -11,9 +11,32 @@ describe('Electron security configuration', () => {
     expect(main).toContain('setWindowOpenHandler');
     expect(main).toContain('will-navigate');
   });
+
   it('does not expose raw ipcRenderer API', () => {
     const preload = fs.readFileSync('apps/desktop-electron/src/preload/preload.ts', 'utf8');
     expect(preload).toContain('contextBridge.exposeInMainWorld');
     expect(preload).not.toContain("exposeInMainWorld('electron'");
+  });
+
+  it('keeps import filesystem authority and plans in the main process', () => {
+    const main = fs.readFileSync('apps/desktop-electron/src/main/main.ts', 'utf8');
+    const preload = fs.readFileSync('apps/desktop-electron/src/preload/preload.ts', 'utf8');
+    const renderer = fs.readFileSync(
+      'apps/desktop-electron/src/renderer/import-wizard.tsx',
+      'utf8',
+    );
+
+    expect(main).toContain('ImportSessionService');
+    expect(main).toContain('ImportSourceSelectionRequestSchema.parse');
+    expect(main).toContain('ImportPreviewRefreshRequestSchema.parse');
+    expect(main).toContain('ImportCommitRequestSchema.parse');
+    expect(main).toContain('dialog.showOpenDialog');
+    expect(preload).toContain('ImportPreviewResultSchema.parse');
+    expect(preload).toContain('ImportCommitResultSchema.parse');
+    expect(preload).not.toContain('sourcePath');
+    expect(preload).not.toContain('targetDirectory');
+    expect(renderer).not.toContain('node:fs');
+    expect(renderer).not.toContain('sourcePath');
+    expect(renderer).not.toContain('targetDirectory');
   });
 });

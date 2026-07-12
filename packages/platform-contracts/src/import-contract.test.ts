@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it } from 'vitest';
 import {
   DesktopCommandSchema,
   ImportCommitRequestSchema,
@@ -6,19 +6,19 @@ import {
   ImportPlanPreviewDtoSchema,
   ImportPreviewRefreshRequestSchema,
   ImportSourceSelectionRequestSchema,
-} from "./index";
+} from './index';
 
 const preview = {
-  planId: "a".repeat(64),
-  source: { kind: "markdown-file" as const, displayName: "report.md" },
-  targetWorkspaceName: "archive",
-  targetArticleRelativePath: "llm/report/index.md",
+  planId: 'a'.repeat(64),
+  source: { kind: 'markdown-file' as const, displayName: 'report.md' },
+  targetWorkspaceName: 'archive',
+  targetArticleRelativePath: 'llm/report/index.md',
   metadata: {
-    title: "Report",
-    category: "llm",
-    slug: "report",
-    tags: ["LLM"],
-    date: "2026-07-12",
+    title: 'Report',
+    category: 'llm',
+    slug: 'report',
+    tags: ['LLM'],
+    date: '2026-07-12',
   },
   cleanup: {
     citationMarkersRemoved: 1,
@@ -29,8 +29,8 @@ const preview = {
   assets: [],
   outputFiles: [
     {
-      kind: "article" as const,
-      relativePath: "llm/report/index.md",
+      kind: 'article' as const,
+      relativePath: 'llm/report/index.md',
       sizeBytes: 100,
     },
   ],
@@ -40,34 +40,30 @@ const preview = {
   canCommit: true,
 };
 
-describe("desktop import contracts", () => {
-  it("accepts only the finite import command and source chooser modes", () => {
-    expect(DesktopCommandSchema.parse("import.open")).toBe("import.open");
-    expect(
-      ImportSourceSelectionRequestSchema.parse({ kind: "markdown-file" }),
-    ).toEqual({
-      kind: "markdown-file",
+describe('desktop import contracts', () => {
+  it('accepts only the finite import command and source chooser modes', () => {
+    expect(DesktopCommandSchema.parse('import.open')).toBe('import.open');
+    expect(ImportSourceSelectionRequestSchema.parse({ kind: 'markdown-file' })).toEqual({
+      kind: 'markdown-file',
     });
-    expect(
-      ImportSourceSelectionRequestSchema.safeParse({ kind: "executable" })
-        .success,
-    ).toBe(false);
+    expect(ImportSourceSelectionRequestSchema.safeParse({ kind: 'executable' }).success).toBe(
+      false,
+    );
   });
 
-  it("validates sanitized previews without absolute source paths or write authority", () => {
-    expect(
-      ImportPlanPreviewDtoSchema.parse(preview).targetArticleRelativePath,
-    ).toBe("llm/report/index.md");
+  it('validates sanitized previews without absolute source paths or write authority', () => {
+    expect(ImportPlanPreviewDtoSchema.parse(preview).targetArticleRelativePath).toBe(
+      'llm/report/index.md',
+    );
     expect(
       ImportPlanPreviewDtoSchema.safeParse({
         ...preview,
-        planId: "../target",
-        sourcePath: "/tmp/x",
+        sourcePath: '/tmp/x',
       }).success,
     ).toBe(false);
   });
 
-  it("requires complete validated metadata before refreshing a preview", () => {
+  it('requires complete validated metadata before refreshing a preview', () => {
     expect(
       ImportPreviewRefreshRequestSchema.parse({
         planId: preview.planId,
@@ -77,32 +73,31 @@ describe("desktop import contracts", () => {
     expect(
       ImportPreviewRefreshRequestSchema.safeParse({
         planId: preview.planId,
-        metadata: { ...preview.metadata, slug: "../escape" },
+        metadata: { ...preview.metadata, slug: '../escape' },
       }).success,
     ).toBe(false);
   });
 
-  it("models commit authority as an opaque plan id plus an explicit source-removal choice", () => {
-    expect(ImportCommitRequestSchema.parse({ planId: preview.planId })).toEqual(
-      {
-        planId: preview.planId,
-        removeSource: false,
+  it('models commit authority as an opaque plan id plus an explicit source-removal choice', () => {
+    expect(ImportCommitRequestSchema.parse({ planId: preview.planId })).toEqual({
+      planId: preview.planId,
+      removeSource: false,
+    });
+    const result = ImportCommitResultSchema.parse({
+      status: 'committed',
+      articleId: 'llm/report',
+      workspace: {
+        kind: 'local',
+        rootPath: '/tmp/archive',
+        displayName: 'archive',
+        articleCount: 2,
+        warnings: [],
+        invalidFiles: [],
       },
-    );
-    expect(
-      ImportCommitResultSchema.parse({
-        status: "committed",
-        articleId: "llm/report",
-        workspace: {
-          kind: "local",
-          rootPath: "/tmp/archive",
-          displayName: "archive",
-          articleCount: 2,
-          warnings: [],
-          invalidFiles: [],
-        },
-        sourceStatus: "retained",
-      }).articleId,
-    ).toBe("llm/report");
+      sourceStatus: 'retained',
+    });
+    expect(result.status).toBe('committed');
+    if (result.status !== 'committed') return;
+    expect(result.articleId).toBe('llm/report');
   });
 });
