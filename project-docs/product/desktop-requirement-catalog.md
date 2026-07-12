@@ -1,10 +1,11 @@
 ---
 status: accepted
 owner: repository-maintainer
-last-verified: 2026-07-11
+last-verified: 2026-07-12
 related-adrs:
   - ADR-0001
   - ADR-0016
+  - ADR-0017
 ---
 
 # Desktop Requirement Catalog
@@ -34,6 +35,8 @@ Acceptance requires:
 5. Source removal is a separate explicit action after successful commit; keep-raw behavior remains available.
 6. The committed article is immediately available to article list, search, manifest, diagnostics, internal links, assets, and reader journeys.
 7. Unit, contract, security, and Electron E2E evidence covers preview, metadata correction, commit, rollback, restart persistence, and source retention.
+
+Current partial evidence: `packages/content-engine/src/article-import/index.test.ts` verifies deterministic write-free previews, constrained file and folder sources, cleanup, metadata inference and validation, asset inventory, source retention, missing-asset warnings, and blocking target conflicts. Atomic commit, rollback, source-removal authority, typed desktop integration, and Electron E2E are not present yet, so FR-002 remains `planned`.
 
 ## Remaining non-functional requirements
 
