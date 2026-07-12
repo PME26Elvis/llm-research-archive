@@ -21,10 +21,12 @@ import { importIssue } from './contracts';
 import { resolveImportMetadata } from './metadata';
 import {
   collectImportAssets,
+  createImportSourceFingerprint,
   existingImportSymlinkAncestor,
   inspectImportSource,
   isImportPathInsideRoot,
   resolveImportWorkspaceRoot,
+  sha256Buffer,
 } from './source';
 
 function ensureH1(markdown: string, title: string): string {
@@ -67,14 +69,17 @@ function createPlanId(plan: Omit<ImportPlan, 'planId' | 'canCommit'>): string {
     schemaVersion: plan.schemaVersion,
     sourceKind: plan.source.kind,
     sourceName: path.basename(plan.source.rootPath),
+    sourceFingerprint: plan.sourceFingerprint,
     targetArticleRelativePath: plan.targetArticleRelativePath,
     metadata: plan.metadata,
     articleContent: plan.articleContent,
+    articleSha256: plan.articleSha256,
     cleanup: plan.cleanup,
-    assets: plan.assets.map(({ relativePath, outputPath, sizeBytes }) => ({
+    assets: plan.assets.map(({ relativePath, outputPath, sizeBytes, sha256 }) => ({
       relativePath,
       outputPath,
       sizeBytes,
+      sha256,
     })),
     warnings: plan.warnings.map(({ code, message }) => ({ code, message })),
     conflicts: plan.conflicts.map(({ code, message }) => ({ code, message })),
@@ -135,6 +140,7 @@ export function createImportPlan(input: CreateImportPlanInput): ImportPlanResult
     assets = assetResult.assets;
   }
 
+  const sourceFingerprint = createImportSourceFingerprint(sourceResult.source, assets);
   const warnings = [...sourceResult.warnings, ...metadataResult.warnings];
   const availableAssets = new Set(assets.map((asset) => asset.outputPath));
   for (const reference of localImageReferences(articleCleaned.markdown)) {
@@ -190,6 +196,7 @@ export function createImportPlan(input: CreateImportPlanInput): ImportPlanResult
     articleCleaned.markdown,
     research,
   );
+  const articleSha256 = sha256Buffer(articleContent);
   const conflicts: ImportConflict[] = fs.existsSync(targetDirectory)
     ? [
         {
@@ -204,24 +211,28 @@ export function createImportPlan(input: CreateImportPlanInput): ImportPlanResult
       kind: 'article',
       relativePath: targetArticleRelativePath,
       sizeBytes: Buffer.byteLength(articleContent),
+      sha256: articleSha256,
     },
     ...assets.map((asset) => ({
       kind: 'asset' as const,
       relativePath: `${metadataResult.metadata.category}/${metadataResult.metadata.slug}/${asset.outputPath}`,
       sourcePath: asset.sourcePath,
       sizeBytes: asset.sizeBytes,
+      sha256: asset.sha256,
     })),
   ];
 
   const withoutId: Omit<ImportPlan, 'planId' | 'canCommit'> = {
     schemaVersion: 1,
     source: sourceResult.source,
+    sourceFingerprint,
     workspaceRoot: workspaceResult.root,
     targetDirectory,
     targetArticlePath,
     targetArticleRelativePath,
     metadata: metadataResult.metadata,
     articleContent,
+    articleSha256,
     cleanup,
     assets,
     outputFiles,

@@ -1,7 +1,16 @@
+import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import type { ImportAssetPlan, ImportIssue, ImportSourceDescriptor } from './contracts';
 import { importIssue } from './contracts';
+
+export function sha256Buffer(value: string | Buffer): string {
+  return crypto.createHash('sha256').update(value).digest('hex');
+}
+
+export function sha256File(filePath: string): string {
+  return sha256Buffer(fs.readFileSync(filePath));
+}
 
 function samePath(left: string, right: string): boolean {
   return path.relative(left, right) === '' && path.relative(right, left) === '';
@@ -252,13 +261,24 @@ export function collectImportAssets(
         visit(full);
         continue;
       }
-      if (!stat.isFile()) continue;
+      if (!stat.isFile()) {
+        issues.push(
+          importIssue(
+            'error',
+            'unsupported-source',
+            'Assets must contain only regular files and directories.',
+            full,
+          ),
+        );
+        continue;
+      }
       const relativePath = path.relative(realRoot, full).split(path.sep).join('/');
       assets.push({
         sourcePath: full,
         relativePath,
         outputPath: `assets/${relativePath}`,
         sizeBytes: stat.size,
+        sha256: sha256File(full),
       });
     }
   };
@@ -314,4 +334,21 @@ export function resolveImportWorkspaceRoot(
     };
   }
   return { ok: true, root: realRoot };
+}
+
+export function createImportSourceFingerprint(
+  source: ImportSourceDescriptor,
+  assets: readonly ImportAssetPlan[],
+): string {
+  const stable = {
+    kind: source.kind,
+    articleSha256: sha256File(source.articlePath),
+    researchSha256: source.researchPath ? sha256File(source.researchPath) : undefined,
+    assets: assets.map(({ relativePath, sizeBytes, sha256 }) => ({
+      relativePath,
+      sizeBytes,
+      sha256,
+    })),
+  };
+  return sha256Buffer(JSON.stringify(stable));
 }
