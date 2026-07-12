@@ -60,6 +60,7 @@ export interface ImportAssetPlan {
   relativePath: string;
   outputPath: string;
   sizeBytes: number;
+  sha256: string;
 }
 
 export interface ImportOutputFilePlan {
@@ -67,6 +68,7 @@ export interface ImportOutputFilePlan {
   relativePath: string;
   sourcePath?: string;
   sizeBytes: number;
+  sha256: string;
 }
 
 export interface ImportConflict {
@@ -79,12 +81,14 @@ export interface ImportPlan {
   schemaVersion: 1;
   planId: string;
   source: ImportSourceDescriptor;
+  sourceFingerprint: string;
   workspaceRoot: string;
   targetDirectory: string;
   targetArticlePath: string;
   targetArticleRelativePath: string;
   metadata: ImportMetadata;
   articleContent: string;
+  articleSha256: string;
   cleanup: ImportCleanupSummary;
   assets: ImportAssetPlan[];
   outputFiles: ImportOutputFilePlan[];
@@ -103,6 +107,67 @@ export interface CreateImportPlanInput {
   publicationDate?: string;
   overrides?: ImportMetadataOverrides;
 }
+
+export type ImportCommitErrorCode =
+  | 'plan-not-committable'
+  | 'stale-plan'
+  | 'target-conflict'
+  | 'commit-in-progress'
+  | 'workspace-read-only'
+  | 'stage-failed'
+  | 'validation-failed'
+  | 'commit-failed'
+  | 'rollback-failed';
+
+export interface ImportCommitError {
+  code: ImportCommitErrorCode;
+  message: string;
+  path?: string;
+  cause?: string;
+  rollbackClean: boolean;
+  residualPath?: string;
+}
+
+export interface ImportCommitReceiptAsset {
+  relativePath: string;
+  sha256: string;
+  sizeBytes: number;
+}
+
+export interface ImportCommitReceipt {
+  schemaVersion: 1;
+  planId: string;
+  source: ImportSourceDescriptor;
+  sourceFingerprint: string;
+  workspaceRoot: string;
+  targetDirectory: string;
+  targetArticlePath: string;
+  articleSha256: string;
+  assets: ImportCommitReceiptAsset[];
+  committedAt: string;
+  sourceRetained: true;
+}
+
+export type ImportCommitResult =
+  { ok: true; receipt: ImportCommitReceipt } | { ok: false; error: ImportCommitError };
+
+export type ImportSourceRemovalErrorCode =
+  | 'invalid-receipt'
+  | 'target-changed'
+  | 'source-not-found'
+  | 'source-changed'
+  | 'source-not-removable'
+  | 'source-removal-failed';
+
+export interface ImportSourceRemovalError {
+  code: ImportSourceRemovalErrorCode;
+  message: string;
+  path?: string;
+  cause?: string;
+}
+
+export type ImportSourceRemovalResult =
+  { ok: true; removedPath: string } | { ok: false; error: ImportSourceRemovalError };
 
 export function importIssue(
   severity: ImportIssueSeverity,
