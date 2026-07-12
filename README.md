@@ -1,123 +1,126 @@
-# llm-research-archive
+# LLM Research Archive
 
-長文研究筆記庫，使用 **MkDocs Material** 建成可搜尋、可分類、可部署的靜態網站。內容目前涵蓋 LLM / AI、碳排與能源、Computer Science，以及跨主題時間軸；網站設定語系為繁體中文（zh-TW）。
+[![Website](https://img.shields.io/badge/Website-MkDocs%20Material-4051B5?logo=materialformkdocs&logoColor=white)](https://PME26Elvis.github.io/llm-research-archive/)
+[![Deploy](https://github.com/PME26Elvis/llm-research-archive/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/PME26Elvis/llm-research-archive/actions/workflows/deploy.yml)
+[![Desktop CI](https://github.com/PME26Elvis/llm-research-archive/actions/workflows/desktop-ci.yml/badge.svg?branch=app-main)](https://github.com/PME26Elvis/llm-research-archive/actions/workflows/desktop-ci.yml)
 
-## 專案特色
+一個以 **canonical Markdown** 為核心的繁體中文長文研究知識庫，同時提供可搜尋的 **MkDocs Material 網站**與離線優先的 **Research Observatory Desktop**。內容涵蓋 LLM／AI、算力與軟體工程、碳排與能源、Computer Science，以及可持續擴充的跨主題研究文章。
 
-- **MkDocs Material 知識庫**：支援 tabs / sections 導覽、instant navigation、深色模式、返回頂端、程式碼複製與搜尋標亮。
-- **長文研究文章管理**：文章以 `docs/<category>/<slug>/index.md` 的方式整理，並透過 YAML front matter 記錄日期與 tags。
-- **自動字數統計**：`hooks/word_counts.py` 會在 MkDocs build 時統計文章字數、閱讀時間，並產生 `docs/word-counts.md`。
-- **Tags 與 Timeline**：啟用 `tags` 與 `blog` plugins，方便依主題或時間探索文章。
-- **圖片閱讀體驗**：整合 `mkdocs-glightbox`，文章圖片可用 lightbox 放大檢視。
-- **GitHub Pages 部署**：`.github/workflows/deploy.yml` 會在推送到 `main` 時建置並發布網站。
+> `main` 是文章與網站的唯一內容來源；`app-main` 是 Electron 桌面應用程式主線。正式文章合併到 `main` 後，維護工作流會更新本文的文章目錄，驗證 Desktop，再以一般 merge 將 canonical `docs/` 同步到 `app-main`。
+
+## 快速入口
+
+| 入口 | 適合對象 | 說明 |
+| --- | --- | --- |
+| [瀏覽研究網站](https://PME26Elvis.github.io/llm-research-archive/) | 讀者 | 搜尋、分類、Tags、Timeline、深色模式與長文閱讀體驗。 |
+| [目前所有文章](#目前所有文章) | 讀者／維護者 | 由正式 Markdown 自動產生的可點擊文章清單。 |
+| [Desktop 獨立入口](DESKTOP.md) | 桌面使用者／開發者 | 功能、架構、開發、驗證、封裝與發布入口。 |
+| [`app-main` branch](https://github.com/PME26Elvis/llm-research-archive/tree/app-main) | Desktop 開發者 | Electron／TypeScript monorepo 與完整桌面應用程式碼。 |
+| [新文章上架 SOP](docs/article-publishing-workflow.md) | 維護者／Codex | 從 raw Markdown 到正式文章、README 與 Desktop 同步的完整流程。 |
+| [Desktop Release](docs/desktop-release.md) | 發布維護者 | 從 `main` 手動 dispatch Windows／Linux Desktop release。 |
+
+## 兩條產品主線
+
+| Branch | 定位 | Source of truth | 自動化 |
+| --- | --- | --- | --- |
+| [`main`](https://github.com/PME26Elvis/llm-research-archive/tree/main) | 研究內容、MkDocs 網站、文章發布工具與 release dispatcher | `docs/` | README 文章目錄、MkDocs validation／deploy、Desktop 內容同步 |
+| [`app-main`](https://github.com/PME26Elvis/llm-research-archive/tree/app-main) | Research Observatory Desktop | 應用程式碼與桌面規格；文章內容由 `main/docs` 同步 | TypeScript／security／compatibility／Electron E2E／Windows & Linux package smoke |
+
+```mermaid
+flowchart LR
+    A[Raw Markdown\n_incoming/articles] --> B[Publish tool / Codex]
+    B --> C[main / docs\nCanonical Markdown]
+    C --> D[MkDocs Material\nGitHub Pages]
+    C --> E[Generated README\nArticle catalog]
+    C --> F[Validated content sync]
+    F --> G[app-main / docs]
+    G --> H[Research Observatory Desktop]
+```
+
+## 專案能力
+
+### Research website
+
+- **MkDocs Material 知識庫**：tabs／sections 導覽、instant navigation、搜尋標亮、深色模式、返回頂端與程式碼複製。
+- **長文內容模型**：正式文章使用 `docs/<category>/<slug>/index.md`，以 YAML front matter 記錄日期與 Tags。
+- **字數與閱讀時間**：`hooks/word_counts.py` 在 build 時產生文章統計與 [`docs/word-counts.md`](docs/word-counts.md)。
+- **Tags、Timeline 與圖片閱讀**：整合 tags、blog 與 `mkdocs-glightbox`。
+- **嚴格部署驗證**：GitHub Actions 在發布前執行文章目錄測試與 `mkdocs build --strict`。
+
+### Research Observatory Desktop
+
+- **離線優先閱讀器**：直接讀取 canonical Markdown，支援 bundled archive 與本機 workspace。
+- **桌面級閱讀體驗**：搜尋、Command Palette、導覽歷史、可調整版面、偏好設定、Mermaid、語法標亮與 footnotes。
+- **安全匯入流程**：四階段 Import Wizard、typed IPC、sanitized preview、stale-plan detection、atomic publication 與 rollback。
+- **跨平台交付**：Electron Forge，Windows／Linux packages、packaged smoke 與可重現 release assets。
+
+完整說明請見 [Desktop 獨立入口](DESKTOP.md)。
+
+## 目前所有文章
+
+<!-- article-catalog:start -->
+> 此區塊由 [`tools/sync_readme_articles.py`](tools/sync_readme_articles.py) 從 `docs/` 自動產生；請勿手動維護清單。
+
+**目前收錄 6 篇正式文章，分布於 4 個分類。**
+
+### LLM / AI · 3
+
+| 日期 | 文章 | Tags |
+| --- | --- | --- |
+| 2026-04-05 | [Agentic AI 在高度受限環境下的規劃與反思機制：2024–2026 細粒度深度分析](docs/llm/agentic-ai-constrained-environments-analysis-2024-2026/index.md) | `LLM` · `Agentic AI` |
+| 2026-03-20 | [科技業龍頭為何認為「現在算力遠遠不夠」：原因、證據與三大主題深度分析](docs/llm/why-tech-giants-need-more-compute-report/index.md) | `LLM` |
+| 2026-03-08 | [本地開源大型語言模型在實務軟體開發的真實效能與可部署價值研究報告](docs/llm/local-llm-dev-performance-report/index.md) | `LLM` · `本地` |
+
+### Carbon / Energy · 1
+
+| 日期 | 文章 | Tags |
+| --- | --- | --- |
+| 2026-06-02 | [臺灣再生能源裝置容量發展分析報告](docs/carbon/taiwan-renewable-energy-capacity-report/index.md) | `碳排放` · `再生能源` · `臺灣能源政策` · `電力系統` |
+
+### Computer Science · 1
+
+| 日期 | 文章 | Tags |
+| --- | --- | --- |
+| 2026-03-20 | [電腦科學超級樹：全域 CS 分層分類法與互動視覺化實作報告](docs/cs/cs-super-tree-report/index.md) | `Computer Science Ontology` · `Tech Stack Mapping` |
+
+### Timeline · 1
+
+| 日期 | 文章 | Tags |
+| --- | --- | --- |
+| 2026-03-05 | [Hello](docs/timeline/posts/hello.md) | `LLM` · `Notes` |
+
+<!-- article-catalog:end -->
 
 ## 內容分類
 
-| 分類 | 路徑 | 說明 |
+| 分類 | 路徑 | 主題 |
 | --- | --- | --- |
-| 首頁 | `docs/index.md` | 網站入口、快速連結與閱讀體驗說明。 |
-| LLM | `docs/llm/` | 大型語言模型、agentic AI、算力、benchmark 與本地開發效能研究。 |
-| Carbon | `docs/carbon/` | 碳排、能源、再生能源容量與政策資料整理。 |
-| CS | `docs/cs/` | 電腦科學、資料結構、演算法與分類法相關長文。 |
-| Timeline | `docs/timeline/` | Blog / 時間軸文章歸檔。 |
-| Tags | `docs/tags.md` | 跨分類標籤索引。 |
-| 字數總表 | `docs/word-counts.md` | 由 hook 自動更新的文章字數與閱讀時間總表。 |
+| LLM / AI | [`docs/llm/`](docs/llm/) | 模型、agentic AI、inference、算力、benchmark 與實務開發。 |
+| Carbon / Energy | [`docs/carbon/`](docs/carbon/) | 碳排、電力、再生能源、供應結構與政策。 |
+| Computer Science | [`docs/cs/`](docs/cs/) | 軟體工程、演算法、資料結構、分類法與技術棧。 |
+| Timeline | [`docs/timeline/`](docs/timeline/) | 跨主題時間軸、短筆記與補充紀錄。 |
+| Tags | [`docs/tags.md`](docs/tags.md) | 跨分類標籤索引。 |
+| 字數總表 | [`docs/word-counts.md`](docs/word-counts.md) | 自動統計字數與預估閱讀時間。 |
 
-## 目前文章
+## 新文章上架
 
-- `docs/llm/agentic-ai-constrained-environments-analysis-2024-2026/`：Agentic AI 在高度受限環境下的規劃與反思機制分析。
-- `docs/llm/local-llm-dev-performance-report/`：本地開源大型語言模型在實務軟體開發中的效能與部署價值研究。
-- `docs/llm/why-tech-giants-need-more-compute-report/`：科技業龍頭為何認為 AI 算力仍然不足的原因、證據與趨勢分析。
-- `docs/carbon/taiwan-renewable-energy-capacity-report/`：臺灣再生能源裝置容量發展、核能退場與未來供給目標整理。
-- `docs/cs/cs-super-tree-report/`：電腦科學超級樹分類法與互動視覺化實作報告。
-- `docs/timeline/posts/hello.md`：Timeline 範例文章。
+### 最短流程
 
-## 專案結構
-
-```text
-.
-├── docs/                         # MkDocs 內容根目錄
-│   ├── index.md                  # 網站首頁
-│   ├── article-publishing-workflow.md
-│   ├── word-counts.md            # build 時由 hook 更新
-│   ├── tags.md
-│   ├── llm/
-│   ├── carbon/
-│   ├── cs/
-│   ├── timeline/
-│   ├── stylesheets/extra.css
-│   └── javascripts/extra.js
-├── hooks/word_counts.py          # MkDocs hook：字數統計與閱讀時間
-├── tools/publish_article.py      # 從 _incoming/articles/ 無腦上架文章
-├── tools/new_note.py             # 互動式建立新文章骨架
-├── tools/remove_citations.py     # 清理 Deep Research / ChatGPT citation marker
-├── _incoming/articles/           # 待上架文章暫存區與格式說明
-├── mkdocs.yml                    # MkDocs Material 設定
-├── requirements.txt              # Python / MkDocs 依賴
-└── .github/workflows/deploy.yml  # GitHub Pages 自動部署
-```
-
-## 本機開發
-
-### 1. 安裝依賴
-
-建議使用 Python virtual environment：
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-```
-
-### 2. 啟動本機預覽
-
-```bash
-mkdocs serve
-```
-
-啟動後可在瀏覽器開啟 MkDocs 顯示的本機網址（通常是 `http://127.0.0.1:8000/`）。
-
-### 3. 建置檢查
-
-```bash
-mkdocs build --strict
-```
-
-`hooks/word_counts.py` 會在 build 過程中掃描有 `date` front matter 的文章，更新 `docs/word-counts.md`，並在文章頁顯示字數與預估閱讀時間。
-
-## 新增文章（無腦上架流程）
-
-你不需要手動建立 `docs/<category>/<slug>/index.md`、複製內文、挑 tags 或清 citation。最推薦的流程是：**把 raw markdown 丟進 `_incoming/articles/`，然後叫 Codex 依本 README 或 `docs/article-publishing-workflow.md` 上架。**
-
-### 最短操作
-
-1. 把新文章原始 Markdown 存成單一檔案：
+1. 把 raw Markdown 放入：
 
    ```text
    _incoming/articles/my-new-report.md
    ```
 
-2. 對 Codex 說：
+2. 執行：
 
-   > 請根據 README 的無腦上架流程，把 `_incoming/articles/` 裡的新文章上架。
+   ```bash
+   python tools/publish_article.py
+   ```
 
-3. Codex 會完成：
-   - 讀取 raw markdown。
-   - 從 H1 / 內容推斷標題、分類、英文 kebab-case slug、日期與 tags。
-   - 清理 Deep Research / ChatGPT citation marker、entity wrapper、無實際資產的 image placeholder。
-   - 建立正式路徑 `docs/<category>/<slug>/index.md` 與 `assets/`。
-   - 若 raw input 來自 `_incoming/articles/`，上架成功後移除該 raw input。
-   - 執行檢查（至少確認檔案、front matter、citation marker；可行時執行 `mkdocs build --strict`）。
+3. 工具會建立 `docs/<category>/<slug>/index.md`、補上 metadata、清理已知生成標記、更新本 README 的文章目錄，並在成功後移除 raw input。
 
-### AI 上架工具
-
-repo 內提供 `tools/publish_article.py` 給 Codex 或維護者使用。當 `_incoming/articles/` 只有一篇待上架文章時，可直接執行：
-
-```bash
-python tools/publish_article.py
-```
-
-如果有多篇或需要指定資訊，可明確帶參數：
+需要精確指定 metadata 時：
 
 ```bash
 python tools/publish_article.py _incoming/articles/my-new-report.md \
@@ -126,83 +129,114 @@ python tools/publish_article.py _incoming/articles/my-new-report.md \
   --tags "LLM,Agentic AI"
 ```
 
-工具會：
+### 手動新增也會被接住
 
-- 支援單檔模式：`_incoming/articles/<name>.md`。
-- 支援資料夾模式：`_incoming/articles/<name>/article.md`、選用 `research-activity.md`、選用 `assets/`。
-- 自動加上 YAML front matter：`date` 與 `tags`。
-- 若文章沒有 H1，依檔名 / 參數補 H1。
-- 拒絕覆蓋已存在的正式文章。
-- 預設移除已處理的 raw input；若要保留可加 `--keep-raw`。
+直接新增或修改 `docs/**` 也可以，不必手動維護文章清單。變更進入 `main` 後，[Content Maintenance](.github/workflows/content-maintenance.yml) 會：
 
-> `tools/publish_article.py` 是「機械化上架」工具；分類、slug、tags 若 AI 判斷得更準，Codex 可以在執行時補上參數，或在建立後做必要微調。
+1. 掃描所有具 `date` 與 H1 的正式文章。
+2. 更新本 README 的 generated catalog。
+3. 執行 generator unit tests。
+4. 將 `main/docs` 視為 canonical content，覆蓋同步到 `app-main/docs`。
+5. 在 `app-main` 的完整環境執行 `npm run verify`。
+6. 驗證成功後建立同步 PR，並使用 **一般 merge commit** 合併；不採 squash／rebase。
 
-### 上架邏輯
+詳細 metadata、附件、citation 清理、Codex 行為與檢查清單請見 [`docs/article-publishing-workflow.md`](docs/article-publishing-workflow.md)。
 
-正式文章固定放在：
+## 文章目錄生成
+
+```bash
+# 更新 README generated section
+python tools/sync_readme_articles.py
+
+# CI / review 時確認沒有過期
+python tools/sync_readme_articles.py --check
+
+# 只輸出生成結果
+python tools/sync_readme_articles.py --stdout
+```
+
+生成器只會修改 `<!-- article-catalog:start -->` 與 `<!-- article-catalog:end -->` 之間的內容；其他 README 文案可正常人工維護。
+
+## 專案結構
 
 ```text
-docs/<category>/<english-kebab-case-slug>/index.md
+.
+├── README.md                         # Repository landing page + generated article catalog
+├── DESKTOP.md                        # Desktop 獨立入口
+├── docs/                             # Canonical Markdown；網站與 Desktop 共用
+│   ├── index.md
+│   ├── article-publishing-workflow.md
+│   ├── desktop-release.md
+│   ├── word-counts.md
+│   ├── tags.md
+│   ├── llm/ carbon/ cs/ health/
+│   └── timeline/
+├── hooks/word_counts.py              # MkDocs 字數／閱讀時間 hook
+├── tools/
+│   ├── publish_article.py            # Raw article → canonical article
+│   ├── sync_readme_articles.py       # Canonical docs → README catalog
+│   ├── test_sync_readme_articles.py  # Generator unit tests
+│   ├── new_note.py
+│   └── remove_citations.py
+├── _incoming/articles/               # 待上架 raw Markdown
+├── .github/workflows/
+│   ├── deploy.yml                    # Website CI + GitHub Pages
+│   ├── content-maintenance.yml       # README refresh + app-main content sync
+│   └── desktop-release.yml           # Default-branch release dispatcher
+├── mkdocs.yml
+└── requirements.txt
 ```
 
-分類邏輯：
+Desktop monorepo 的 `apps/`、`packages/`、`project-docs/`、Electron Forge 與 Node tooling 位於 [`app-main`](https://github.com/PME26Elvis/llm-research-archive/tree/app-main)。
 
-- LLM / AI / agent / model / inference / compute / GPU / benchmark：放 `docs/llm/`。
-- Computer Science / programming / software engineering / data structure / algorithm / taxonomy：放 `docs/cs/`。
-- 健康、醫療、營養、睡眠、運動：放 `docs/health/`。
-- 碳排、能源、再生能源、環境、氣候：放 `docs/carbon/`。
-- 無法明確判斷時，Codex 應先詢問，不要硬塞分類。
+## 本機開發
 
-metadata 邏輯：
+### Website
 
-- `title`：優先使用文章第一個 H1；沒有 H1 才補標題。
-- `slug`：用英文 kebab-case，短、可讀、可從 URL 理解主題。
-- `date`：使用上架當日 `YYYY-MM-DD`。
-- `tags`：至少一個分類 tag（例如 `LLM` / `CS` / `Carbon` / `Health`），再加 1–3 個主題 tag。
-
-正式文章開頭應長這樣：
-
-```yaml
----
-date: YYYY-MM-DD
-tags:
-  - LLM
-  - Topic Tag
----
-
-# 文章標題
+```bash
+python -m venv .venv
+source .venv/bin/activate       # Windows PowerShell: .venv\Scripts\Activate.ps1
+pip install -r requirements.txt
+python -m unittest discover -s tools -p "test_*.py"
+python tools/sync_readme_articles.py --check
+mkdocs serve
+mkdocs build --strict
 ```
 
-詳細 SOP、Codex 行為規則、附件策略與檢查清單請看 `docs/article-publishing-workflow.md`。
+### Desktop
 
-## 實用工具
-
-- `python tools/publish_article.py`：從 `_incoming/articles/` 將 raw markdown 上架成正式文章，自動補 front matter、清理 AI citation marker，並移除 raw input。
-- `python tools/new_note.py`：互動式建立新文章目錄、`index.md` 與 `assets/`；適合只想先開空白骨架時使用。
-- `python tools/remove_citations.py`：掃描 `docs/**/*.md`，移除 OpenAI Deep Research / ChatGPT citation marker。
-- `mkdocs build --strict`：嚴格建置網站，同時觸發字數統計 hook。
-
-> 注意：`tools/remove_citations.py` 會直接修改 `docs/` 底下符合條件的 Markdown 檔案，執行前建議先確認 git working tree 狀態。
-
-## 部署
-
-本 repo 已設定 GitHub Actions：當 `main` 分支收到 push 時，workflow 會：
-
-1. 建立 Python 環境。
-2. 安裝 `requirements.txt` 中的 MkDocs 依賴。
-3. 執行 `mkdocs build --strict`。
-4. 將產出的 `site/` 發布到 GitHub Pages。
-
-網站 URL 由 `mkdocs.yml` 設定為：
-
-```text
-https://PME26Elvis.github.io/llm-research-archive/
+```bash
+git switch app-main
+npm ci
+npm run dev
+npm run verify
 ```
 
-## 維護建議
+平台封裝：
 
-- 新文章請至少提供 `date` 與 `tags`，否則不會被字數統計視為正式文章。
-- 新分類請補上 `docs/<category>/index.md` 與必要的 `.meta.yml`，讓導覽更清楚。
-- 若文章含圖片，建議放在同篇文章的 `assets/` 目錄中。
-- 上架由 AI 研究工具輸出的文章時，請先清理 citation marker、entity wrapper 或沒有實際資產的 image placeholder。
-- 修改文章後建議執行 `mkdocs build --strict`，確認導覽、tags、字數總表與 plugin 設定都能正常產生。
+```bash
+npm run make:windows
+npm run make:linux
+```
+
+更多資訊請見 [`DESKTOP.md`](DESKTOP.md) 與 [`project-docs/`](https://github.com/PME26Elvis/llm-research-archive/tree/app-main/project-docs)。
+
+## 自動化與部署
+
+| Workflow | Branch / trigger | 責任 |
+| --- | --- | --- |
+| [`deploy.yml`](.github/workflows/deploy.yml) | PR to `main`、push to `main` | Generator tests、README generation validation、`mkdocs build --strict`；push 時部署 Pages。 |
+| [`content-maintenance.yml`](.github/workflows/content-maintenance.yml) | `main` content changes、manual dispatch | 自動 commit README catalog；驗證並 merge `docs/` 到 `app-main`。 |
+| [`desktop-ci.yml`](https://github.com/PME26Elvis/llm-research-archive/blob/app-main/.github/workflows/desktop-ci.yml) | `app-main` push / PR | Quality、E2E、Windows／Linux package smoke。 |
+| [`desktop-release.yml`](.github/workflows/desktop-release.yml) | manual dispatch on `main` | 呼叫 `app-main` reusable release pipeline。 |
+
+## 內容契約與維護原則
+
+- `main/docs` 是 canonical content；不要把 `app-main/docs` 當成獨立編輯來源。
+- 正式文章至少需要 YAML `date`、一個 H1 與建議的 `tags`。
+- 文章路徑使用 `docs/<category>/<english-kebab-case-slug>/index.md`。
+- 同篇文章的圖片與附件放在文章目錄的 `assets/`。
+- 不手動編輯 generated article catalog；請修改文章 metadata 或執行 generator。
+- 新分類需補 `docs/<category>/index.md` 與必要的 `.meta.yml`。
+- 上架 AI 研究輸出時，清理 citation marker、entity wrapper、無資產 image placeholder 與不適合讀者的工具紀錄。
+- 修改內容後至少執行 generator tests 與 `mkdocs build --strict`。
