@@ -15,7 +15,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
 
 concurrency:
   group: content-maintenance
@@ -54,8 +53,6 @@ jobs:
     needs: refresh-readme
     runs-on: ubuntu-latest
     env:
-      GH_TOKEN: ${{ github.token }}
-      REPOSITORY: ${{ github.repository }}
       SYNC_BRANCH: automation/sync-main-content
     steps:
       - name: Checkout canonical content
@@ -97,63 +94,34 @@ jobs:
         if: steps.sync.outputs.changed == 'true'
         working-directory: desktop
         run: npm run verify
-      - name: Create and merge content synchronization PR
+      - name: Publish verified content with a regular merge commit
         if: steps.sync.outputs.changed == 'true'
         shell: bash
         run: |
           set -euo pipefail
           canonical_sha=$(git -C canonical rev-parse HEAD)
           cd desktop
-          git switch -C "$SYNC_BRANCH"
+          base_sha=$(git rev-parse HEAD)
+
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+          git switch -C "$SYNC_BRANCH"
           git add docs
           git commit -m "docs: sync canonical content from main (${canonical_sha:0:12})"
-          head_sha=$(git rev-parse HEAD)
+          sync_sha=$(git rev-parse HEAD)
           git push --force origin "HEAD:refs/heads/$SYNC_BRANCH"
 
-          cat > /tmp/content-sync-pr.md <<EOF
-          ## Summary
+          git switch -C app-main "$base_sha"
+          git merge --no-ff "$sync_sha" -m "Merge canonical content from main (${canonical_sha:0:12})"
+          merge_sha=$(git rev-parse HEAD)
+          git push origin HEAD:app-main
 
-          Synchronize the canonical Markdown tree from \`main/docs\` into \`app-main/docs\`.
-
-          - canonical main commit: \`$canonical_sha\`
-          - validation: \`npm run verify\` on the synchronized Desktop tree
-          - merge policy: regular merge commit; source branch is retained
-
-          This pull request is generated and merged by the Content Maintenance workflow only after Desktop verification succeeds.
-          EOF
-
-          pr_number=$(gh pr list \
-            --repo "$REPOSITORY" \
-            --base app-main \
-            --head "$SYNC_BRANCH" \
-            --state open \
-            --json number \
-            --jq '.[0].number // empty')
-
-          if [[ -z "$pr_number" ]]; then
-            pr_url=$(gh pr create \
-              --repo "$REPOSITORY" \
-              --base app-main \
-              --head "$SYNC_BRANCH" \
-              --title 'Sync canonical articles from main' \
-              --body-file /tmp/content-sync-pr.md)
-            pr_number=${pr_url##*/}
-          else
-            gh pr edit "$pr_number" \
-              --repo "$REPOSITORY" \
-              --title 'Sync canonical articles from main' \
-              --body-file /tmp/content-sync-pr.md
-          fi
-
-          merged=$(gh api \
-            --method PUT \
-            "repos/$REPOSITORY/pulls/$pr_number/merge" \
-            -f merge_method=merge \
-            -f sha="$head_sha" \
-            --jq '.merged')
-          if [[ "$merged" != 'true' ]]; then
-            echo "Content synchronization PR #$pr_number was not merged." >&2
-            exit 1
-          fi
+          {
+            echo '### Desktop content synchronization'
+            echo
+            echo "- canonical main: \`$canonical_sha\`"
+            echo "- retained sync branch: \`$SYNC_BRANCH\` at \`$sync_sha\`"
+            echo "- app-main regular merge commit: \`$merge_sha\`"
+            echo '- validation: `npm run verify` completed before publication'
+          } >> "$GITHUB_STEP_SUMMARY"
