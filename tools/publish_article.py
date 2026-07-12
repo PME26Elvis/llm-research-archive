@@ -9,6 +9,8 @@ from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
 
+from sync_readme_articles import update_readme
+
 INCOMING = Path("_incoming/articles")
 DOCS = Path("docs")
 CITATION_RE = re.compile(r"[ \t]*\uE200cite\uE202[^\uE201]*\uE201")
@@ -21,6 +23,7 @@ CATEGORY_RULES = {
     "health": ("Health", ("health", "medical", "medicine", "nutrition", "fitness", "sleep", "健康", "醫療", "營養", "睡眠")),
     "carbon": ("Carbon", ("carbon", "energy", "renewable", "emission", "climate", "碳", "能源", "再生能源", "排放", "氣候")),
 }
+
 
 @dataclass
 class Source:
@@ -44,14 +47,17 @@ def title_from_markdown(text: str) -> str | None:
 
 def infer_category(text: str) -> str | None:
     lower = text.lower()
-    scores = {category: sum(1 for keyword in keywords if keyword.lower() in lower) for category, (_, keywords) in CATEGORY_RULES.items()}
+    scores = {
+        category: sum(1 for keyword in keywords if keyword.lower() in lower)
+        for category, (_, keywords) in CATEGORY_RULES.items()
+    }
     best, score = max(scores.items(), key=lambda item: item[1])
     return best if score > 0 else None
 
 
 def clean_text(text: str) -> str:
     text = CITATION_RE.sub("", text)
-    text = ENTITY_RE.sub(lambda m: m.group(1), text)
+    text = ENTITY_RE.sub(lambda match: match.group(1), text)
     text = IMAGE_GROUP_RE.sub("", text)
     return text
 
@@ -66,7 +72,14 @@ def discover_sources() -> list[Source]:
         elif path.is_dir():
             article = path / "article.md"
             if article.exists():
-                sources.append(Source(root=path, article=article, research=(path / "research-activity.md" if (path / "research-activity.md").exists() else None), assets=(path / "assets" if (path / "assets").exists() else None)))
+                sources.append(
+                    Source(
+                        root=path,
+                        article=article,
+                        research=(path / "research-activity.md" if (path / "research-activity.md").exists() else None),
+                        assets=(path / "assets" if (path / "assets").exists() else None),
+                    )
+                )
     return sources
 
 
@@ -91,21 +104,31 @@ def publish(source: Source, args: argparse.Namespace) -> Path:
         raise SystemExit(f"Refusing to overwrite existing article: {target}")
 
     target_dir.mkdir(parents=True, exist_ok=False)
-    if source.assets:
-        shutil.copytree(source.assets, target_dir / "assets")
-    else:
-        (target_dir / "assets").mkdir(exist_ok=True)
+    try:
+        if source.assets:
+            shutil.copytree(source.assets, target_dir / "assets")
+        else:
+            (target_dir / "assets").mkdir(exist_ok=True)
 
-    body = clean_text(raw).strip()
-    if not re.search(r"^#\s+", body, re.MULTILINE):
-        body = f"# {title}\n\n{body}"
-    tags = parse_tags(args.tags, category_tag)
-    front = ["---", f"date: {args.date}", "tags:", *[f"  - {tag}" for tag in tags], "---", ""]
-    output = "\n".join(front) + body + "\n"
-    if source.research:
-        research = clean_text(source.research.read_text(encoding="utf-8")).strip()
-        output += "\n<details>\n<summary>附件（展開）</summary>\n\n" + research + "\n\n</details>\n"
-    target.write_text(output, encoding="utf-8")
+        body = clean_text(raw).strip()
+        if not re.search(r"^#\s+", body, re.MULTILINE):
+            body = f"# {title}\n\n{body}"
+        tags = parse_tags(args.tags, category_tag)
+        front = ["---", f"date: {args.date}", "tags:", *[f"  - {tag}" for tag in tags], "---", ""]
+        output = "\n".join(front) + body + "\n"
+        if source.research:
+            research = clean_text(source.research.read_text(encoding="utf-8")).strip()
+            output += "\n<details>\n<summary>附件（展開）</summary>\n\n" + research + "\n\n</details>\n"
+        target.write_text(output, encoding="utf-8")
+        update_readme(Path.cwd())
+    except Exception:
+        shutil.rmtree(target_dir, ignore_errors=True)
+        try:
+            target_dir.parent.rmdir()
+        except OSError:
+            pass
+        raise
+
     if not args.keep_raw:
         if source.root.is_dir():
             shutil.rmtree(source.root)
@@ -129,7 +152,12 @@ def main() -> None:
     if args.source:
         path = Path(args.source)
         if path.is_dir():
-            source = Source(root=path, article=path / "article.md", research=(path / "research-activity.md" if (path / "research-activity.md").exists() else None), assets=(path / "assets" if (path / "assets").exists() else None))
+            source = Source(
+                root=path,
+                article=path / "article.md",
+                research=(path / "research-activity.md" if (path / "research-activity.md").exists() else None),
+                assets=(path / "assets" if (path / "assets").exists() else None),
+            )
         else:
             source = Source(root=path, article=path)
         if not source.article.exists():
@@ -137,12 +165,14 @@ def main() -> None:
     else:
         sources = discover_sources()
         if len(sources) != 1:
-            names = "\n".join(f"- {s.root}" for s in sources) or "(none)"
+            names = "\n".join(f"- {candidate.root}" for candidate in sources) or "(none)"
             raise SystemExit(f"Expected exactly one incoming article. Found:\n{names}")
         source = sources[0]
 
     target = publish(source, args)
     print(f"Published: {target}")
+    print("Updated: README.md article catalog")
+
 
 if __name__ == "__main__":
     main()
