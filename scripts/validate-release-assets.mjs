@@ -62,6 +62,16 @@ if (nextPatch.version !== semver.inc(version, 'patch') || nextPatch.source !== '
     `automatic version did not advance after collision: ${JSON.stringify(nextPatch)}`,
   );
 }
+const draftNextPatch = selectReleaseVersion({
+  packageVersion: version,
+  reusableDraftTags: [`v${version}`],
+});
+if (
+  draftNextPatch.version !== semver.inc(version, 'patch') ||
+  draftNextPatch.source !== 'auto-next-patch'
+) {
+  throw new Error(`blank version did not advance past draft: ${JSON.stringify(draftNextPatch)}`);
+}
 const higher = selectReleaseVersion({
   packageVersion: version,
   existingTags: ['v9.4.2'],
@@ -76,6 +86,14 @@ const requested = selectReleaseVersion({
 if (requested.version !== '2.3.4' || requested.source !== 'requested') {
   throw new Error(`unexpected requested version: ${JSON.stringify(requested)}`);
 }
+const requestedDraft = selectReleaseVersion({
+  packageVersion: version,
+  requestedVersion: '2.3.4',
+  reusableDraftTags: ['v2.3.4'],
+});
+if (requestedDraft.version !== '2.3.4' || requestedDraft.source !== 'requested-draft') {
+  throw new Error(`existing draft was not reusable: ${JSON.stringify(requestedDraft)}`);
+}
 let collisionRejected = false;
 try {
   selectReleaseVersion({
@@ -86,8 +104,8 @@ try {
 } catch {
   collisionRejected = true;
 }
-if (!collisionRejected) throw new Error('explicit release version collision was not rejected');
+if (!collisionRejected) throw new Error('explicit published version collision was not rejected');
 
 console.log(
-  `release validation passed for ${version}: automatic versioning and Windows/Linux/macOS artifact names are valid`,
+  `release validation passed for ${version}: automatic versioning, draft promotion, and Windows/Linux/macOS artifact names are valid`,
 );
