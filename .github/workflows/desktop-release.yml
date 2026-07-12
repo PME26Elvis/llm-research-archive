@@ -8,7 +8,7 @@ on:
         required: true
         default: app-main
       requested_version:
-        description: Optional exact SemVer; blank auto-selects package version or the next free patch
+        description: Blank creates next free version; exact SemVer can promote a matching draft
         required: false
         default: ''
       channel:
