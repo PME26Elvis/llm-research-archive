@@ -1,0 +1,13 @@
+--- a/apps/desktop-electron/src/renderer/command-palette.tsx
++++ b/apps/desktop-electron/src/renderer/command-palette.tsx
+@@ -22,7 +22,9 @@
+     setQuery('');
+     setActiveIndex(0);
+     requestAnimationFrame(() => inputRef.current?.focus());
+-    return () => requestAnimationFrame(() => returnFocusRef.current?.focus());
++    return () => {
++      requestAnimationFrame(() => returnFocusRef.current?.focus());
++    };
+   }, [open]);
+ 
+   useEffect(() => {
