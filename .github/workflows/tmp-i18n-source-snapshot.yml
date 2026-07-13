@@ -25,11 +25,11 @@ jobs:
         run: echo "source_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - name: Archive app-main source
         shell: bash
-        run: tar --exclude=.git --exclude=app-main-source.tar.gz -czf app-main-source.tar.gz .
+        run: tar --exclude=.git -czf "$RUNNER_TEMP/app-main-source.tar.gz" .
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: app-main-i18n-source-${{ github.run_id }}
-          path: app-main-source.tar.gz
+          path: ${{ runner.temp }}/app-main-source.tar.gz
           if-no-files-found: error
           retention-days: 7
 
