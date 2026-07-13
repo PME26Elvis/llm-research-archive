@@ -32,8 +32,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat .payload/.language-docs/01.part .payload/.language-docs/02.part .payload/.language-docs/03.part .payload/.language-docs/04.part > /tmp/language-docs.patch
-          echo '32c7aa5884efe33cce6d7310874cd809215e1674c66ddf8fbeb44cadb9ae4890  /tmp/language-docs.patch' | sha256sum --check
+          cat .payload/.language-docs/01.part .payload/.language-docs/02.part .payload/.language-docs/03.part .payload/.language-docs/04.part .payload/.language-docs/05.diff > /tmp/language-docs.patch
+          echo '51cd9ab5830ff93df1c9c491afa85792e5234329f29f8ab31a73e7fe2628b751  /tmp/language-docs.patch' | sha256sum --check
           git apply --check /tmp/language-docs.patch
           git apply /tmp/language-docs.patch
           rm -rf .payload
