@@ -1,0 +1,47 @@
+2026-07-13T02:34:32.7024494Z Commit: 925d229a51159bc391ae97e54a2dd1fe20af789d
+2026-07-13T02:34:32.7045665Z Prepare workflow directory
+2026-07-13T02:34:34.1684303Z  * [new branch]      agent/atomic-import-commit -> origin/agent/atomic-import-commit
+2026-07-13T02:34:34.1753884Z  * [new branch]      codex/create-two-prs-for-desktop-release-workflow -> origin/codex/create-two-prs-for-desktop-release-workflow
+2026-07-13T02:34:34.1761417Z  * [new branch]      codex/document-article-addition-workflow -> origin/codex/document-article-addition-workflow
+2026-07-13T02:34:34.1764870Z  * [new branch]      codex/fix-frontend-bugs-and-404-errors -> origin/codex/fix-frontend-bugs-and-404-errors
+2026-07-13T02:34:34.2581354Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-07-13T02:34:35.0571400Z (node:2251) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-07-13T02:34:36.4882263Z [36;1mworkflow = Path('.github/workflows/desktop-release-reusable.yml')[0m
+2026-07-13T02:34:36.4882687Z [36;1mtext = workflow.read_text()[0m
+2026-07-13T02:34:36.4885401Z [36;1mworkflow.write_text(text)[0m
+2026-07-13T02:34:36.4887457Z [36;1mmarker = "if (releaseWorkflow.includes('npm version \"$RELEASE_VERSION\"')) {\n  throw new Error('release workflow must not use shell-specific RELEASE_VERSION expansion');\n}\n"[0m
+2026-07-13T02:34:36.4888609Z [36;1mconst preflightStart = releaseWorkflow.indexOf('  preflight:\n');[0m
+2026-07-13T02:34:36.4889092Z [36;1mconst buildStart = releaseWorkflow.indexOf('  build:\n');[0m
+2026-07-13T02:34:36.4890274Z [36;1m  throw new Error('release workflow must contain ordered preflight and build jobs');[0m
+2026-07-13T02:34:36.4891696Z [36;1mconst preflightWorkflow = releaseWorkflow.slice(preflightStart, buildStart);[0m
+2026-07-13T02:34:36.4892804Z [36;1mif (!preflightWorkflow.includes('    permissions:\n      contents: write\n')) {[0m
+2026-07-13T02:34:36.4893997Z [36;1m  throw new Error('release preflight needs contents: write to discover draft releases');[0m
+2026-07-13T02:34:36.4895008Z [36;1mif (!preflightWorkflow.includes('/releases?per_page=100')) {[0m
+2026-07-13T02:34:36.4895600Z [36;1m  throw new Error('release preflight must enumerate GitHub releases before selecting a version');[0m
+2026-07-13T02:34:36.4897645Z [36;1m        raise SystemExit('unable to locate release workflow validation marker')[0m
+2026-07-13T02:34:46.2133692Z > prettier --write "{package.json,tsconfig*.json,vitest.config.ts,playwright.config.ts,scripts/**/*.{mjs,js},packages/**/*.{ts,json},apps/**/*.{ts,tsx,mjs,json,html},.github/workflows/desktop-*.yml}"
+2026-07-13T02:34:46.3867498Z [90m.github/workflows/desktop-ci.yml[39m 42ms (unchanged)
+2026-07-13T02:34:46.4173443Z [90m.github/workflows/desktop-release-reusable.yml[39m 28ms (unchanged)
+2026-07-13T02:34:47.3599513Z [90mpackages/content-engine/src/article-import/commit-operations.ts[39m 5ms (unchanged)
+2026-07-13T02:34:47.3763799Z [90mpackages/content-engine/src/article-import/commit-transaction.ts[39m 15ms (unchanged)
+2026-07-13T02:34:47.3851186Z [90mpackages/content-engine/src/article-import/commit-validation.ts[39m 7ms (unchanged)
+2026-07-13T02:34:47.4156402Z [90mpackages/content-engine/src/article-import/commit.test.ts[39m 22ms (unchanged)
+2026-07-13T02:34:47.4192155Z [90mpackages/content-engine/src/article-import/commit.ts[39m 1ms (unchanged)
+2026-07-13T02:34:48.1656005Z > prettier --check "{package.json,tsconfig*.json,vitest.config.ts,playwright.config.ts,scripts/**/*.{mjs,js},packages/**/*.{ts,json},apps/**/*.{ts,tsx,mjs,json,html},.github/workflows/desktop-*.yml}"
+2026-07-13T02:34:54.8379439Z  [32m✓[39m packages/content-engine/src/article-import/commit.test.ts [2m ([22m[2m12 tests[22m[2m)[22m[90m 70[2mms[22m[39m
+2026-07-13T02:34:55.2697548Z   throw new Error(
+2026-07-13T02:34:55.2700141Z Error: expected exactly 7 binary artifacts, got 6: research-observatory-0.1.0-linux-x64-portable.zip, research-observatory-0.1.0-linux-x64.deb, research-observatory-0.1.0-linux-x64.rpm, research-observatory-0.1.0-macos-arm64.zip, research-observatory-0.1.0-macos-x64.zip, research-observatory-0.1.0-windows-x64-portable.zip
+2026-07-13T02:34:55.6037579Z   throw new Error(
+2026-07-13T02:34:55.6041943Z Error: expected exactly 7 binary artifacts, got 8: research-observatory-0.1.0-linux-x64-portable.zip, research-observatory-0.1.0-linux-x64.deb, research-observatory-0.1.0-linux-x64.rpm, research-observatory-0.1.0-macos-arm64.zip, research-observatory-0.1.0-macos-x64.zip, research-observatory-0.1.0-windows-x64-portable.zip, research-observatory-0.1.0-windows-x64-setup.exe, research-observatory-9.9.9-linux-x64.rpm
+2026-07-13T02:34:55.6052264Z   if (!files.includes(name)) throw new Error(`missing expected artifact ${name}`);
+2026-07-13T02:34:55.6054056Z Error: missing expected artifact research-observatory-0.1.0-windows-x64-setup.exe
+2026-07-13T02:34:55.6064353Z   if (buf.length === 0) throw new Error(`zero-byte artifact ${f}`);
+2026-07-13T02:34:55.6070270Z Error: zero-byte artifact research-observatory-0.1.0-windows-x64-setup.exe
+2026-07-13T02:34:55.8160146Z  [32m✓[39m scripts/workflow-release.test.ts [2m ([22m[2m5 tests[22m[2m)[22m[90m 7[2mms[22m[39m
+2026-07-13T02:34:59.3612564Z  [32m✓[39m packages/content-engine/src/article-import/commit.test.ts [2m ([22m[2m12 tests[22m[2m)[22m[90m 69[2mms[22m[39m
+2026-07-13T02:35:15.9413495Z [36;1mgit add .github/workflows/desktop-release-reusable.yml scripts/validate-release-assets.mjs[0m
+2026-07-13T02:35:15.9414095Z [36;1mgit commit -m "Fix draft-aware release version selection"[0m
+2026-07-13T02:35:15.9414542Z [36;1mgit push origin HEAD:fix/release-draft-discovery-permission[0m
+2026-07-13T02:35:16.8414794Z  ! [remote rejected] HEAD -> fix/release-draft-discovery-permission (refusing to allow a GitHub App to create or update workflow `.github/workflows/desktop-release-reusable.yml` without `workflows` permission)
+2026-07-13T02:35:16.8416877Z error: failed to push some refs to 'https://github.com/PME26Elvis/llm-research-archive'
+2026-07-13T02:35:16.8441825Z ##[error]Process completed with exit code 1.
