@@ -1,0 +1,435 @@
+--- a/apps/desktop-electron/e2e/accessibility.spec.ts
++++ b/apps/desktop-electron/e2e/accessibility.spec.ts
+@@ -0,0 +1,59 @@
++import { expect, test } from './electron-test';
++
++test('keyboard users can reach reader and use the accessible Observatory summary', async ({
++  launchElectron,
++}) => {
++  const { page } = await launchElectron();
++  await expect(page.getByTestId('app-ready')).toBeVisible({ timeout: 30000 });
++
++  await page.keyboard.press('Tab');
++  await expect(page.locator(':focus')).toHaveText('跳至文章內容');
++  await page.keyboard.press('Enter');
++  await expect(page.locator(':focus')).toHaveAttribute('id', 'main-reader');
++
++  const observatoryButton = page.getByRole('button', { name: 'Observatory' });
++  await observatoryButton.focus();
++  await observatoryButton.press('Enter');
++  const dialog = page.getByRole('dialog', { name: 'Observatory 封存摘要' });
++  await expect(dialog).toBeVisible();
++  await expect(page.getByTestId('observatory-stats')).toContainText('文章數');
++  await expect(dialog.getByRole('table')).toHaveCount(2);
++  await expect(page.locator(':focus')).toHaveText('關閉');
++  await page.keyboard.press('Tab');
++  await expect(page.locator(':focus')).toHaveText('關閉');
++  await page.keyboard.press('Escape');
++  await expect(dialog).toHaveCount(0);
++  await expect(page.locator(':focus')).toHaveText('Observatory');
++});
++
++test('desktop remains operable at 200 percent zoom and reduced motion', async ({
++  launchElectron,
++}) => {
++  const { app, page } = await launchElectron();
++  await expect(page.getByTestId('app-ready')).toBeVisible({ timeout: 30000 });
++  await page.emulateMedia({ reducedMotion: 'reduce' });
++  await app.evaluate(({ BrowserWindow }) => {
++    BrowserWindow.getAllWindows()[0]?.webContents.setZoomFactor(2);
++  });
++  await expect(page.getByLabel('搜尋文章')).toBeVisible();
++  await page.getByLabel('搜尋文章').fill('算力');
++  await expect(page.getByTestId('article-list').getByRole('button').first()).toBeVisible();
++  await page.getByTestId('article-list').getByRole('button').first().click();
++  await expect(page.getByTestId('reader')).toBeVisible();
++  await expect(
++    page.evaluate(() => getComputedStyle(document.documentElement).scrollBehavior),
++  ).resolves.not.toBe('smooth');
++});
++
++test('workspace diagnostics expose startup milestones and can be cleared without paths', async ({
++  launchElectron,
++}) => {
++  const { page } = await launchElectron();
++  await expect(page.getByTestId('app-ready')).toBeVisible({ timeout: 30000 });
++  const diagnostics = page.getByTestId('workspace-diagnostics');
++  await diagnostics.locator('summary').click();
++  await expect(page.getByTestId('startup-telemetry')).toContainText('process-start');
++  await expect(page.getByTestId('startup-telemetry')).toContainText('interactive');
++  await diagnostics.getByRole('button', { name: '清除本機診斷' }).click();
++  await expect(diagnostics).toContainText('尚無本機診斷事件');
++});
+--- a/apps/desktop-electron/src/main/local-diagnostics.test.ts
++++ b/apps/desktop-electron/src/main/local-diagnostics.test.ts
+@@ -0,0 +1,37 @@
++import { describe, expect, it } from 'vitest';
++import fs from 'node:fs';
++import os from 'node:os';
++import path from 'node:path';
++import { LocalDiagnostics, redactDiagnosticText } from './local-diagnostics';
++
++describe('LocalDiagnostics', () => {
++  it('redacts secrets, absolute paths, and configured workspace roots', () => {
++    const root = path.join(os.tmpdir(), 'private-workspace');
++    const text = redactDiagnosticText(
++      `failure at ${path.join(root, 'article.md')} token=super-secret authorization: Bearer abc`,
++      [root],
++    );
++    expect(text).not.toContain(root);
++    expect(text).not.toContain('super-secret');
++    expect(text).not.toContain('Bearer abc');
++    expect(text).toContain('[workspace]');
++  });
++
++  it('keeps a bounded atomic event history and supports clearing', () => {
++    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'local-diagnostics-'));
++    const file = path.join(directory, 'events.json');
++    const diagnostics = new LocalDiagnostics(file, 3, 4096);
++    for (let index = 0; index < 5; index += 1) {
++      diagnostics.record('error', 'main', `event-${index}`, `message ${index}`);
++    }
++    expect(diagnostics.recent().map((event) => event.code)).toEqual([
++      'event-2',
++      'event-3',
++      'event-4',
++    ]);
++    expect(fs.statSync(file).mode & 0o777).toBe(0o600);
++    diagnostics.clear();
++    expect(diagnostics.recent()).toEqual([]);
++    fs.rmSync(directory, { recursive: true, force: true });
++  });
++});
+--- a/apps/desktop-electron/src/main/local-diagnostics.ts
++++ b/apps/desktop-electron/src/main/local-diagnostics.ts
+@@ -0,0 +1,122 @@
++import fs from 'node:fs';
++import path from 'node:path';
++
++export type DiagnosticLevel = 'info' | 'warning' | 'error';
++export type DiagnosticArea =
++  | 'main'
++  | 'renderer'
++  | 'preferences'
++  | 'search-index'
++  | 'workspace'
++  | 'import';
++
++export interface LocalDiagnosticEvent {
++  timestamp: string;
++  level: DiagnosticLevel;
++  area: DiagnosticArea;
++  code: string;
++  message: string;
++}
++
++interface LocalDiagnosticFileV1 {
++  schemaVersion: 1;
++  events: LocalDiagnosticEvent[];
++}
++
++const SECRET_PATTERN = /(?:api[-_ ]?key|authorization|bearer|token|secret|password)\s*[:=]\s*[^\s,;]+/gi;
++const ABSOLUTE_PATH_PATTERN = /(?:[A-Za-z]:\\[^\n\r"']+|\/(?:Users|home|var|tmp|private|opt|mnt)\/[^\n\r"']+)/g;
++
++function truncate(value: string, max = 500): string {
++  return value.length <= max ? value : `${value.slice(0, max - 1)}…`;
++}
++
++export function redactDiagnosticText(value: unknown, privateRoots: readonly string[] = []): string {
++  let text = typeof value === 'string' ? value : value instanceof Error ? value.message : String(value);
++  for (const root of privateRoots.filter(Boolean).sort((a, b) => b.length - a.length)) {
++    text = text.split(root).join('[workspace]');
++  }
++  return truncate(
++    text
++      .replace(SECRET_PATTERN, '[secret-redacted]')
++      .replace(ABSOLUTE_PATH_PATTERN, '[path-redacted]')
++      .replace(/[\r\n\t]+/g, ' ')
++      .replace(/\s{2,}/g, ' ')
++      .trim(),
++  );
++}
++
++export class LocalDiagnostics {
++  private privateRoots: string[] = [];
++
++  constructor(
++    private readonly filePath: string,
++    private readonly maxEvents = 200,
++    private readonly maxBytes = 256 * 1024,
++  ) {}
++
++  setPrivateRoots(roots: readonly string[]): void {
++    this.privateRoots = roots.filter(Boolean).map((root) => path.resolve(root));
++  }
++
++  record(
++    level: DiagnosticLevel,
++    area: DiagnosticArea,
++    code: string,
++    message: unknown,
++    timestamp = new Date().toISOString(),
++  ): LocalDiagnosticEvent {
++    const event: LocalDiagnosticEvent = {
++      timestamp,
++      level,
++      area,
++      code: code.replace(/[^a-z0-9-]/gi, '-').slice(0, 80) || 'unknown',
++      message: redactDiagnosticText(message, this.privateRoots),
++    };
++    const current = this.readFile();
++    current.events.push(event);
++    current.events = current.events.slice(-this.maxEvents);
++    while (Buffer.byteLength(JSON.stringify(current)) > this.maxBytes && current.events.length > 1) {
++      current.events.shift();
++    }
++    this.writeFile(current);
++    return event;
++  }
++
++  recent(limit = 50): LocalDiagnosticEvent[] {
++    return this.readFile().events.slice(-Math.max(0, Math.min(limit, this.maxEvents)));
++  }
++
++  clear(): void {
++    this.writeFile({ schemaVersion: 1, events: [] });
++  }
++
++  private readFile(): LocalDiagnosticFileV1 {
++    try {
++      const parsed = JSON.parse(fs.readFileSync(this.filePath, 'utf8')) as Partial<LocalDiagnosticFileV1>;
++      if (parsed.schemaVersion !== 1 || !Array.isArray(parsed.events)) throw new Error('invalid');
++      return {
++        schemaVersion: 1,
++        events: parsed.events.filter(
++          (event): event is LocalDiagnosticEvent =>
++            Boolean(
++              event &&
++                typeof event.timestamp === 'string' &&
++                typeof event.level === 'string' &&
++                typeof event.area === 'string' &&
++                typeof event.code === 'string' &&
++                typeof event.message === 'string',
++            ),
++        ),
++      };
++    } catch {
++      return { schemaVersion: 1, events: [] };
++    }
++  }
++
++  private writeFile(value: LocalDiagnosticFileV1): void {
++    fs.mkdirSync(path.dirname(this.filePath), { recursive: true });
++    const temporary = `${this.filePath}.tmp`;
++    fs.writeFileSync(temporary, `${JSON.stringify(value, null, 2)}\n`, { mode: 0o600 });
++    fs.renameSync(temporary, this.filePath);
++  }
++}
+--- a/apps/desktop-electron/src/main/main.ts
++++ b/apps/desktop-electron/src/main/main.ts
+@@ -15,10 +15,11 @@
+ } from 'electron';
+ import path from 'node:path';
+ import { fileURLToPath, pathToFileURL } from 'node:url';
+-import fs from 'node:fs/promises';
+ import { resolveSafeAssetPath } from './asset-path';
+ import { loadWindowState, saveWindowState } from './window-state';
+ import { ImportSessionService } from './import-session';
++import { LocalDiagnostics } from './local-diagnostics';
++import { StartupTelemetry } from './startup-telemetry';
+ import {
+   DEFAULT_WORKSPACE_STATE,
+   loadWorkspaceState,
+@@ -35,12 +36,15 @@
+   SearchResponseSchema,
+   ExternalUrlSchema,
+   AppInfoResponseSchema,
++  ArchiveDiagnosticsSchema,
+   DesktopCommandSchema,
+   ImportCommitRequestSchema,
+   ImportCommitResultSchema,
+   ImportPreviewRefreshRequestSchema,
+   ImportPreviewResultSchema,
+   ImportSourceSelectionRequestSchema,
++  RendererDiagnosticRequestSchema,
++  StartupMilestoneSchema,
+   WorkspaceInfoSchema,
+   WorkspaceSelectionResultSchema,
+   type DesktopCommand,
+@@ -57,6 +61,8 @@
+ let activeContentRoot = '';
+ let activeWorkspace: WorkspaceInfoDto;
+ const importSessions = new ImportSessionService();
++const startupTelemetry = new StartupTelemetry();
++let localDiagnostics: LocalDiagnostics | undefined;
+ let workspaceRecoveryWarnings: string[] = [];
+ let trustedRendererUrl = '';
+ let trustedRendererOrigin = '';
+@@ -89,6 +95,8 @@
+   activeContentRoot = rootPath;
+   core = new ResearchObservatoryApp(rootPath);
+   activeWorkspace = workspaceInfo(kind, rootPath);
++  localDiagnostics?.setPrivateRoots([app.getPath('userData'), bundledContentRoot(), rootPath]);
++  startupTelemetry.mark('archive-ready');
+   return activeWorkspace;
+ }
+ function initializeWorkspace(): void {
+@@ -108,6 +116,12 @@
+       return;
+     } catch {
+       workspaceRecoveryWarnings.push('先前工作區無法使用，已回復內建封存');
++      localDiagnostics?.record(
++        'warning',
++        'workspace',
++        'workspace-recovered',
++        '先前工作區無法使用，已回復內建封存',
++      );
+       saveWorkspaceState(stateFile, DEFAULT_WORKSPACE_STATE);
+     }
+   }
+@@ -166,6 +180,11 @@
+           accelerator: 'CmdOrCtrl+K',
+           click: () => send('palette.open'),
+         },
++        {
++          label: 'Observatory 摘要',
++          accelerator: 'CmdOrCtrl+Shift+O',
++          click: () => send('observatory.open'),
++        },
+       ],
+     },
+     {
+@@ -203,6 +222,15 @@
+       webSecurity: true,
+     },
+   });
++  startupTelemetry.mark('window-created');
++  win.webContents.on('render-process-gone', (_event, details) => {
++    localDiagnostics?.record(
++      'error',
++      'renderer',
++      'render-process-gone',
++      `renderer exited: ${details.reason}`,
++    );
++  });
+   let windowStateTimer: NodeJS.Timeout | undefined;
+   const persistWindowState = () => {
+     if (windowStateTimer) clearTimeout(windowStateTimer);
+@@ -213,7 +241,7 @@
+         maximized: win.isMaximized(),
+       });
+     } catch (error) {
+-      console.error('window-state-save-failed', error);
++      localDiagnostics?.record('error', 'main', 'window-state-save-failed', error);
+     }
+   };
+   const scheduleWindowState = () => {
+@@ -286,9 +314,10 @@
+       workspace,
+     });
+   } catch (error) {
++    localDiagnostics?.record('warning', 'workspace', 'workspace-open-rejected', error);
+     return WorkspaceSelectionResultSchema.parse({
+       status: 'rejected',
+-      message: `無法開啟工作區：${error instanceof Error ? error.message : String(error)}`,
++      message: '無法開啟工作區；請確認資料夾包含可讀取的 Markdown 文章且未使用符號連結。',
+     });
+   }
+ });
+@@ -346,7 +375,29 @@
+ });
+ ipcMain.handle('diagnostics:get', (event) => {
+   validateSender(event.sender, event.senderFrame);
+-  return core.diagnostics();
++  return ArchiveDiagnosticsSchema.parse({
++    ...core.diagnostics(),
++    startup: startupTelemetry.summary(),
++    events: localDiagnostics?.recent(50) ?? [],
++  });
++});
++ipcMain.handle('diagnostics:clear', (event) => {
++  validateSender(event.sender, event.senderFrame);
++  localDiagnostics?.clear();
++  return ArchiveDiagnosticsSchema.parse({
++    ...core.diagnostics(),
++    startup: startupTelemetry.summary(),
++    events: [],
++  });
++});
++ipcMain.handle('diagnostics:report', (event, rawRequest: unknown) => {
++  validateSender(event.sender, event.senderFrame);
++  const request = RendererDiagnosticRequestSchema.parse(rawRequest);
++  localDiagnostics?.record('error', request.area, request.code, request.message);
++});
++ipcMain.handle('telemetry:mark', (event, rawMilestone: unknown) => {
++  validateSender(event.sender, event.senderFrame);
++  return startupTelemetry.mark(StartupMilestoneSchema.parse(rawMilestone));
+ });
+ ipcMain.handle('app:info', (event) => {
+   validateSender(event.sender, event.senderFrame);
+@@ -368,7 +419,28 @@
+   validateSender(event.sender, event.senderFrame);
+   return shell.openExternal(ExternalUrlSchema.parse(url));
+ });
+-app.whenReady().then(createWindow);
++app.whenReady().then(() => {
++  const userData = app.getPath('userData');
++  localDiagnostics = new LocalDiagnostics(path.join(userData, 'diagnostics', 'events.json'));
++  localDiagnostics.setPrivateRoots([userData, bundledContentRoot()]);
++  startupTelemetry.attachHistoryFile(path.join(userData, 'diagnostics', 'startup-history.json'));
++  startupTelemetry.mark('app-ready');
++  process.on('uncaughtException', (error) => {
++    localDiagnostics?.record('error', 'main', 'uncaught-exception', error);
++  });
++  process.on('unhandledRejection', (reason) => {
++    localDiagnostics?.record('error', 'main', 'unhandled-rejection', reason);
++  });
++  app.on('child-process-gone', (_event, details) => {
++    localDiagnostics?.record(
++      'error',
++      'main',
++      'child-process-gone',
++      `${details.type} exited: ${details.reason}`,
++    );
++  });
++  createWindow();
++});
+ app.on('window-all-closed', () => {
+   if (process.platform !== 'darwin') app.quit();
+ });
+--- a/apps/desktop-electron/src/main/startup-telemetry.test.ts
++++ b/apps/desktop-electron/src/main/startup-telemetry.test.ts
+@@ -0,0 +1,33 @@
++import { expect, it } from 'vitest';
++import fs from 'node:fs';
++import os from 'node:os';
++import path from 'node:path';
++import { StartupTelemetry } from './startup-telemetry';
++
++it('records ordered startup milestones and flags material regression against bounded history', () => {
++  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'startup-telemetry-'));
++  const file = path.join(directory, 'startup.json');
++  fs.writeFileSync(
++    file,
++    JSON.stringify({
++      schemaVersion: 1,
++      runs: Array.from({ length: 5 }, (_, index) => ({
++        completedAt: `2026-01-0${index + 1}T00:00:00.000Z`,
++        interactiveMs: 1000,
++      })),
++    }),
++  );
++  let current = 0;
++  const telemetry = new StartupTelemetry(0, () => current);
++  telemetry.attachHistoryFile(file);
++  current = 100;
++  telemetry.mark('app-ready');
++  current = 1300;
++  const summary = telemetry.mark('interactive');
++  expect(summary.milestones['app-ready']).toBe(100);
++  expect(summary.interactiveMs).toBe(1300);
++  expect(summary.previousMedianMs).toBe(1000);
++  expect(summary.materialRegression).toBe(true);
++  expect(JSON.parse(fs.readFileSync(file, 'utf8')).runs).toHaveLength(6);
++  fs.rmSync(directory, { recursive: true, force: true });
++});
