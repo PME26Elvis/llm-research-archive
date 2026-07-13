@@ -1,8 +1,8 @@
 {
-  "runId": 29251998564,
-  "result": "failure",
-  "verifiedCommitSha": null,
-  "pushResult": null,
-  "triggerSha": "297018766e4f221be544db98f011ec85b78afbf3",
-  "recordedAt": "2026-07-13T13:00:30.250Z"
+  "runId": 29252419262,
+  "result": "success",
+  "verifiedCommitSha": "acec96a25be745c4d22933ad7395008cdd6554b0",
+  "pushResult": "success",
+  "triggerSha": "150c8649c1598791160dc1ba5d7d09558ee8c187",
+  "recordedAt": "2026-07-13T13:07:30.267Z"
 }
