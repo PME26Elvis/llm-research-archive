@@ -1,0 +1,207 @@
++                  <dd>{t('import.itemCount', { count: preview.assets.length })}</dd>
+                 </div>
+                 <div>
+-                  <dt>輸出檔案</dt>
+-                  <dd>{preview.outputFiles.length} 個</dd>
++                  <dt>{t('import.outputFiles')}</dt>
++                  <dd>{t('import.itemCount', { count: preview.outputFiles.length })}</dd>
+                 </div>
+                 <div>
+-                  <dt>清理項目</dt>
++                  <dt>{t('import.cleanupItems')}</dt>
+                   <dd>
+-                    {Object.values(preview.cleanup).reduce((total, value) => total + value, 0)} 個
++                    {t('import.itemCount', { count: Object.values(preview.cleanup).reduce((total, value) => total + value, 0) })}
+                   </dd>
+                 </div>
+               </dl>
+ 
+               {!!preview.warnings.length && (
+                 <div className="import-messages" aria-labelledby="import-warning-title">
+-                  <h4 id="import-warning-title">警告</h4>
++                  <h4 id="import-warning-title">{t('import.warnings')}</h4>
+                   <ul>
+                     {preview.warnings.map((warning, index) => (
+                       <li key={`${warning.code}-${warning.path || index}`}>
+-                        {warning.message}
+-                        {warning.path ? `（${warning.path}）` : ''}
++                        {issueMessage(warning.code, warning.message)}
++                        {warning.path ? ` (${warning.path})` : ''}
+                       </li>
+                     ))}
+                   </ul>
+@@ -439,11 +495,11 @@ export function ImportWizard({
+ 
+               {!!preview.conflicts.length && (
+                 <div className="import-messages import-conflicts" role="alert">
+-                  <h4>阻擋提交的衝突</h4>
++                  <h4>{t('import.conflicts')}</h4>
+                   <ul>
+                     {preview.conflicts.map((conflict) => (
+                       <li key={conflict.path}>
+-                        {conflict.message}（{conflict.path}）
++                        {t('import.error.targetConflict')} ({conflict.path})
+                       </li>
+                     ))}
+                   </ul>
+@@ -451,7 +507,7 @@ export function ImportWizard({
+               )}
+ 
+               <details>
+-                <summary>檢視預計寫入的檔案</summary>
++                <summary>{t('import.viewFiles')}</summary>
+                 <ul className="import-file-list">
+                   {preview.outputFiles.map((file) => (
+                     <li key={file.relativePath}>
+@@ -467,7 +523,7 @@ export function ImportWizard({
+               className="import-section import-confirm"
+               aria-labelledby="import-confirm-title"
+             >
+-              <h3 id="import-confirm-title">4. 確認提交</h3>
++              <h3 id="import-confirm-title">{t('import.stepConfirm')}</h3>
+               <label className="import-remove-source">
+                 <input
+                   type="checkbox"
+@@ -475,12 +531,12 @@ export function ImportWizard({
+                   onChange={(event) => setRemoveSource(event.target.checked)}
+                   disabled={busy}
+                 />
+-                匯入成功且再次驗證後，刪除原始來源
++                {t('import.removeSource')}
+               </label>
+-              <small>預設保留來源。刪除是獨立且不可復原的動作；任一驗證失敗都會保留來源。</small>
+-              {dirty && <p className="import-inline-note">metadata 已變更；請先更新預覽。</p>}
++              <small>{t('import.removeSourceHint')}</small>
++              {dirty && <p className="import-inline-note">{t('import.metadataDirty')}</p>}
+               {!preview.canCommit && !dirty && (
+-                <p className="import-inline-note">目前預覽不可提交；請修正 metadata 或衝突。</p>
++                <p className="import-inline-note">{t('import.notCommittable')}</p>
+               )}
+               <button
+                 type="button"
+@@ -489,7 +545,7 @@ export function ImportWizard({
+                 onClick={() => void commit()}
+                 disabled={busy || dirty || !preview.canCommit}
+               >
+-                {busy ? '處理中…' : '原子匯入文章'}
++                {busy ? t('import.processing') : t('import.commit')}
+               </button>
+             </section>
+           </>
+diff --git a/apps/desktop-electron/src/renderer/mermaid-dom.ts b/apps/desktop-electron/src/renderer/mermaid-dom.ts
+index 45e70b3..8349bb3 100644
+--- a/apps/desktop-electron/src/renderer/mermaid-dom.ts
++++ b/apps/desktop-electron/src/renderer/mermaid-dom.ts
+@@ -1,8 +1,11 @@
+ import './mermaid.css';
++import type { AppLocale } from '@research-observatory/platform-contracts';
+ import { renderMermaidSvg, type MermaidTheme } from './mermaid-renderer';
++import { translate } from './i18n';
+ 
+ interface MermaidMountOptions {
+   render?: typeof renderMermaidSvg;
++  locale?: AppLocale;
+ }
+ 
+ let diagramSequence = 0;
+@@ -11,7 +14,8 @@ function resolvedTheme(): MermaidTheme {
+   return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+ }
+ 
+-function createMermaidFigure(pre: HTMLPreElement, source: string): HTMLElement {
++function createMermaidFigure(pre: HTMLPreElement, source: string, locale: AppLocale): HTMLElement {
++  const t = (key: Parameters<typeof translate>[1]) => translate(locale, key);
+   const figure = document.createElement('figure');
+   figure.className = 'mermaid-diagram';
+   figure.dataset.mermaidState = 'pending';
+@@ -19,7 +23,7 @@ function createMermaidFigure(pre: HTMLPreElement, source: string): HTMLElement {
+   figure.dataset.mermaidRenderVersion = '0';
+ 
+   const caption = document.createElement('figcaption');
+-  caption.textContent = 'Mermaid 圖表';
++  caption.textContent = t('mermaid.caption');
+ 
+   const canvas = document.createElement('div');
+   canvas.className = 'mermaid-canvas';
+@@ -30,12 +34,12 @@ function createMermaidFigure(pre: HTMLPreElement, source: string): HTMLElement {
+   status.dataset.mermaidStatus = '';
+   status.setAttribute('role', 'status');
+   status.setAttribute('aria-live', 'polite');
+-  status.textContent = '圖表將在接近閱讀區域時載入';
++  status.textContent = t('mermaid.pending');
+ 
+   const sourceDetails = document.createElement('details');
+   sourceDetails.className = 'mermaid-source';
+   const summary = document.createElement('summary');
+-  summary.textContent = '查看 Mermaid 原始碼';
++  summary.textContent = t('mermaid.source');
+ 
+   pre.replaceWith(figure);
+   sourceDetails.append(summary, pre);
+@@ -43,7 +47,12 @@ function createMermaidFigure(pre: HTMLPreElement, source: string): HTMLElement {
+   return figure;
+ }
+ 
+-async function renderFigure(figure: HTMLElement, render: typeof renderMermaidSvg): Promise<void> {
++async function renderFigure(
++  figure: HTMLElement,
++  render: typeof renderMermaidSvg,
++  locale: AppLocale,
++): Promise<void> {
++  const t = (key: Parameters<typeof translate>[1]) => translate(locale, key);
+   if (figure.dataset.mermaidState !== 'pending') return;
+   const source = figure.dataset.mermaidSource || '';
+   const canvas = figure.querySelector<HTMLElement>('[data-mermaid-canvas]');
+@@ -55,23 +64,23 @@ async function renderFigure(figure: HTMLElement, render: typeof renderMermaidSvg
+   figure.dataset.mermaidRenderVersion = String(version);
+   figure.dataset.mermaidState = 'rendering';
+   status.setAttribute('role', 'status');
+-  status.textContent = '正在渲染 Mermaid 圖表…';
++  status.textContent = t('mermaid.rendering');
+   const id = `research-observatory-mermaid-${++diagramSequence}`;
+ 
+   try {
+-    const svg = await render(id, source, 'Mermaid 圖表', undefined, resolvedTheme());
++    const svg = await render(id, source, t('mermaid.caption'), undefined, resolvedTheme());
+     if (!figure.isConnected || Number(figure.dataset.mermaidRenderVersion) !== version) return;
+     canvas.innerHTML = svg;
+     figure.dataset.mermaidState = 'rendered';
+     figure.dataset.mermaidTheme = resolvedTheme();
+-    status.textContent = 'Mermaid 圖表已完成';
++    status.textContent = t('mermaid.complete');
+     sourceDetails.open = false;
+   } catch {
+     if (!figure.isConnected || Number(figure.dataset.mermaidRenderVersion) !== version) return;
+     canvas.replaceChildren();
+     figure.dataset.mermaidState = 'error';
+     status.setAttribute('role', 'alert');
+-    status.textContent = 'Mermaid 圖表無法渲染，已保留原始碼';
++    status.textContent = t('mermaid.failed');
+     sourceDetails.open = true;
+   }
+ }
+@@ -81,26 +90,27 @@ export function mountMermaidBlocks(
+   options: MermaidMountOptions = {},
+ ): () => void {
+   const render = options.render ?? renderMermaidSvg;
++  const locale = options.locale ?? 'zh-TW';
+   const figures: HTMLElement[] = [];
+ 
+   for (const code of reader.querySelectorAll<HTMLElement>('pre > code.language-mermaid')) {
+     const pre = code.parentElement;
+     if (!(pre instanceof HTMLPreElement) || pre.closest('.mermaid-diagram')) continue;
+-    figures.push(createMermaidFigure(pre, code.textContent || ''));
++    figures.push(createMermaidFigure(pre, code.textContent || '', locale));
+   }
+ 
+   if (!figures.length) return () => undefined;
+ 
+   let observer: IntersectionObserver | undefined;
+   if (typeof IntersectionObserver === 'undefined') {
+-    for (const figure of figures) void renderFigure(figure, render);
++    for (const figure of figures) void renderFigure(figure, render, locale);
+   } else {
+     observer = new IntersectionObserver(
+       (entries) => {
+         for (const entry of entries) {
+           if (!entry.isIntersecting) continue;
