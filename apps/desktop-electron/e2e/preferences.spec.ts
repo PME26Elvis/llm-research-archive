@@ -88,7 +88,7 @@ test('switches the interface and native menu to English and persists the languag
   ).toBeVisible();
   await expect(first.page.getByRole('button', { name: 'Close settings' })).toBeVisible();
   await first.page.getByRole('button', { name: 'Close settings' }).click();
-  await expect(first.page.getByRole('button', { name: 'Settings' })).toBeFocused();
+  await expect(first.page.getByRole('button', { name: 'Settings', exact: true })).toBeFocused();
   await expect(first.page.getByLabel('Search articles')).toBeVisible();
 
   await expect
@@ -105,8 +105,8 @@ test('switches the interface and native menu to English and persists the languag
   });
   await expect(second.page.getByTestId('app-ready')).toBeVisible({ timeout: 30000 });
   await expect(second.page.locator('html')).toHaveAttribute('lang', 'en');
-  await expect(second.page.getByRole('button', { name: 'Settings' })).toBeVisible();
-  await second.page.getByRole('button', { name: 'Settings' }).click();
+  await expect(second.page.getByRole('button', { name: 'Settings', exact: true })).toBeVisible();
+  await second.page.getByRole('button', { name: 'Settings', exact: true }).click();
   await expect(second.page.getByLabel('English')).toBeChecked();
   await second.page.getByLabel('繁體中文').check();
   await expect(second.page.locator('html')).toHaveAttribute('lang', 'zh-TW');
