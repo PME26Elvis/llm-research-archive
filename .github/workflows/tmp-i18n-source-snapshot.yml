@@ -1,4 +1,4 @@
-name: Temporary language docs finalizer
+name: Temporary bilingual prerelease publisher
 
 on:
   push:
@@ -8,113 +8,57 @@ on:
       - .github/workflows/tmp-i18n-source-snapshot.yml
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  finalize:
-    runs-on: ubuntu-latest
-    outputs:
-      commit_sha: ${{ steps.commit.outputs.commit_sha }}
-      push_result: ${{ steps.commit.outputs.push_result }}
-    steps:
-      - name: Checkout documentation branch
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
-        with:
-          ref: agent/sync-language-development-docs
-          fetch-depth: 0
-      - name: Checkout transparent documentation patch
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
-        with:
-          ref: ops/language-docs-payload
-          path: .payload
-          fetch-depth: 1
-      - name: Apply documentation synchronization
-        shell: bash
-        run: |
-          set -euo pipefail
-          cat .payload/.language-docs/01.part .payload/.language-docs/02.part .payload/.language-docs/03.part .payload/.language-docs/04.part .payload/.language-docs/05.diff > /tmp/language-docs.patch
-          echo '51cd9ab5830ff93df1c9c491afa85792e5234329f29f8ab31a73e7fe2628b751  /tmp/language-docs.patch' | sha256sum --check
-          git apply --check /tmp/language-docs.patch
-          git apply /tmp/language-docs.patch
-          rm -rf .payload
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with:
-          node-version: '24'
-          cache: npm
-      - run: npm ci
-      - name: Format documentation
-        run: npm run format:write
-      - name: Execute complete quality gate
-        shell: bash
-        run: |
-          set -o pipefail
-          npm run verify 2>&1 | tee language-docs-verify.log
-      - name: Upload documentation verification
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: language-docs-verification-${{ github.run_attempt }}
-          path: |
-            language-docs-verify.log
-            coverage/
-            dist/quality/
-            dist/performance/
-          if-no-files-found: warn
-          retention-days: 14
-      - name: Create verified documentation commit
-        id: commit
-        shell: bash
-        run: |
-          set -euo pipefail
-          rm -f language-docs-verify.log
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add -A
-          git commit -m "Synchronize language and release documentation"
-          commit_sha=$(git rev-parse HEAD)
-          echo "commit_sha=$commit_sha" >> "$GITHUB_OUTPUT"
-          set +e
-          git push origin HEAD:agent/sync-language-development-docs
-          push_status=$?
-          set -e
-          if [[ $push_status -eq 0 ]]; then
-            echo 'push_result=success' >> "$GITHUB_OUTPUT"
-          else
-            echo 'push_result=permission-rejected' >> "$GITHUB_OUTPUT"
-          fi
+  release:
+    permissions:
+      contents: write
+    uses: PME26Elvis/llm-research-archive/.github/workflows/desktop-release-reusable.yml@app-main
+    with:
+      target_ref: app-main
+      requested_version: ''
+      release_notes: |
+        Add system, Traditional Chinese, and English interface language settings
+        Localize native menus, dialogs, command palette, Observatory, reader, and Import Wizard
+        Persist language selection across restart with typed locale IPC and accessibility coverage
+        Add structured Markdown release descriptions from concise change lists
+        Synchronize all 58 implemented requirements and localization development documentation
+      channel: prerelease
+      publish: true
 
   receipt:
     if: always()
-    needs: finalize
+    needs: release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
-          ref: ops/language-docs-finalizer-receipt
+          ref: ops/v0.1.3-release-receipt
           fetch-depth: 0
-      - name: Record finalizer result
+      - name: Record release result
         env:
-          FINALIZER_RUN_ID: ${{ github.run_id }}
-          FINALIZER_RESULT: ${{ needs.finalize.result }}
-          VERIFIED_COMMIT_SHA: ${{ needs.finalize.outputs.commit_sha }}
-          PUSH_RESULT: ${{ needs.finalize.outputs.push_result }}
-          FINALIZER_TRIGGER_SHA: ${{ github.sha }}
+          RELEASE_RUN_ID: ${{ github.run_id }}
+          RELEASE_RESULT: ${{ needs.release.result }}
+          RELEASE_TRIGGER_SHA: ${{ github.sha }}
         run: |
           node - <<'NODE'
           const fs = require('node:fs');
           const receipt = {
-            runId: Number(process.env.FINALIZER_RUN_ID),
-            result: process.env.FINALIZER_RESULT,
-            verifiedCommitSha: process.env.VERIFIED_COMMIT_SHA || null,
-            pushResult: process.env.PUSH_RESULT || null,
-            triggerSha: process.env.FINALIZER_TRIGGER_SHA,
+            runId: Number(process.env.RELEASE_RUN_ID),
+            result: process.env.RELEASE_RESULT,
+            triggerSha: process.env.RELEASE_TRIGGER_SHA,
+            targetRef: 'app-main',
+            expectedVersion: 'v0.1.3',
             recordedAt: new Date().toISOString(),
           };
-          fs.writeFileSync('.language-docs-finalizer.json', `${JSON.stringify(receipt, null, 2)}\n`);
+          fs.writeFileSync('.v0.1.3-release-receipt.json', `${JSON.stringify(receipt, null, 2)}\n`);
           NODE
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add .language-docs-finalizer.json
-          git commit -m "Record language docs finalizer ${FINALIZER_RUN_ID}"
-          git pull --rebase origin ops/language-docs-finalizer-receipt
-          git push origin HEAD:ops/language-docs-finalizer-receipt
+          git add .v0.1.3-release-receipt.json
+          git commit -m "Record bilingual prerelease ${RELEASE_RUN_ID}"
+          git pull --rebase origin ops/v0.1.3-release-receipt
+          git push origin HEAD:ops/v0.1.3-release-receipt
