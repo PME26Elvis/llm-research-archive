@@ -1,5 +1,5 @@
-name: Temporary Package Footprint Inspector
-run-name: Inspect macOS package footprint failure
+name: Temporary Completed Quality Docs Finalizer
+run-name: Finalize completed quality documentation
 
 on:
   push:
@@ -9,33 +9,103 @@ on:
       - .github/workflows/tmp-runtime-quality-finalizer.yml
 
 permissions:
-  actions: read
   contents: write
 
 jobs:
-  inspect:
-    if: startsWith(github.event.head_commit.message, 'Inspect macOS package footprint failure')
+  finalize:
+    if: startsWith(github.event.head_commit.message, 'Finalize completed quality documentation')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout documentation branch
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: agent/sync-completed-quality-docs
+          fetch-depth: 0
+      - name: Checkout staged documentation payload
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: ops/docs-sync-payload
+          path: payload
+          fetch-depth: 1
+      - name: Apply documentation convergence atomically
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat payload/.docs-sync-patch/part-00.diff \
+              payload/.docs-sync-patch/part-01.diff \
+              payload/.docs-sync-patch/part-02.diff \
+              payload/.docs-sync-patch/part-03.diff > /tmp/docs-sync.patch
+          git apply --check /tmp/docs-sync.patch
+          git apply /tmp/docs-sync.patch
+          mkdir -p project-docs/architecture/adr project-docs/roadmap
+          cp payload/.docs-sync-patch/new-adr-0018.md \
+            project-docs/architecture/adr/0018-enforced-quality-and-local-observability.md
+          cp payload/.docs-sync-patch/new-desktop-roadmap.md \
+            project-docs/roadmap/desktop-roadmap.md
+          rm -rf payload
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run format:write
+      - name: Validate traceability convergence
+        run: npm run validate:traceability
+      - name: Execute complete repository gate
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run verify 2>&1 | tee docs-sync-verify.log
+      - name: Publish verified documentation
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add README.md docs project-docs
+          git commit -m "Synchronize completed desktop quality documentation"
+          git push origin HEAD:agent/sync-completed-quality-docs
+      - name: Upload verification evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: completed-quality-docs-verification-${{ github.run_attempt }}
+          path: |
+            docs-sync-verify.log
+            coverage/
+            dist/quality/
+            dist/performance/
+          if-no-files-found: warn
+          retention-days: 14
+
+  receipt:
+    if: always() && startsWith(github.event.head_commit.message, 'Finalize completed quality documentation')
+    needs: finalize
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
-          ref: ops/planned-audit-receipt
+          ref: ops/docs-sync-payload
           fetch-depth: 0
-      - name: Capture macOS footprint diagnostics
+      - name: Record finalizer result
         env:
-          GH_TOKEN: ${{ github.token }}
-          JOB_ID: '86743430252'
+          FINALIZER_RUN_ID: ${{ github.run_id }}
+          FINALIZER_RESULT: ${{ needs.finalize.result }}
+          FINALIZER_TRIGGER_SHA: ${{ github.sha }}
         run: |
-          set -euo pipefail
-          gh api "repos/${GITHUB_REPOSITORY}/actions/jobs/${JOB_ID}/logs" > /tmp/macos-footprint.log
-          grep -iE 'footprint|forbidden|budget|asar|error|failed|bytes|packageRoot|totalBytes' /tmp/macos-footprint.log \
-            > .macos-footprint-errors.log || true
-          tail -n 180 /tmp/macos-footprint.log > .macos-footprint-tail.log
-      - name: Publish diagnostics
-        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const receipt = {
+            runId: Number(process.env.FINALIZER_RUN_ID),
+            result: process.env.FINALIZER_RESULT,
+            triggerSha: process.env.FINALIZER_TRIGGER_SHA,
+            recordedAt: new Date().toISOString(),
+          };
+          fs.writeFileSync('.docs-sync-finalizer.json', `${JSON.stringify(receipt, null, 2)}\n`);
+          NODE
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add .macos-footprint-errors.log .macos-footprint-tail.log
-          git commit -m "Record macOS package footprint diagnostics"
-          git pull --rebase origin ops/planned-audit-receipt
-          git push origin HEAD:ops/planned-audit-receipt
+          git add .docs-sync-finalizer.json
+          git commit -m "Record documentation finalizer ${FINALIZER_RUN_ID}"
+          git pull --rebase origin ops/docs-sync-payload
+          git push origin HEAD:ops/docs-sync-payload
