@@ -1,5 +1,5 @@
 name: Temporary Completed Quality Docs Finalizer
-run-name: Finalize completed quality documentation
+run-name: Run completed quality documentation
 
 on:
   push:
@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   finalize:
-    if: startsWith(github.event.head_commit.message, 'Finalize completed quality documentation')
+    if: startsWith(github.event.head_commit.message, 'Run completed quality documentation')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout documentation branch
@@ -79,7 +79,7 @@ jobs:
           retention-days: 14
 
   receipt:
-    if: always() && startsWith(github.event.head_commit.message, 'Finalize completed quality documentation')
+    if: always() && startsWith(github.event.head_commit.message, 'Run completed quality documentation')
     needs: finalize
     runs-on: ubuntu-latest
     steps:
