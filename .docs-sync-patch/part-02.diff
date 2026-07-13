@@ -1,0 +1,198 @@
+----------------------------------------------- | ------------------------------------------------------------------- |
+-| PR #27     | Import domain, cleanup, and deterministic preview              | FR-002 remains planned.                                             |
+-| PR #28     | Atomic commit, conflict handling, and rollback                 | FR-002 remains planned.                                             |
+-| PR #29     | Desktop Import Wizard and complete E2E                         | FR-002 implemented with typed Desktop and Electron E2E evidence.     |
+-| PR #30     | Versioned user library and recent workspace management         | New functional IDs are added before implementation.                 |
+-| PR #31     | Serialized incremental search index and benchmarks             | NFR-011 requires 10,000-article evidence.                           |
+-| PR #32     | Manifest-derived Observatory graph foundation                  | New functional IDs cover graph, filtering, summary, and navigation. |
+-| PR #33     | Observatory accessibility, reduced motion, and scale           | NFR-014 requires all core journeys and accessible fallback.         |
+-| PR #34     | Coverage, startup, bundle, dependency, and logging convergence | Each NFR changes status independently from evidence.                |
++Future work is proposal-only and is maintained in `project-docs/roadmap/desktop-roadmap.md`; it does not create a new planned requirement until approved with stable IDs and acceptance evidence.
+diff --git a/project-docs/quality/acceptance-matrix.md b/project-docs/quality/acceptance-matrix.md
+index dcd7f76..08fed3c 100644
+--- a/project-docs/quality/acceptance-matrix.md
++++ b/project-docs/quality/acceptance-matrix.md
+@@ -1,9 +1,10 @@
+ ---
+ status: accepted
+ owner: repository-maintainer
+-last-verified: 2026-07-12
++last-verified: 2026-07-13
+ related-adrs:
+   - ADR-0001
++  - ADR-0018
+ ---
+ 
+ # Acceptance Matrix
+@@ -49,19 +50,19 @@ related-adrs:
+ | NFR-007 | Permission denial | implemented | apps/desktop-electron/tests/security.spec.ts |
+ | NFR-008 | Local asset confinement | implemented | apps/desktop-electron/tests/asset-path.spec.ts |
+ | NFR-009 | Fault-isolated content scanning | implemented | packages/content-engine/src/index.test.ts |
+-| NFR-010 | Enforced coverage thresholds | planned | PR #34 evidence defined in project-docs/product/desktop-requirement-catalog.md |
+-| NFR-011 | Search and index performance | planned | PR #31 evidence defined in project-docs/product/desktop-requirement-catalog.md |
+-| NFR-012 | Startup performance telemetry | planned | PR #34 evidence defined in project-docs/product/desktop-requirement-catalog.md |
+-| NFR-013 | Bundle and footprint budgets | planned | PR #34 evidence defined in project-docs/product/desktop-requirement-catalog.md |
+-| NFR-014 | WCAG 2.2 AA desktop accessibility | planned | PR #33 evidence defined in project-docs/product/desktop-requirement-catalog.md |
++| NFR-010 | Enforced coverage thresholds | implemented | .github/workflows/desktop-ci.yml, packages/content-engine/src/article-import/edge-cases.test.ts, packages/application/src/index.test.ts |
++| NFR-011 | Search and index performance | implemented | .github/workflows/desktop-ci.yml, packages/search-engine/src/index.test.ts |
++| NFR-012 | Startup performance telemetry | implemented | apps/desktop-electron/src/main/startup-telemetry.test.ts, apps/desktop-electron/e2e/accessibility.spec.ts |
++| NFR-013 | Bundle and footprint budgets | implemented | .github/workflows/desktop-ci.yml, .github/workflows/desktop-release-reusable.yml |
++| NFR-014 | WCAG 2.2 AA desktop accessibility | implemented | scripts/validate-accessibility.mjs, apps/desktop-electron/e2e/accessibility.spec.ts |
+ | NFR-015 | Cross-platform package smoke | implemented | .github/workflows/desktop-ci.yml, scripts/packaged-smoke.mjs, project-docs/release/verification-run-29113199684.md |
+ | NFR-016 | Immutable and least-privilege CI | implemented | .github/workflows/desktop-ci.yml, .github/workflows/desktop-release-reusable.yml, scripts/workflow-release.test.ts |
+ | NFR-017 | Release concurrency and authority | implemented | .github/workflows/desktop-ci.yml, .github/workflows/desktop-release-reusable.yml, scripts/workflow-release.test.ts |
+ | NFR-018 | Reproducible release evidence | implemented | .github/workflows/desktop-release-reusable.yml, scripts/release-scripts.test.ts, scripts/workflow-release.test.ts, project-docs/release/verification-run-29113199684.md |
+-| NFR-019 | Dependency governance | planned | PR #34 evidence defined in project-docs/product/desktop-requirement-catalog.md |
++| NFR-019 | Dependency governance | implemented | scripts/validate-dependencies.mjs, scripts/dependency-policy.test.ts, .github/workflows/desktop-ci.yml |
+ | NFR-020 | Architecture boundaries | implemented | scripts/validate-architecture.mjs |
+ | NFR-021 | Traceability gate | implemented | scripts/validate-traceability.mjs |
+ | NFR-022 | Traditional Chinese primary experience | implemented | apps/desktop-electron/e2e/source.spec.ts |
+ | NFR-023 | Focus-safe modal interaction | implemented | apps/desktop-electron/e2e/source.spec.ts |
+ | NFR-024 | Explicit product scope | implemented | project-docs/product/desktop-product-spec.md |
+-| NFR-025 | Local recovery and privacy-safe logging | planned | PR #34 evidence defined in project-docs/product/desktop-requirement-catalog.md |
++| NFR-025 | Local recovery and privacy-safe logging | implemented | apps/desktop-electron/src/main/local-diagnostics.test.ts, apps/desktop-electron/e2e/accessibility.spec.ts, packages/platform-contracts/src/quality-contract.test.ts |
+diff --git a/project-docs/quality/performance-budgets.md b/project-docs/quality/performance-budgets.md
+index ba76dfd..6c8401f 100644
+--- a/project-docs/quality/performance-budgets.md
++++ b/project-docs/quality/performance-budgets.md
+@@ -1,11 +1,27 @@
+ ---
+ status: accepted
+ owner: repository-maintainer
+-last-verified: 2026-07-10
++last-verified: 2026-07-13
+ related-adrs:
+   - ADR-0001
++  - ADR-0018
+ ---
+ 
+ # Performance Budgets
+ 
+-Corpus scan should complete under 2 seconds for this repository and search under 200 ms for the bundled corpus. Observatory layout must remain data driven and bounded.
++| Boundary | Enforced budget | Evidence |
++| --- | ---: | --- |
++| Overall coverage | 80% statements / 75% branches | `npm run test:coverage` |
++| Domain coverage | 95% / 90% | `scripts/verify-coverage-policy.mjs` |
++| Content Engine coverage | 90% / 85% | `scripts/verify-coverage-policy.mjs` |
++| Application coverage | 90% / 85% | `scripts/verify-coverage-policy.mjs` |
++| Search query p95, 1k/10k | 100 ms | `npm run benchmark:search` |
++| Facet/filter p95, 1k/10k | 100 ms | `npm run benchmark:search` |
++| Synchronous renderer search work | 50 ms maximum | `npm run benchmark:search` |
++| Interactive startup | 3 seconds development target | Electron E2E startup milestone assertion |
++| Initial renderer JavaScript | 2 MiB gzip | `npm run validate:footprint:renderer` |
++| Installed native package | 2 GiB hard ceiling per package root | `npm run validate:footprint:package` after packaged smoke |
++
++The installed-package ceiling is deliberately permissive. It protects against accidental multi-gigabyte growth and release-asset failure, but package minimization is not a product goal for this small offline project. Repository-only roots and obvious secret/key material remain forbidden regardless of size.
++
++Convergence baselines: overall coverage 91.49/87.89, Content Engine 91.41/90.02, 10k query p95 2.21 ms, 10k filter p95 0.48 ms, renderer synchronous maximum 7.14 ms, and initial renderer JavaScript 229.6 KiB gzip.
+diff --git a/project-docs/quality/security-model.md b/project-docs/quality/security-model.md
+index 9afb964..cb16459 100644
+--- a/project-docs/quality/security-model.md
++++ b/project-docs/quality/security-model.md
+@@ -1,11 +1,20 @@
+ ---
+ status: accepted
+ owner: repository-maintainer
+-last-verified: 2026-07-10
++last-verified: 2026-07-13
+ related-adrs:
+-  - ADR-0001
++  - ADR-0004
++  - ADR-0016
++  - ADR-0017
++  - ADR-0018
+ ---
+ 
+ # Security Model
+ 
+-Electron uses contextIsolation, sandbox, disabled nodeIntegration, CSP, navigation blocking, safe external links, path containment and schema-validated IPC.
++The Electron renderer runs with `contextIsolation`, sandboxing, disabled `nodeIntegration`, restrictive CSP, denied permissions, blocked untrusted navigation, and safe external-link handling. The main process owns filesystem, workspace, import, diagnostics, startup telemetry, and release-sensitive authority. Preload exposes only schema-validated JSON DTOs and sender-validated commands.
++
++Local workspaces and assets are canonicalized and confined; import plans are read-only previews backed by opaque main-owned authority, source/asset fingerprints, locks, staging, post-write validation, atomic rename, rollback, and explicit source deletion. Content rendering is sanitized before it reaches the DOM.
++
++Local diagnostics are bounded, atomically persisted, and redacted for configured private roots, absolute paths, authorization data, tokens, passwords, and secrets. They never contain article bodies or raw IPC payloads and can be inspected or cleared by the user. No diagnostics leave the device.
++
++Dependency governance separates runtime and development tooling, inventories production packages, audits a production-only lockfile, and allows high/critical findings only through reviewed expiring exceptions. Packaged-output inspection rejects top-level repository internals and obvious credentials, secrets, private keys, or certificate-key files.
+diff --git a/project-docs/quality/testing-strategy.md b/project-docs/quality/testing-strategy.md
+index 28f1ae9..73506e6 100644
+--- a/project-docs/quality/testing-strategy.md
++++ b/project-docs/quality/testing-strategy.md
+@@ -1,87 +1,46 @@
+ ---
+ status: accepted
+ owner: repository-maintainer
+-last-verified: 2026-07-11
++last-verified: 2026-07-13
+ related-adrs:
+   - ADR-0001
+   - ADR-0004
+   - ADR-0007
+   - ADR-0009
++  - ADR-0018
+ ---
+ 
+ # Testing Strategy
+ 
+-Research Observatory uses layered verification. A feature is not complete when only its local unit tests pass; the repository also verifies architectural boundaries, runtime contracts, generated content, the production renderer, Electron behavior, and packaged executables.
++Research Observatory uses layered verification. A feature is complete only when its local contract, architectural boundary, real Electron journey, and packaged behavior have the evidence appropriate to that change.
+ 
+-## Verification layers
++## Permanent quality layers
+ 
+-| Layer | Primary command or artifact | Responsibility |
++| Layer | Command or artifact | Responsibility |
+ | --- | --- | --- |
+ | Formatting | `npm run format:check` | Deterministic source and workflow formatting. |
+ | Architecture | `npm run lint` | Dependency direction and Electron leakage rules. |
+ | TypeScript | `npm run typecheck` | Strict compile-time contracts across workspaces. |
+-| Traceability | `npm run validate:traceability` | Product requirements, acceptance evidence, and verification artifacts stay synchronized. |
+-| Generated content | `npm run validate:generated` | Build-time manifests are reproducible and the working tree remains clean. |
+-| Release assets | `npm run validate:release-assets` | Artifact names, manifests, checksums, and release metadata remain valid. |
+-| Unit and contract tests | `npm run test` | Domain, application, platform-contract, content, search, and renderer behavior. |
+-| Security tests | `npm run test:security` | Electron isolation, CSP, navigation, permission, and preload boundaries. |
+-| Compatibility tests | `npm run test:compatibility` | Canonical Markdown parsing and corpus behavior. |
+-| Production build | `npm run build` | The bundled archive and Electron production package compile together. |
+-| Electron E2E | `npm run test:e2e` | User journeys execute inside the real Electron runtime. |
+-| Packaged smoke | `npm run smoke:packaged` | The Windows and Linux artifacts start and expose the expected packaged build information. |
++| Traceability | `npm run validate:traceability` | Product Spec, YAML, Acceptance Matrix, and evidence stay synchronized. |
++| Generated content | `npm run validate:generated` | Reproducible manifests and a clean worktree. |
++| Release assets | `npm run validate:release-assets` | Versioning, platform names, manifest, checksums, SBOM, and release workflow invariants. |
++| Enforced coverage | `npm run test:coverage` | Unit/contract/compatibility behavior plus package and overall thresholds. |
++| Security | `npm run test:security` | Electron isolation, CSP, navigation, permissions, and preload authority. |
++| Accessibility | `npm run validate:accessibility` plus Electron E2E | WCAG contrast/source rules and real keyboard/zoom/reduced-motion journeys. |
++| Dependency governance | `npm run validate:dependencies` | Inventory, production-only audit, and bounded exceptions. |
++| Search benchmark | `npm run benchmark:search` | 1k/10k serialization, query, filter, and renderer-block budgets. |
++| Production build | `npm run build` | Bundled archive and Electron production output compile together. |
++| Renderer footprint | `npm run validate:footprint:renderer` | Initial renderer JavaScript remains under 2 MiB gzip. |
++| Electron E2E | `npm run test:e2e` | Complete user journeys inside the real Electron runtime. |
++| Packaged smoke | `npm run smoke:packaged` | Windows, Linux, macOS arm64, and macOS x64 packages launch and expose expected build data. |
++| Installed footprint | `npm run validate:footprint:package` | Each packaged root stays below 2 GiB and excludes repository-private or secret material. |
+ 
+-`npm run verify` is the local read-only quality gate used by CI before Electron E2E and package-smoke jobs begin.
++`npm run verify` is the repository-owned local quality gate. Desktop CI then runs Electron E2E and the four native package-smoke matrices on the same final PR head SHA. The reusable release workflow repeats `verify`, native make, packaged smoke, and package-footprint checks so a manual release cannot bypass PR policy.
+ 
+-## Electron E2E isolation
++## Electron E2E isolation and diagnostics
+ 
+-Electron E2E tests run through `playwright.config.ts` with one worker. The suite intentionally does not run multiple Electron workers against the same downloaded executable and desktop session because that can produce operating-system-level executable contention such as Linux `ETXTBSY` failures. Several journeys also use the system clipboard, so process-level isolation is part of the test contract rather than a performance optimization.
++Playwright uses one Electron worker. The shared `electron-test.ts` fixture owns launch, stdout/stderr and renderer error capture, trace collection, screenshots, shutdown, and temporary workspace cleanup. Failures upload `playwright-e2e.log`, `playwright-report/`, and `test-results/` for 14 days.
+ 
+-The shared fixture in `apps/desktop-electron/e2e/electron-test.ts` owns:
++## Coverage rule
+ 
+-- launching the pinned Electron executable with the requested test environment;
+-- collecting main-process stdout and stderr;
+-- collecting renderer console messages and uncaught page errors;
+-- starting a Playwright browser-context trace after the first window is ready;
+-- closing every Electron application after the test result is known;
+-- deleting registered temporary workspaces only after Electron has closed.
+-
+-Tests should request `launchElectron` from the fixture instead of calling `_electron.launch` directly. This keeps cleanup and diagnostics consistent as the number of specs grows.
+-
+-## Failure diagnostics
+-
+-When an Electron E2E test fails, the fixture attempts to save and attach:
+-
+-1. a full-page screenshot of the active Electron window;
+-2. a Playwright trace with screenshots, DOM snapshots, and sources;
+-3. captured main-process and
