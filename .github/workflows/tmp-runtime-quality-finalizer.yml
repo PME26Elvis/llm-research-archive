@@ -1,5 +1,5 @@
 name: Temporary Enforced Quality Finalizer
-run-name: Run quality gates after heading cleanup fix
+run-name: Run quality gates with content engine coverage
 
 on:
   push:
@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   finalize:
-    if: startsWith(github.event.head_commit.message, 'Run quality gates after heading cleanup fix')
+    if: startsWith(github.event.head_commit.message, 'Run quality gates with content engine coverage')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout target branch
@@ -107,7 +107,7 @@ jobs:
           git push origin HEAD:agent/enforced-quality-gates
 
   receipt:
-    if: always() && startsWith(github.event.head_commit.message, 'Run quality gates after heading cleanup fix')
+    if: always() && startsWith(github.event.head_commit.message, 'Run quality gates with content engine coverage')
     needs: finalize
     runs-on: ubuntu-latest
     steps:
