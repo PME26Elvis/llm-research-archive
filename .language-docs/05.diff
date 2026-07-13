@@ -1,0 +1,30 @@
+diff --git a/project-docs/product/desktop-product-spec.md b/project-docs/product/desktop-product-spec.md
+index ef95756..fae90a4 100644
+--- a/project-docs/product/desktop-product-spec.md
++++ b/project-docs/product/desktop-product-spec.md
+@@ -367,4 +367,4 @@ Status: `implemented`. Verification: `apps/desktop-electron/src/main/local-diagn
+ 
+ **Name:** Localization integrity and native authority.
+ 
+-Status: `implemented`. Verification: `apps/desktop-electron/tests/security.spec.ts`, `packages/platform-contracts/src/index.ts`, and `apps/desktop-electron/e2e/preferences.spec.ts`. Renderer-owned preferences are migrated and persisted locally; only the resolved allowlisted locale crosses typed, schema-validated IPC so the main process can rebuild native menus and dialogs. Unsupported locales fall back safely, and localization never grants filesystem or navigation authority.
++Status: `implemented`. Verification: `apps/desktop-electron/tests/security.spec.ts`, `apps/desktop-electron/src/main/main-i18n.test.ts`, and `apps/desktop-electron/e2e/preferences.spec.ts`. Renderer-owned preferences are migrated and persisted locally; only the resolved allowlisted locale crosses typed, schema-validated IPC so the main process can rebuild native menus and dialogs. Unsupported locales fall back safely, and localization never grants filesystem or navigation authority.
+diff --git a/project-docs/quality/acceptance-matrix.md b/project-docs/quality/acceptance-matrix.md
+index bdbeecb..f1a1330 100644
+--- a/project-docs/quality/acceptance-matrix.md
++++ b/project-docs/quality/acceptance-matrix.md
+@@ -68,4 +68,4 @@ related-adrs:
+ | NFR-023 | Focus-safe modal interaction | implemented | apps/desktop-electron/e2e/source.spec.ts |
+ | NFR-024 | Explicit product scope | implemented | project-docs/product/desktop-product-spec.md |
+ | NFR-025 | Local recovery and privacy-safe logging | implemented | apps/desktop-electron/src/main/local-diagnostics.test.ts, apps/desktop-electron/e2e/accessibility.spec.ts, packages/platform-contracts/src/quality-contract.test.ts |
+-| NFR-026 | Localization integrity and native authority | implemented | apps/desktop-electron/tests/security.spec.ts, packages/platform-contracts/src/index.ts, apps/desktop-electron/e2e/preferences.spec.ts |
++| NFR-026 | Localization integrity and native authority | implemented | apps/desktop-electron/tests/security.spec.ts, apps/desktop-electron/src/main/main-i18n.test.ts, apps/desktop-electron/e2e/preferences.spec.ts |
+diff --git a/project-docs/traceability/requirements.yaml b/project-docs/traceability/requirements.yaml
+index 4516632..fe361d8 100644
+--- a/project-docs/traceability/requirements.yaml
++++ b/project-docs/traceability/requirements.yaml
+@@ -55,4 +55,4 @@
+ - {id: NFR-023, title: Focus-safe modal interaction, priority: P2, source: {document: project-docs/product/desktop-product-spec.md, section: NFR-023}, implementation: {packages: *p}, verification: {tests: [apps/desktop-electron/e2e/source.spec.ts]}, status: implemented}
+ - {id: NFR-024, title: Explicit product scope, priority: P2, source: {document: project-docs/product/desktop-product-spec.md, section: NFR-024}, implementation: {packages: *p}, verification: {tests: [apps/desktop-electron/e2e/source.spec.ts]}, status: implemented}
+ - {id: NFR-025, title: Local recovery and privacy-safe logging, priority: P2, source: {document: project-docs/product/desktop-product-spec.md, section: NFR-025}, implementation: {packages: *p}, verification: {tests: [apps/desktop-electron/src/main/local-diagnostics.test.ts, apps/desktop-electron/e2e/accessibility.spec.ts, packages/platform-contracts/src/quality-contract.test.ts]}, status: implemented}
+-- {id: NFR-026, title: Localization integrity and native authority, priority: P2, source: {document: project-docs/product/desktop-product-spec.md, section: NFR-026}, implementation: {packages: *p}, verification: {tests: [apps/desktop-electron/tests/security.spec.ts, packages/platform-contracts/src/index.ts, apps/desktop-electron/e2e/preferences.spec.ts]}, status: implemented}
++- {id: NFR-026, title: Localization integrity and native authority, priority: P2, source: {document: project-docs/product/desktop-product-spec.md, section: NFR-026}, implementation: {packages: *p}, verification: {tests: [apps/desktop-electron/tests/security.spec.ts, apps/desktop-electron/src/main/main-i18n.test.ts, apps/desktop-electron/e2e/preferences.spec.ts]}, status: implemented}
