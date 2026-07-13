@@ -1,5 +1,5 @@
 name: Temporary Planned Audit Snapshot
-run-name: Capture app-main planned audit snapshot
+run-name: Capture app-main quality gate snapshot
 
 on:
   push:
@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   snapshot:
-    if: startsWith(github.event.head_commit.message, 'Capture app-main planned audit snapshot')
+    if: startsWith(github.event.head_commit.message, 'Capture app-main quality gate snapshot')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout app-main
@@ -28,13 +28,13 @@ jobs:
           set -euo pipefail
           source_sha=$(git rev-parse HEAD)
           echo "sha=$source_sha" >> "$GITHUB_OUTPUT"
-          zip -qr /tmp/planned-audit-source.zip . \
+          zip -qr /tmp/quality-gate-source.zip . \
             -x '.git/*' 'node_modules/*' 'dist/*' 'out/*' 'coverage/*' 'playwright-report/*' 'test-results/*'
       - name: Upload source snapshot
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: planned-audit-source
-          path: /tmp/planned-audit-source.zip
+          name: quality-gate-source
+          path: /tmp/quality-gate-source.zip
           if-no-files-found: error
           retention-days: 3
       - name: Checkout receipt branch
@@ -57,10 +57,11 @@ jobs:
             sourceSha: process.env.SNAPSHOT_SOURCE_SHA,
             recordedAt: new Date().toISOString(),
           };
-          fs.writeFileSync('receipt/.planned-audit-snapshot.json', `${JSON.stringify(receipt, null, 2)}\n`);
+          fs.writeFileSync('receipt/.quality-gate-snapshot.json', `${JSON.stringify(receipt, null, 2)}\n`);
           NODE
           git -C receipt config user.name github-actions[bot]
           git -C receipt config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git -C receipt add .planned-audit-snapshot.json
-          git -C receipt commit -m "Record planned audit snapshot ${SNAPSHOT_RUN_ID}"
+          git -C receipt add .quality-gate-snapshot.json
+          git -C receipt commit -m "Record quality gate snapshot ${SNAPSHOT_RUN_ID}"
+          git -C receipt pull --rebase origin ops/planned-audit-receipt
           git -C receipt push origin HEAD:ops/planned-audit-receipt
