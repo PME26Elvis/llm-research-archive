@@ -1,5 +1,5 @@
 name: Temporary Release Footprint Finalizer
-run-name: Finalize release footprint enforcement
+run-name: Finalize release footprint enforcement retry
 
 on:
   push:
@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   finalize:
-    if: startsWith(github.event.head_commit.message, 'Finalize release footprint enforcement')
+    if: startsWith(github.event.head_commit.message, 'Finalize release footprint enforcement retry')
     runs-on: ubuntu-latest
     outputs:
       commit_sha: ${{ steps.commit.outputs.commit_sha }}
@@ -24,19 +24,62 @@ jobs:
         with:
           ref: agent/enforced-quality-gates
           fetch-depth: 0
-      - name: Checkout staged release patch
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
-        with:
-          ref: ops/planned-audit-receipt
-          path: payload
-          fetch-depth: 1
-      - name: Apply release footprint patch
+      - name: Apply deterministic release workflow edits
         shell: bash
         run: |
           set -euo pipefail
-          git apply --check payload/.quality-gate-patches/06-release-workflow.diff
-          git apply payload/.quality-gate-patches/06-release-workflow.diff
-          rm -rf payload
+          python - <<'PY'
+          from pathlib import Path
+
+          workflow = Path('.github/workflows/desktop-release-reusable.yml')
+          text = workflow.read_text()
+          old = """      - if: runner.os == 'Linux'
+                run: xvfb-run -a npm run smoke:packaged
+              - if: runner.os != 'Linux'
+                run: npm run smoke:packaged
+              - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+                with: { name: '${{ matrix.artifact }}', path: dist/release-assets/* }
+          """
+          new = """      - if: runner.os == 'Linux'
+                run: xvfb-run -a npm run smoke:packaged
+              - if: runner.os != 'Linux'
+                run: npm run smoke:packaged
+              - name: Installed package footprint
+                run: npm run validate:footprint:package
+              - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+                with:
+                  name: '${{ matrix.artifact }}'
+                  path: |
+                    dist/release-assets/*
+                    dist/quality/footprint-package-*.json
+          """
+          if text.count(old) != 1:
+              raise SystemExit(f'expected one release build upload block, found {text.count(old)}')
+          text = text.replace(old, new, 1)
+          if text.count('run: npm run validate:footprint:package') != 1:
+              raise SystemExit('release footprint command must appear exactly once')
+          workflow.write_text(text)
+
+          validation = Path('scripts/validate-release-assets.mjs')
+          text = validation.read_text()
+          marker = """if (releaseWorkflow.includes('npm version \"$RELEASE_VERSION\"')) {
+            throw new Error('release workflow must not use shell-specific RELEASE_VERSION expansion');
+          }
+          """
+          addition = """const packageFootprintCommand = 'run: npm run validate:footprint:package';
+          const packageFootprintStepCount = releaseWorkflow.split(packageFootprintCommand).length - 1;
+          if (packageFootprintStepCount !== 1) {
+            throw new Error(
+              `release build matrix must enforce installed package footprint exactly once; found ${packageFootprintStepCount}`,
+            );
+          }
+          """
+          if addition not in text:
+              if text.count(marker) != 1:
+                  raise SystemExit('unable to locate unique release validation marker')
+              text = text.replace(marker, marker + addition, 1)
+          validation.write_text(text)
+          PY
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
@@ -82,7 +125,7 @@ jobs:
           fi
 
   receipt:
-    if: always() && startsWith(github.event.head_commit.message, 'Finalize release footprint enforcement')
+    if: always() && startsWith(github.event.head_commit.message, 'Finalize release footprint enforcement retry')
     needs: finalize
     runs-on: ubuntu-latest
     steps:
