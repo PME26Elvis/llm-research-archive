@@ -12,13 +12,19 @@ export function CommandPalette({ open, onClose, onExecute }: CommandPaletteProps
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
   const results = useMemo(() => filterDesktopCommands(query), [query]);
 
   useEffect(() => {
     if (!open) return;
+    returnFocusRef.current = document.activeElement as HTMLElement | null;
     setQuery('');
     setActiveIndex(0);
     requestAnimationFrame(() => inputRef.current?.focus());
+    return () => {
+      requestAnimationFrame(() => returnFocusRef.current?.focus());
+    };
   }, [open]);
 
   useEffect(() => {
@@ -43,6 +49,7 @@ export function CommandPalette({ open, onClose, onExecute }: CommandPaletteProps
   return (
     <div className="modal-backdrop command-palette-backdrop" onMouseDown={onClose}>
       <section
+        ref={dialogRef}
         className="modal command-palette"
         role="dialog"
         aria-modal="true"
@@ -52,6 +59,22 @@ export function CommandPalette({ open, onClose, onExecute }: CommandPaletteProps
           if (event.key === 'Escape') {
             event.preventDefault();
             onClose();
+          } else if (event.key === 'Tab' && dialogRef.current) {
+            const focusable: HTMLElement[] = Array.from(
+              dialogRef.current.querySelectorAll<HTMLElement>(
+                'button, input, [href], [tabindex]:not([tabindex="-1"])',
+              ),
+            ).filter((element) => !element.hasAttribute('disabled'));
+            if (!focusable.length) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+              event.preventDefault();
+              last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+              event.preventDefault();
+              first.focus();
+            }
           } else if (event.key === 'ArrowDown') {
             event.preventDefault();
             setActiveIndex((index) => Math.min(results.length - 1, index + 1));

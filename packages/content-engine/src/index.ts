@@ -244,11 +244,12 @@ export function createManifest(root = 'docs'): ArchiveManifestV1 {
     for (const t of a.tags) tags.set(t, (tags.get(t) || 0) + 1);
   }
   const entries = articles.map(
-    ({ id, slug, title, date, category, tags, excerpt, readingStats, sourcePath }) => ({
+    ({ id, slug, title, date, updatedAt, category, tags, excerpt, readingStats, sourcePath }) => ({
       id,
       slug,
       title,
       date,
+      updatedAt,
       category,
       tags,
       excerpt,

@@ -15,10 +15,11 @@ import {
 } from 'electron';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import fs from 'node:fs/promises';
 import { resolveSafeAssetPath } from './asset-path';
 import { loadWindowState, saveWindowState } from './window-state';
 import { ImportSessionService } from './import-session';
+import { LocalDiagnostics } from './local-diagnostics';
+import { StartupTelemetry } from './startup-telemetry';
 import {
   DEFAULT_WORKSPACE_STATE,
   loadWorkspaceState,
@@ -35,12 +36,15 @@ import {
   SearchResponseSchema,
   ExternalUrlSchema,
   AppInfoResponseSchema,
+  ArchiveDiagnosticsSchema,
   DesktopCommandSchema,
   ImportCommitRequestSchema,
   ImportCommitResultSchema,
   ImportPreviewRefreshRequestSchema,
   ImportPreviewResultSchema,
   ImportSourceSelectionRequestSchema,
+  RendererDiagnosticRequestSchema,
+  StartupMilestoneSchema,
   WorkspaceInfoSchema,
   WorkspaceSelectionResultSchema,
   type DesktopCommand,
@@ -57,6 +61,8 @@ let core: ResearchObservatoryApp;
 let activeContentRoot = '';
 let activeWorkspace: WorkspaceInfoDto;
 const importSessions = new ImportSessionService();
+const startupTelemetry = new StartupTelemetry();
+let localDiagnostics: LocalDiagnostics | undefined;
 let workspaceRecoveryWarnings: string[] = [];
 let trustedRendererUrl = '';
 let trustedRendererOrigin = '';
@@ -89,6 +95,8 @@ function activateWorkspace(rootPath: string, kind: 'bundled' | 'local'): Workspa
   activeContentRoot = rootPath;
   core = new ResearchObservatoryApp(rootPath);
   activeWorkspace = workspaceInfo(kind, rootPath);
+  localDiagnostics?.setPrivateRoots([app.getPath('userData'), bundledContentRoot(), rootPath]);
+  startupTelemetry.mark('archive-ready');
   return activeWorkspace;
 }
 function initializeWorkspace(): void {
@@ -108,6 +116,12 @@ function initializeWorkspace(): void {
       return;
     } catch {
       workspaceRecoveryWarnings.push('先前工作區無法使用，已回復內建封存');
+      localDiagnostics?.record(
+        'warning',
+        'workspace',
+        'workspace-recovered',
+        '先前工作區無法使用，已回復內建封存',
+      );
       saveWorkspaceState(stateFile, DEFAULT_WORKSPACE_STATE);
     }
   }
@@ -166,6 +180,11 @@ function installApplicationMenu(win: BrowserWindow): void {
           accelerator: 'CmdOrCtrl+K',
           click: () => send('palette.open'),
         },
+        {
+          label: 'Observatory 摘要',
+          accelerator: 'CmdOrCtrl+Shift+O',
+          click: () => send('observatory.open'),
+        },
       ],
     },
     {
@@ -203,6 +222,15 @@ function createWindow() {
       webSecurity: true,
     },
   });
+  startupTelemetry.mark('window-created');
+  win.webContents.on('render-process-gone', (_event, details) => {
+    localDiagnostics?.record(
+      'error',
+      'renderer',
+      'render-process-gone',
+      `renderer exited: ${details.reason}`,
+    );
+  });
   let windowStateTimer: NodeJS.Timeout | undefined;
   const persistWindowState = () => {
     if (windowStateTimer) clearTimeout(windowStateTimer);
@@ -213,7 +241,7 @@ function createWindow() {
         maximized: win.isMaximized(),
       });
     } catch (error) {
-      console.error('window-state-save-failed', error);
+      localDiagnostics?.record('error', 'main', 'window-state-save-failed', error);
     }
   };
   const scheduleWindowState = () => {
@@ -286,9 +314,10 @@ ipcMain.handle('workspace:select', async (event) => {
       workspace,
     });
   } catch (error) {
+    localDiagnostics?.record('warning', 'workspace', 'workspace-open-rejected', error);
     return WorkspaceSelectionResultSchema.parse({
       status: 'rejected',
-      message: `無法開啟工作區：${error instanceof Error ? error.message : String(error)}`,
+      message: '無法開啟工作區；請確認資料夾包含可讀取的 Markdown 文章且未使用符號連結。',
     });
   }
 });
@@ -346,7 +375,29 @@ ipcMain.handle('import:commit', (event, rawRequest: unknown) => {
 });
 ipcMain.handle('diagnostics:get', (event) => {
   validateSender(event.sender, event.senderFrame);
-  return core.diagnostics();
+  return ArchiveDiagnosticsSchema.parse({
+    ...core.diagnostics(),
+    startup: startupTelemetry.summary(),
+    events: localDiagnostics?.recent(50) ?? [],
+  });
+});
+ipcMain.handle('diagnostics:clear', (event) => {
+  validateSender(event.sender, event.senderFrame);
+  localDiagnostics?.clear();
+  return ArchiveDiagnosticsSchema.parse({
+    ...core.diagnostics(),
+    startup: startupTelemetry.summary(),
+    events: [],
+  });
+});
+ipcMain.handle('diagnostics:report', (event, rawRequest: unknown) => {
+  validateSender(event.sender, event.senderFrame);
+  const request = RendererDiagnosticRequestSchema.parse(rawRequest);
+  localDiagnostics?.record('error', request.area, request.code, request.message);
+});
+ipcMain.handle('telemetry:mark', (event, rawMilestone: unknown) => {
+  validateSender(event.sender, event.senderFrame);
+  return startupTelemetry.mark(StartupMilestoneSchema.parse(rawMilestone));
 });
 ipcMain.handle('app:info', (event) => {
   validateSender(event.sender, event.senderFrame);
@@ -368,7 +419,28 @@ ipcMain.handle('external:open', (event, url) => {
   validateSender(event.sender, event.senderFrame);
   return shell.openExternal(ExternalUrlSchema.parse(url));
 });
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  const userData = app.getPath('userData');
+  localDiagnostics = new LocalDiagnostics(path.join(userData, 'diagnostics', 'events.json'));
+  localDiagnostics.setPrivateRoots([userData, bundledContentRoot()]);
+  startupTelemetry.attachHistoryFile(path.join(userData, 'diagnostics', 'startup-history.json'));
+  startupTelemetry.mark('app-ready');
+  process.on('uncaughtException', (error) => {
+    localDiagnostics?.record('error', 'main', 'uncaught-exception', error);
+  });
+  process.on('unhandledRejection', (reason) => {
+    localDiagnostics?.record('error', 'main', 'unhandled-rejection', reason);
+  });
+  app.on('child-process-gone', (_event, details) => {
+    localDiagnostics?.record(
+      'error',
+      'main',
+      'child-process-gone',
+      `${details.type} exited: ${details.reason}`,
+    );
+  });
+  createWindow();
+});
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
