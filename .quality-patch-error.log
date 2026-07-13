@@ -1,0 +1,1 @@
+2026-07-13T04:59:29.6935577Z error: patch fragment without header at payload/.quality-gate-patches/01.diff:45: @@ -16,7 +16,7 @@
