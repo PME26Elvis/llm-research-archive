@@ -1,0 +1,425 @@
+--- a/apps/desktop-electron/src/main/startup-telemetry.ts
++++ b/apps/desktop-electron/src/main/startup-telemetry.ts
+@@ -0,0 +1,110 @@
++import fs from 'node:fs';
++import path from 'node:path';
++import { performance } from 'node:perf_hooks';
++
++export const startupMilestones = [
++  'process-start',
++  'app-ready',
++  'archive-ready',
++  'window-created',
++  'renderer-ready',
++  'interactive',
++] as const;
++export type StartupMilestone = (typeof startupMilestones)[number];
++
++export interface StartupTelemetrySummary {
++  milestones: Partial<Record<StartupMilestone, number>>;
++  interactiveMs?: number;
++  previousMedianMs?: number;
++  materialRegression: boolean;
++}
++
++interface StartupHistoryV1 {
++  schemaVersion: 1;
++  runs: { completedAt: string; interactiveMs: number }[];
++}
++
++function median(values: readonly number[]): number | undefined {
++  if (!values.length) return undefined;
++  const sorted = [...values].sort((a, b) => a - b);
++  const middle = Math.floor(sorted.length / 2);
++  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
++}
++
++export class StartupTelemetry {
++  private readonly milestones: Partial<Record<StartupMilestone, number>> = { 'process-start': 0 };
++  private historyFile = '';
++  private persisted = false;
++
++  constructor(
++    private readonly startedAt = performance.now(),
++    private readonly now: () => number = () => performance.now(),
++  ) {}
++
++  attachHistoryFile(filePath: string): void {
++    this.historyFile = filePath;
++  }
++
++  mark(milestone: StartupMilestone): StartupTelemetrySummary {
++    if (this.milestones[milestone] === undefined) {
++      this.milestones[milestone] = Math.max(0, this.now() - this.startedAt);
++    }
++    if (milestone === 'interactive') this.persist();
++    return this.summary();
++  }
++
++  summary(): StartupTelemetrySummary {
++    const interactiveMs = this.milestones.interactive;
++    const previousMedianMs = median(this.readHistory().runs.map((run) => run.interactiveMs));
++    return {
++      milestones: { ...this.milestones },
++      ...(interactiveMs === undefined ? {} : { interactiveMs }),
++      ...(previousMedianMs === undefined ? {} : { previousMedianMs }),
++      materialRegression: Boolean(
++        interactiveMs !== undefined &&
++          previousMedianMs !== undefined &&
++          interactiveMs - previousMedianMs >= 250 &&
++          interactiveMs >= previousMedianMs * 1.25,
++      ),
++    };
++  }
++
++  private persist(): void {
++    if (this.persisted || !this.historyFile || this.milestones.interactive === undefined) return;
++    const history = this.readHistory();
++    history.runs.push({
++      completedAt: new Date().toISOString(),
++      interactiveMs: this.milestones.interactive,
++    });
++    history.runs = history.runs.slice(-20);
++    fs.mkdirSync(path.dirname(this.historyFile), { recursive: true });
++    const temporary = `${this.historyFile}.tmp`;
++    fs.writeFileSync(temporary, `${JSON.stringify(history, null, 2)}\n`, { mode: 0o600 });
++    fs.renameSync(temporary, this.historyFile);
++    this.persisted = true;
++  }
++
++  private readHistory(): StartupHistoryV1 {
++    if (!this.historyFile) return { schemaVersion: 1, runs: [] };
++    try {
++      const value = JSON.parse(fs.readFileSync(this.historyFile, 'utf8')) as Partial<StartupHistoryV1>;
++      if (value.schemaVersion !== 1 || !Array.isArray(value.runs)) throw new Error('invalid');
++      return {
++        schemaVersion: 1,
++        runs: value.runs
++          .filter(
++            (run): run is { completedAt: string; interactiveMs: number } =>
++              Boolean(
++                run &&
++                  typeof run.completedAt === 'string' &&
++                  Number.isFinite(run.interactiveMs) &&
++                  run.interactiveMs >= 0,
++              ),
++          )
++          .slice(-20),
++      };
++    } catch {
++      return { schemaVersion: 1, runs: [] };
++    }
++  }
++}
+--- a/apps/desktop-electron/src/preload/preload.ts
++++ b/apps/desktop-electron/src/preload/preload.ts
+@@ -1,15 +1,20 @@
+ import { contextBridge, ipcRenderer } from 'electron';
+ import {
+   AppInfoResponseSchema,
++  ArchiveDiagnosticsSchema,
+   DesktopCommandSchema,
+   ImportCommitRequestSchema,
+   ImportCommitResultSchema,
+   ImportPreviewRefreshRequestSchema,
+   ImportPreviewResultSchema,
+   ImportSourceSelectionRequestSchema,
++  RendererDiagnosticRequestSchema,
++  StartupMilestoneSchema,
++  StartupTelemetrySchema,
+   WorkspaceInfoSchema,
+   WorkspaceSelectionResultSchema,
+   type AppInfoDto,
++  type ArchiveDiagnosticsDto,
+   type ArticleDto,
+   type ArticleSummaryDto,
+   type SearchResultDto,
+@@ -19,6 +24,9 @@
+   type ImportPreviewRefreshRequest,
+   type ImportPreviewResult,
+   type ImportSourceKind,
++  type RendererDiagnosticRequest,
++  type StartupMilestone,
++  type StartupTelemetryDto,
+   type WorkspaceInfoDto,
+   type WorkspaceSelectionResult,
+ } from '@research-observatory/platform-contracts';
+@@ -27,7 +35,19 @@
+   getArticle: (id: string): Promise<ArticleDto> => ipcRenderer.invoke('article:get', { id }),
+   search: (query: string): Promise<SearchResultDto[]> =>
+     ipcRenderer.invoke('search:query', { query }),
+-  diagnostics: () => ipcRenderer.invoke('diagnostics:get'),
++  diagnostics: async (): Promise<ArchiveDiagnosticsDto> =>
++    ArchiveDiagnosticsSchema.parse(await ipcRenderer.invoke('diagnostics:get')),
++  clearDiagnostics: async (): Promise<ArchiveDiagnosticsDto> =>
++    ArchiveDiagnosticsSchema.parse(await ipcRenderer.invoke('diagnostics:clear')),
++  reportDiagnostic: (request: RendererDiagnosticRequest): Promise<void> =>
++    ipcRenderer.invoke(
++      'diagnostics:report',
++      RendererDiagnosticRequestSchema.parse(request),
++    ),
++  markStartup: async (milestone: StartupMilestone): Promise<StartupTelemetryDto> =>
++    StartupTelemetrySchema.parse(
++      await ipcRenderer.invoke('telemetry:mark', StartupMilestoneSchema.parse(milestone)),
++    ),
+   appInfo: async (): Promise<AppInfoDto> =>
+     AppInfoResponseSchema.parse(await ipcRenderer.invoke('app:info')),
+   openExternal: (url: string) => ipcRenderer.invoke('external:open', url),
+--- a/apps/desktop-electron/src/renderer/command-palette.tsx
++++ b/apps/desktop-electron/src/renderer/command-palette.tsx
+@@ -12,13 +12,17 @@
+   const [query, setQuery] = useState('');
+   const [activeIndex, setActiveIndex] = useState(0);
+   const inputRef = useRef<HTMLInputElement>(null);
++  const dialogRef = useRef<HTMLElement>(null);
++  const returnFocusRef = useRef<HTMLElement | null>(null);
+   const results = useMemo(() => filterDesktopCommands(query), [query]);
+ 
+   useEffect(() => {
+     if (!open) return;
++    returnFocusRef.current = document.activeElement as HTMLElement | null;
+     setQuery('');
+     setActiveIndex(0);
+     requestAnimationFrame(() => inputRef.current?.focus());
++    return () => requestAnimationFrame(() => returnFocusRef.current?.focus());
+   }, [open]);
+ 
+   useEffect(() => {
+@@ -43,6 +47,7 @@
+   return (
+     <div className="modal-backdrop command-palette-backdrop" onMouseDown={onClose}>
+       <section
++        ref={dialogRef}
+         className="modal command-palette"
+         role="dialog"
+         aria-modal="true"
+@@ -52,6 +57,22 @@
+           if (event.key === 'Escape') {
+             event.preventDefault();
+             onClose();
++          } else if (event.key === 'Tab' && dialogRef.current) {
++            const focusable: HTMLElement[] = Array.from(
++              dialogRef.current.querySelectorAll<HTMLElement>(
++                'button, input, [href], [tabindex]:not([tabindex="-1"])',
++              ),
++            ).filter((element) => !element.hasAttribute('disabled'));
++            if (!focusable.length) return;
++            const first = focusable[0];
++            const last = focusable[focusable.length - 1];
++            if (event.shiftKey && document.activeElement === first) {
++              event.preventDefault();
++              last.focus();
++            } else if (!event.shiftKey && document.activeElement === last) {
++              event.preventDefault();
++              first.focus();
++            }
+           } else if (event.key === 'ArrowDown') {
+             event.preventDefault();
+             setActiveIndex((index) => Math.min(results.length - 1, index + 1));
+--- a/apps/desktop-electron/src/renderer/desktop-commands.test.ts
++++ b/apps/desktop-electron/src/renderer/desktop-commands.test.ts
+@@ -13,6 +13,9 @@
+     ]);
+     expect(filterDesktopCommands('version').map((command) => command.id)).toEqual(['about.open']);
+     expect(filterDesktopCommands('匯入').map((command) => command.id)).toEqual(['import.open']);
++    expect(filterDesktopCommands('字數').map((command) => command.id)).toEqual([
++      'observatory.open',
++    ]);
+   });
+ 
+   it('returns no arbitrary action for an unknown query', () => {
+--- a/apps/desktop-electron/src/renderer/desktop-commands.ts
++++ b/apps/desktop-electron/src/renderer/desktop-commands.ts
+@@ -39,6 +39,12 @@
+     shortcut: 'Ctrl+Shift+I',
+   },
+   {
++    id: 'observatory.open',
++    label: '開啟 Observatory 摘要',
++    keywords: ['observatory', 'statistics', 'summary', '字數', '統計', '摘要', '修訂'],
++    shortcut: 'Ctrl+Shift+O',
++  },
++  {
+     id: 'about.open',
+     label: '開啟關於資訊',
+     keywords: ['about', 'version', 'build', '關於', '版本'],
+--- a/apps/desktop-electron/src/renderer/observatory-modal.tsx
++++ b/apps/desktop-electron/src/renderer/observatory-modal.tsx
+@@ -0,0 +1,177 @@
++import React, { useEffect, useMemo, useRef } from 'react';
++import { buildArchiveBrowseModel } from '@research-observatory/renderer-ui';
++import type { ArticleSummaryDto } from '@research-observatory/platform-contracts';
++
++interface ObservatoryModalProps {
++  articles: readonly ArticleSummaryDto[];
++  onClose(): void;
++}
++
++function focusableElements(root: HTMLElement): HTMLElement[] {
++  return Array.from(
++    root.querySelectorAll<HTMLElement>(
++      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
++    ),
++  ).filter((element) => !element.hasAttribute('disabled') && !element.getAttribute('aria-hidden'));
++}
++
++export function ObservatoryModal({ articles, onClose }: ObservatoryModalProps) {
++  const dialogRef = useRef<HTMLElement>(null);
++  const closeRef = useRef<HTMLButtonElement>(null);
++  const model = useMemo(() => buildArchiveBrowseModel([...articles]), [articles]);
++  const totals = useMemo(
++    () =>
++      articles.reduce(
++        (summary, article) => ({
++          displayCount: summary.displayCount + article.readingStats.displayCount,
++          estimatedMinutes: summary.estimatedMinutes + article.readingStats.estimatedMinutes,
++        }),
++        { displayCount: 0, estimatedMinutes: 0 },
++      ),
++    [articles],
++  );
++  const revised = useMemo(
++    () => articles.filter((article) => article.updatedAt && article.updatedAt !== article.date),
++    [articles],
++  );
++
++  useEffect(() => {
++    closeRef.current?.focus();
++    const onKey = (event: KeyboardEvent) => {
++      if (event.key === 'Escape') {
++        event.preventDefault();
++        onClose();
++        return;
++      }
++      if (event.key !== 'Tab' || !dialogRef.current) return;
++      const focusable = focusableElements(dialogRef.current);
++      if (!focusable.length) return;
++      const first = focusable[0];
++      const last = focusable[focusable.length - 1];
++      if (event.shiftKey && document.activeElement === first) {
++        event.preventDefault();
++        last.focus();
++      } else if (!event.shiftKey && document.activeElement === last) {
++        event.preventDefault();
++        first.focus();
++      }
++    };
++    document.addEventListener('keydown', onKey);
++    return () => document.removeEventListener('keydown', onKey);
++  }, [onClose]);
++
++  return (
++    <div className="modal-backdrop" role="presentation">
++      <section
++        ref={dialogRef}
++        className="modal observatory-modal"
++        role="dialog"
++        aria-modal="true"
++        aria-labelledby="observatory-title"
++        aria-describedby="observatory-description"
++        data-testid="observatory-modal"
++      >
++        <header>
++          <div>
++            <h2 id="observatory-title">Observatory 封存摘要</h2>
++            <p id="observatory-description">
++              以表格與文字呈現封存規模、分類、標籤、時間軸、修訂日期與閱讀量；此視圖也是所有視覺化的無障礙替代內容。
++            </p>
++          </div>
++          <button ref={closeRef} type="button" onClick={onClose}>
++            關閉
++          </button>
++        </header>
++
++        <dl className="observatory-stats" data-testid="observatory-stats">
++          <div>
++            <dt>文章數</dt>
++            <dd>{articles.length}</dd>
++          </div>
++          <div>
++            <dt>顯示字數</dt>
++            <dd>{totals.displayCount.toLocaleString('zh-TW')}</dd>
++          </div>
++          <div>
++            <dt>估計閱讀時間</dt>
++            <dd>{totals.estimatedMinutes.toLocaleString('zh-TW')} 分鐘</dd>
++          </div>
++          <div>
++            <dt>含修訂日期文章</dt>
++            <dd>{revised.length}</dd>
++          </div>
++        </dl>
++
++        <div className="observatory-grid">
++          <section aria-labelledby="observatory-categories">
++            <h3 id="observatory-categories">分類</h3>
++            <table>
++              <thead>
++                <tr>
++                  <th scope="col">分類</th>
++                  <th scope="col">文章</th>
++                </tr>
++              </thead>
++              <tbody>
++                {model.categories.map((item) => (
++                  <tr key={item.key}>
++                    <th scope="row">{item.label}</th>
++                    <td>{item.count}</td>
++                  </tr>
++                ))}
++              </tbody>
++            </table>
++          </section>
++          <section aria-labelledby="observatory-timeline">
++            <h3 id="observatory-timeline">時間軸</h3>
++            <table>
++              <thead>
++                <tr>
++                  <th scope="col">月份</th>
++                  <th scope="col">文章</th>
++                </tr>
++              </thead>
++              <tbody>
++                {model.timeline.map((item) => (
++                  <tr key={item.key}>
++                    <th scope="row">{item.label}</th>
++                    <td>{item.count}</td>
++                  </tr>
++                ))}
++              </tbody>
++            </table>
++          </section>
++          <section aria-labelledby="observatory-tags">
++            <h3 id="observatory-tags">熱門標籤</h3>
++            <ol>
++              {model.tags.slice(0, 20).map((item) => (
++                <li key={item.key}>
++                  <span>{item.label}</span>
++                  <strong>{item.count}</strong>
++                </li>
++              ))}
++            </ol>
++          </section>
++          <section aria-labelledby="observatory-revisions">
++            <h3 id="observatory-revisions">最近修訂</h3>
++            {revised.length ? (
++              <ol>
++                {[...revised]
++                  .sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''))
++                  .slice(0, 20)
++                  .map((article) => (
++                    <li key={article.id}>
++                      <span>{article.title}</span>
++                      <time dateTime={article.updatedAt}>{article.updatedAt}</time>
++                    </li>
++                  ))}
++              </ol>
++            ) : (
++              <p>目前文章尚未提供獨立修訂日期。</p>
++            )}
++          </section>
++        </div>
++      </section>
++    </div>
++  );
++}
