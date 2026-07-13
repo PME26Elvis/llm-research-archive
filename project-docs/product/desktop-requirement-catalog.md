@@ -7,6 +7,7 @@ related-adrs:
   - ADR-0016
   - ADR-0017
   - ADR-0018
+  - ADR-0019
 ---
 
 # Desktop Requirement Catalog
@@ -27,6 +28,19 @@ This catalog gives every traceable requirement a stable product name and defines
 A user chooses a Markdown file or article folder, reviews a deterministic import plan, corrects metadata, confirms a writable target, and receives either a fully committed article or an unchanged workspace. The implementation provides write-free preview, constrained source shapes, cleanup and metadata normalization, source/asset fingerprints, sibling staging, post-write validation, atomic rename, rollback, immediate navigation, restart persistence, default source retention, and separately validated source removal.
 
 Evidence: `packages/content-engine/src/article-import/index.test.ts`, `packages/content-engine/src/article-import/commit.test.ts`, `packages/platform-contracts/src/import-contract.test.ts`, `apps/desktop-electron/src/main/import-session.test.ts`, `apps/desktop-electron/tests/security.spec.ts`, and `apps/desktop-electron/e2e/import-wizard.spec.ts`.
+
+
+### FR-031 — Switchable interface languages
+
+The Settings dialog exposes system language, Traditional Chinese, and English. Selection applies immediately to renderer chrome, accessibility labels, formatting locale, native menus, and native dialogs; it persists through the versioned preferences schema and across restart. Research article bodies remain canonical and are not machine-translated.
+
+Evidence: `apps/desktop-electron/src/renderer/i18n.test.ts`, `apps/desktop-electron/src/renderer/preferences.test.ts`, `apps/desktop-electron/src/main/main-i18n.test.ts`, and `apps/desktop-electron/e2e/preferences.spec.ts`.
+
+### FR-032 — Structured release descriptions
+
+The reusable release workflow accepts bounded human-authored change items, normalizes comma/semicolon/newline/Markdown-bullet input, deduplicates entries, and renders a stable Markdown release body for both new drafts and refreshed matching drafts.
+
+Evidence: `scripts/release-notes.test.ts`, `scripts/workflow-release.test.ts`, `scripts/validate-release-assets.mjs`, and `.github/workflows/desktop-release-reusable.yml`.
 
 ## Implemented non-functional requirements
 
@@ -58,8 +72,12 @@ Runtime dependencies are separated from development tooling and recorded in a ma
 
 Unexpected main, renderer, preference, search-index, workspace, and import failures produce typed actionable errors where possible and bounded local diagnostics otherwise. Diagnostics are main-owned, atomically persisted with restrictive permissions, redacted for secrets and private roots, exposed through validated DTOs, and viewable/clearable by the user. Article bodies and raw IPC payloads are never logged.
 
+### NFR-026 — Localization integrity and native authority
+
+Preference persistence stays renderer-owned. Main receives only a schema-validated `zh-TW` or `en` locale through the typed preload boundary and retains sole authority to rebuild native menus or open native dialogs. Unsupported or corrupt preference data falls back safely without expanding renderer privileges.
+
 ## Completed delivery sequence
 
-PRs #27–#29 implemented the safe import domain, atomic transaction, Desktop Import Wizard, and complete E2E journey. PR #58 implemented the search index, startup telemetry, local diagnostics, revision/word-count presentation, and accessible Observatory. PR #73 converged coverage, accessibility, dependency, benchmark, renderer, package-footprint, and release gates. All traceable requirements are now implemented.
+PRs #27–#29 implemented the safe import domain, atomic transaction, Desktop Import Wizard, and complete E2E journey. PR #58 implemented the search index, startup telemetry, local diagnostics, revision/word-count presentation, and accessible Observatory. PR #73 converged coverage, accessibility, dependency, benchmark, renderer, package-footprint, and release gates. PR #91 added bilingual interface settings, native localization, and structured release descriptions. All traceable requirements are now implemented.
 
 Future work is proposal-only and is maintained in `project-docs/roadmap/desktop-roadmap.md`; it does not create a new planned requirement until approved with stable IDs and acceptance evidence.

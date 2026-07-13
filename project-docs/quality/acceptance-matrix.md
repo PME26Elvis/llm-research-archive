@@ -41,6 +41,8 @@ related-adrs:
 | FR-028 | Explicit release publication | implemented | .github/workflows/desktop-release-reusable.yml, scripts/workflow-release.test.ts, project-docs/release/verification-run-29113199684.md |
 | FR-029 | Supported Node smoke verification | implemented | scripts/node-smoke.mjs |
 | FR-030 | MkDocs feature disposition | implemented | project-docs/migration/mkdocs-feature-parity-matrix.md |
+| FR-031 | Switchable interface languages | implemented | apps/desktop-electron/src/renderer/i18n.test.ts, apps/desktop-electron/src/renderer/preferences.test.ts, apps/desktop-electron/src/main/main-i18n.test.ts, apps/desktop-electron/e2e/preferences.spec.ts |
+| FR-032 | Structured release descriptions | implemented | scripts/release-notes.test.ts, scripts/workflow-release.test.ts, scripts/validate-release-assets.mjs, .github/workflows/desktop-release-reusable.yml |
 | NFR-001 | Offline-first operation | implemented | apps/desktop-electron/e2e/source.spec.ts |
 | NFR-002 | Renderer isolation | implemented | apps/desktop-electron/tests/security.spec.ts |
 | NFR-003 | IPC sender validation | implemented | apps/desktop-electron/tests/security.spec.ts |
@@ -66,3 +68,4 @@ related-adrs:
 | NFR-023 | Focus-safe modal interaction | implemented | apps/desktop-electron/e2e/source.spec.ts |
 | NFR-024 | Explicit product scope | implemented | project-docs/product/desktop-product-spec.md |
 | NFR-025 | Local recovery and privacy-safe logging | implemented | apps/desktop-electron/src/main/local-diagnostics.test.ts, apps/desktop-electron/e2e/accessibility.spec.ts, packages/platform-contracts/src/quality-contract.test.ts |
+| NFR-026 | Localization integrity and native authority | implemented | apps/desktop-electron/tests/security.spec.ts, apps/desktop-electron/src/main/main-i18n.test.ts, apps/desktop-electron/e2e/preferences.spec.ts |

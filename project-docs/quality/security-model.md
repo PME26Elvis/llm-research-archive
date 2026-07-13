@@ -7,6 +7,7 @@ related-adrs:
   - ADR-0016
   - ADR-0017
   - ADR-0018
+  - ADR-0019
 ---
 
 # Security Model
@@ -18,3 +19,5 @@ Local workspaces and assets are canonicalized and confined; import plans are rea
 Local diagnostics are bounded, atomically persisted, and redacted for configured private roots, absolute paths, authorization data, tokens, passwords, and secrets. They never contain article bodies or raw IPC payloads and can be inspected or cleared by the user. No diagnostics leave the device.
 
 Dependency governance separates runtime and development tooling, inventories production packages, audits a production-only lockfile, and allows high/critical findings only through reviewed expiring exceptions. Packaged-output inspection rejects top-level repository internals and obvious credentials, secrets, private keys, or certificate-key files.
+
+Language preferences remain local renderer state. The preload validates resolved locales before IPC, main accepts only the two supported locale identifiers, and native menu/dialog construction remains main-owned. Translation keys never execute code, article content is not sent to a translation service, and language switching introduces no network access or expanded filesystem authority.

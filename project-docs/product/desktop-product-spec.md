@@ -10,13 +10,14 @@ related-adrs:
   - ADR-0012
   - ADR-0016
   - ADR-0018
+  - ADR-0019
 ---
 
 # Desktop Product Spec
 
 ## Current P1 Offline Reader Scope
 
-The current implementation provides the offline bundled reader, safe article import and publishing, secure Electron shell, canonical content parsing, serialized incremental full-text search, category/tag/timeline browsing, sanitized reading with local image lightbox, fenced-code copy, strict lazy Mermaid rendering, lazy syntax highlighting, accessible footnotes, persistent reader and layout preferences, semantic Back/Forward navigation, typed native commands and command palette, validated local workspaces, Observatory archive summaries, revision dates and word-count statistics, startup telemetry, privacy-safe local diagnostics, native four-platform packaging, enforced quality budgets, and a verified draft-first release pipeline. Every requirement in this specification has concrete production code and verification evidence.
+The current implementation provides the offline bundled reader, safe article import and publishing, secure Electron shell, canonical content parsing, serialized incremental full-text search, category/tag/timeline browsing, sanitized reading with local image lightbox, fenced-code copy, strict lazy Mermaid rendering, lazy syntax highlighting, accessible footnotes, persistent reader and layout preferences, switchable Traditional Chinese/English interface language, semantic Back/Forward navigation, typed native commands and command palette, validated local workspaces, Observatory archive summaries, revision dates and word-count statistics, startup telemetry, privacy-safe local diagnostics, native four-platform packaging, enforced quality budgets, and a verified draft-first release pipeline with structured Markdown change summaries. Every requirement in this specification has concrete production code and verification evidence.
 
 The stable requirement names, acceptance rules for all remaining work, and sequenced delivery boundaries are defined in `project-docs/product/desktop-requirement-catalog.md`. Requirement IDs remain the traceability keys.
 
@@ -200,6 +201,18 @@ Status: `implemented`. Verification: scripts/node-smoke.mjs.
 
 Status: `implemented`. Verification: project-docs/migration/mkdocs-feature-parity-matrix.md.
 
+## FR-031
+
+**Name:** Switchable interface languages.
+
+Status: `implemented`. Verification: `apps/desktop-electron/src/renderer/i18n.test.ts`, `apps/desktop-electron/src/renderer/preferences.test.ts`, `apps/desktop-electron/src/main/main-i18n.test.ts`, and `apps/desktop-electron/e2e/preferences.spec.ts`. Users can choose system language, Traditional Chinese, or English; the interface, native menu, dialogs, accessibility labels, and document language switch immediately and persist across restart. Article content is not translated automatically.
+
+## FR-032
+
+**Name:** Structured release descriptions.
+
+Status: `implemented`. Verification: `scripts/release-notes.test.ts`, `scripts/workflow-release.test.ts`, `scripts/validate-release-assets.mjs`, and `.github/workflows/desktop-release-reusable.yml`. Optional comma-, semicolon-, newline-, or Markdown-bullet change items are bounded, normalized, deduplicated, converted to a `What's changed` Markdown list, and applied consistently to new or refreshed drafts.
+
 ## NFR-001
 
 **Name:** Offline-first operation.
@@ -349,3 +362,9 @@ Status: `implemented`. Verification: project-docs/product/desktop-product-spec.m
 **Name:** Local recovery and privacy-safe logging.
 
 Status: `implemented`. Verification: `apps/desktop-electron/src/main/local-diagnostics.test.ts`, `apps/desktop-electron/e2e/accessibility.spec.ts`, and `packages/platform-contracts/src/quality-contract.test.ts`. Diagnostics are main-owned, bounded, atomically persisted, path/secret redacted, typed across IPC, and user-viewable/clearable.
+
+## NFR-026
+
+**Name:** Localization integrity and native authority.
+
+Status: `implemented`. Verification: `apps/desktop-electron/tests/security.spec.ts`, `apps/desktop-electron/src/main/main-i18n.test.ts`, and `apps/desktop-electron/e2e/preferences.spec.ts`. Renderer-owned preferences are migrated and persisted locally; only the resolved allowlisted locale crosses typed, schema-validated IPC so the main process can rebuild native menus and dialogs. Unsupported locales fall back safely, and localization never grants filesystem or navigation authority.

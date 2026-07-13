@@ -5,13 +5,14 @@ last-verified: 2026-07-13
 related-adrs:
   - ADR-0007
   - ADR-0018
+  - ADR-0019
 ---
 
 # Desktop Roadmap
 
 ## Current baseline
 
-The offline desktop reader, safe importer, local workspaces, serialized search, Observatory, revision/word-count views, accessibility, startup telemetry, local diagnostics, four-platform packages, and draft-first release pipeline are implemented. Every current FR/NFR in the Product Spec is implemented and enforced by traceability and CI.
+The offline desktop reader, safe importer, local workspaces, serialized search, Observatory, revision/word-count views, accessibility, startup telemetry, local diagnostics, four-platform packages, and draft-first release pipeline, switchable Traditional Chinese/English UI, localized native menus/dialogs, and structured Markdown release descriptions are implemented. Every current FR/NFR in the Product Spec is implemented and enforced by traceability and CI.
 
 ## Proposed next phase
 
@@ -22,7 +23,8 @@ These items are authorized for planning but are not yet traceable requirements. 
 3. **Release provenance** — artifact attestations, dependency/license reports, reproducible provenance metadata, and verification instructions alongside SBOM/checksums.
 4. **Quality trend history** — retain coverage, startup, search, renderer, package, and audit baselines across releases with regression summaries that do not create flaky wall-clock gates.
 5. **Consented diagnostic export** — explicit user-reviewed export bundle with a manifest, redaction preview, bounded retention, and no automatic upload.
-6. **Advanced offline retrieval** — ranking experiments beyond deterministic token matching while preserving serialized local indexes, bounded renderer work, explainability, and offline operation.
+6. **Additional interface locales** — add a locale only with a complete dictionary, native-label coverage, migration behavior, accessibility review, and real Electron persistence journey; article translation remains out of scope.
+7. **Advanced offline retrieval** — ranking experiments beyond deterministic token matching while preserving serialized local indexes, bounded renderer work, explainability, and offline operation.
 
 ## Promotion rule
 

@@ -8,6 +8,7 @@ related-adrs:
   - ADR-0007
   - ADR-0009
   - ADR-0018
+  - ADR-0019
 ---
 
 # Testing Strategy
@@ -31,7 +32,7 @@ Research Observatory uses layered verification. A feature is complete only when 
 | Search benchmark | `npm run benchmark:search` | 1k/10k serialization, query, filter, and renderer-block budgets. |
 | Production build | `npm run build` | Bundled archive and Electron production output compile together. |
 | Renderer footprint | `npm run validate:footprint:renderer` | Initial renderer JavaScript remains under 2 MiB gzip. |
-| Electron E2E | `npm run test:e2e` | Complete user journeys inside the real Electron runtime. |
+| Electron E2E | `npm run test:e2e` | Complete user journeys inside the real Electron runtime, including immediate language switching, native menu localization, restart persistence, and locale reversal. |
 | Packaged smoke | `npm run smoke:packaged` | Windows, Linux, macOS arm64, and macOS x64 packages launch and expose expected build data. |
 | Installed footprint | `npm run validate:footprint:package` | Each packaged root stays below 2 GiB and excludes repository-private or secret material. |
 
@@ -44,3 +45,7 @@ Playwright uses one Electron worker. The shared `electron-test.ts` fixture owns 
 ## Coverage rule
 
 Every behavior adds the lowest-cost deterministic test that proves its contract. Parsing belongs in unit tests; DTOs require contract tests; renderer focus and accessibility require renderer/Electron evidence; filesystem, preload, IPC, navigation, recovery, and packaged-runtime behavior require Electron or packaged smoke. Tests and thresholds are not weakened merely to obtain a green run.
+
+## Localization and release-description coverage
+
+Translation dictionaries are type-complete at compile time and unit-tested in both locales with interpolation. Preference tests cover schema migration and supported locale values. Main-process tests cover native labels; security tests preserve renderer/main authority; Electron E2E proves immediate application, focus restoration, native menu updates, restart persistence, and switching back to Traditional Chinese. Release-description tests cover accepted separators, Markdown bullets, deduplication, bounds, workflow wiring, and draft refresh behavior.
