@@ -1,5 +1,5 @@
 name: Temporary Completed Quality Docs Finalizer
-run-name: Run repaired completed quality documentation
+run-name: Run three-way completed quality documentation
 
 on:
   push:
@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   finalize:
-    if: startsWith(github.event.head_commit.message, 'Run repaired completed quality documentation')
+    if: startsWith(github.event.head_commit.message, 'Run three-way completed quality documentation')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout documentation branch
@@ -44,13 +44,19 @@ jobs:
           combined = b''.join(parts)
           digest = sha256(combined).hexdigest()
           expected = '74d3fb4d1c8a0e1fc02cde6030c3788ebfe1983674d620f8ee2ecad693f418b3'
+          Path('docs-patch-digest.txt').write_text(f'{digest}  docs-sync.patch\n')
           if digest != expected:
               raise SystemExit(f'documentation patch digest mismatch: {digest} != {expected}')
           Path('/tmp/docs-sync.patch').write_bytes(combined)
           print(f'documentation patch verified: {digest}')
           PY
-          git apply --check /tmp/docs-sync.patch
-          git apply /tmp/docs-sync.patch
+          if git apply --check /tmp/docs-sync.patch 2>docs-apply.log; then
+            git apply /tmp/docs-sync.patch
+            echo 'strict apply succeeded' >> docs-apply.log
+          else
+            echo 'strict apply failed; attempting three-way apply' | tee -a docs-apply.log
+            git apply --3way /tmp/docs-sync.patch 2>&1 | tee -a docs-apply.log
+          fi
           mkdir -p project-docs/architecture/adr project-docs/roadmap
           cp payload/.docs-sync-patch/new-adr-0018.md \
             project-docs/architecture/adr/0018-enforced-quality-and-local-observability.md
@@ -85,6 +91,8 @@ jobs:
         with:
           name: completed-quality-docs-verification-${{ github.run_attempt }}
           path: |
+            docs-apply.log
+            docs-patch-digest.txt
             docs-sync-verify.log
             coverage/
             dist/quality/
@@ -93,7 +101,7 @@ jobs:
           retention-days: 14
 
   receipt:
-    if: always() && startsWith(github.event.head_commit.message, 'Run repaired completed quality documentation')
+    if: always() && startsWith(github.event.head_commit.message, 'Run three-way completed quality documentation')
     needs: finalize
     runs-on: ubuntu-latest
     steps:
