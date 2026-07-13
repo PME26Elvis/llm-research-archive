@@ -1,0 +1,103 @@
+name: Temporary bilingual desktop finalizer
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: contains(github.event.head_commit.message, 'finalize bilingual desktop feature')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: agent/bilingual-interface-release-notes
+          path: repo
+          fetch-depth: 0
+      - name: Checkout immutable patch receipt
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: ops/i18n-receipt
+          path: receipt
+          fetch-depth: 1
+      - name: Reconstruct, verify, apply, format, and test
+        id: finalizer
+        continue-on-error: true
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected='9309f4169fab6ec62407ddc12b64f7eeb2146127998e2c77e971ee9cc8ad2c11'
+          parts=(receipt/.ops/i18n-patch/00.diff)
+          for index in $(seq -w 0 13); do
+            parts+=("receipt/.ops/i18n-patch/x${index}.diff")
+          done
+          for part in "${parts[@]}"; do
+            test -f "$part" || { echo "missing patch part: $part" >&2; exit 1; }
+          done
+          cat "${parts[@]}" > /tmp/bilingual-feature.diff
+          actual=$(sha256sum /tmp/bilingual-feature.diff | awk '{print $1}')
+          test "$actual" = "$expected" || { echo "patch digest $actual != $expected" >&2; exit 1; }
+          cd repo
+          test "$(git rev-parse HEAD)" = '939e76513979b90f0678d9068810e4218a5108fd'
+          git apply --check /tmp/bilingual-feature.diff
+          git apply /tmp/bilingual-feature.diff
+          npm ci
+          npm run format:write
+          npm run verify 2>&1 | tee /tmp/bilingual-verify.log
+          git diff --check
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git diff --cached --quiet && { echo 'feature patch produced no changes' >&2; exit 1; }
+          git commit -m 'Add bilingual desktop interface and structured release notes'
+          verified_sha=$(git rev-parse HEAD)
+          echo "verified_sha=$verified_sha" >> "$GITHUB_OUTPUT"
+          if git push origin HEAD:agent/bilingual-interface-release-notes; then
+            echo 'pushed=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'pushed=false' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Upload finalizer evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: bilingual-finalizer-${{ github.run_id }}
+          path: |
+            /tmp/bilingual-feature.diff
+            /tmp/bilingual-verify.log
+          if-no-files-found: warn
+          retention-days: 3
+      - name: Record finalizer receipt
+        if: always()
+        shell: bash
+        env:
+          OUTCOME: ${{ steps.finalizer.outcome }}
+          VERIFIED_SHA: ${{ steps.finalizer.outputs.verified_sha }}
+          PUSHED: ${{ steps.finalizer.outputs.pushed }}
+        run: |
+          set -euo pipefail
+          cd receipt
+          mkdir -p .ops
+          cat > .ops/i18n-finalizer.json <<JSON
+          {
+            "run_id": "${GITHUB_RUN_ID}",
+            "run_attempt": "${GITHUB_RUN_ATTEMPT}",
+            "outcome": "${OUTCOME}",
+            "verified_sha": "${VERIFIED_SHA}",
+            "pushed": "${PUSHED}",
+            "baseline_sha": "939e76513979b90f0678d9068810e4218a5108fd",
+            "patch_sha256": "9309f4169fab6ec62407ddc12b64f7eeb2146127998e2c77e971ee9cc8ad2c11"
+          }
+          JSON
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .ops/i18n-finalizer.json
+          git commit -m "Record bilingual finalizer ${GITHUB_RUN_ID}"
+          git push origin HEAD:ops/i18n-receipt
+      - name: Fail when repository verification failed
+        if: steps.finalizer.outcome != 'success'
+        run: exit 1
