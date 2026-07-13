@@ -1,0 +1,70 @@
+diff --git a/scripts/validate-dependencies.mjs b/scripts/validate-dependencies.mjs
+--- a/scripts/validate-dependencies.mjs
++++ b/scripts/validate-dependencies.mjs
+@@ -1,5 +1,7 @@
+ import fs from 'node:fs';
++import os from 'node:os';
++import path from 'node:path';
+ import { spawnSync } from 'node:child_process';
+ import { isVulnerabilityExcepted, validateExceptions } from './dependency-policy.mjs';
+ 
+@@ -56,16 +58,42 @@ const exceptionDocument = JSON.parse(
+   fs.readFileSync('project-docs/quality/dependency-vulnerability-exceptions.json', 'utf8'),
+ );
+ const exceptions = validateExceptions(exceptionDocument);
+-const audit = spawnSync('npm', ['audit', '--omit=dev', '--json'], {
+-  encoding: 'utf8',
+-  maxBuffer: 16 * 1024 * 1024,
+-  shell: process.platform === 'win32',
+-});
+-if (!audit.stdout) {
+-  throw new Error(`npm audit produced no JSON: ${audit.stderr || `exit ${audit.status}`}`);
++const auditDirectory = fs.mkdtempSync(path.join(os.tmpdir(), 'observatory-production-audit-'));
++let audit;
++try {
++  fs.writeFileSync(
++    path.join(auditDirectory, 'package.json'),
++    `${JSON.stringify(
++      {
++        name: 'research-observatory-production-audit',
++        version: pkg.version,
++        private: true,
++        dependencies: pkg.dependencies ?? {},
++      },
++      null,
++      2,
++    )}\n`,
++  );
++  const install = spawnSync(
++    'npm',
++    ['install', '--package-lock-only', '--ignore-scripts', '--omit=dev'],
++    {
++      cwd: auditDirectory,
++      encoding: 'utf8',
++      maxBuffer: 16 * 1024 * 1024,
++      shell: process.platform === 'win32',
++    },
++  );
++  if (install.status !== 0) {
++    throw new Error(`production dependency lock failed: ${install.stderr || install.stdout}`);
++  }
++  audit = spawnSync('npm', ['audit', '--omit=dev', '--json'], {
++    cwd: auditDirectory,
++    encoding: 'utf8',
++    maxBuffer: 16 * 1024 * 1024,
++    shell: process.platform === 'win32',
++  });
++} finally {
++  fs.rmSync(auditDirectory, { recursive: true, force: true });
+ }
++if (!audit?.stdout) throw new Error(`npm audit produced no JSON: ${audit?.stderr || 'no output'}`);
+ let auditReport;
+ try {
+   auditReport = JSON.parse(audit.stdout);
+@@ -87,6 +115,7 @@ const report = {
+   schemaVersion: 1,
+   generatedAt: new Date().toISOString(),
++  auditScope: 'isolated-production-lockfile',
+   directDependencies: pkg.dependencies ?? {},
+   directDevDependencies: pkg.devDependencies ?? {},
+   auditMetadata: auditReport.metadata ?? {},
