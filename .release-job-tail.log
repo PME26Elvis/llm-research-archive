@@ -1,0 +1,160 @@
+2026-07-13T02:26:21.1974645Z ##[endgroup]
+2026-07-13T02:26:21.1975869Z ##[group]Determining the checkout info
+2026-07-13T02:26:21.1986688Z ##[endgroup]
+2026-07-13T02:26:21.1988086Z [command]/usr/bin/git sparse-checkout disable
+2026-07-13T02:26:21.2027519Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-07-13T02:26:21.2061962Z ##[group]Checking out the ref
+2026-07-13T02:26:21.2068182Z [command]/usr/bin/git checkout --progress --force 71d6b9a1518a8d010465fe9c7c91cb371c9a4645
+2026-07-13T02:26:21.2223759Z Note: switching to '71d6b9a1518a8d010465fe9c7c91cb371c9a4645'.
+2026-07-13T02:26:21.2226418Z 
+2026-07-13T02:26:21.2227136Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-07-13T02:26:21.2228751Z changes and commit them, and you can discard any commits you make in this
+2026-07-13T02:26:21.2230342Z state without impacting any branches by switching back to a branch.
+2026-07-13T02:26:21.2231304Z 
+2026-07-13T02:26:21.2231910Z If you want to create a new branch to retain commits you create, you may
+2026-07-13T02:26:21.2233600Z do so (now or later) by using -c with the switch command. Example:
+2026-07-13T02:26:21.2234489Z 
+2026-07-13T02:26:21.2234838Z   git switch -c <new-branch-name>
+2026-07-13T02:26:21.2235468Z 
+2026-07-13T02:26:21.2235916Z Or undo this operation with:
+2026-07-13T02:26:21.2236483Z 
+2026-07-13T02:26:21.2236735Z   git switch -
+2026-07-13T02:26:21.2237251Z 
+2026-07-13T02:26:21.2237928Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-07-13T02:26:21.2238972Z 
+2026-07-13T02:26:21.2240019Z HEAD is now at 71d6b9a Merge PR #39: fix Windows release version application
+2026-07-13T02:26:21.2243067Z ##[endgroup]
+2026-07-13T02:26:21.2276170Z [command]/usr/bin/git log -1 --format=%H
+2026-07-13T02:26:21.2306513Z 71d6b9a1518a8d010465fe9c7c91cb371c9a4645
+2026-07-13T02:26:21.2627551Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-07-13T02:26:21.2632983Z ##[group]Run actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+2026-07-13T02:26:21.2634243Z with:
+2026-07-13T02:26:21.2634880Z   node-version: 24
+2026-07-13T02:26:21.2635670Z   cache: npm
+2026-07-13T02:26:21.2636294Z   always-auth: false
+2026-07-13T02:26:21.2636981Z   check-latest: false
+2026-07-13T02:26:21.2646473Z   token: ***
+2026-07-13T02:26:21.2647084Z ##[endgroup]
+2026-07-13T02:26:21.4132299Z Found in cache @ /opt/hostedtoolcache/node/24.18.0/x64
+2026-07-13T02:26:21.4138921Z (node:2184) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-07-13T02:26:21.4142920Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-07-13T02:26:21.4146209Z ##[group]Environment details
+2026-07-13T02:26:21.8578270Z node: v24.18.0
+2026-07-13T02:26:21.8583026Z npm: 11.16.0
+2026-07-13T02:26:21.8583749Z yarn: 1.22.22
+2026-07-13T02:26:21.8585303Z ##[endgroup]
+2026-07-13T02:26:21.8603969Z [command]/opt/hostedtoolcache/node/24.18.0/x64/bin/npm config get cache
+2026-07-13T02:26:22.5707390Z /home/runner/.npm
+2026-07-13T02:26:22.6900836Z Cache hit for: node-cache-Linux-x64-npm-2930893f4e0f98b220bbb8757f1bb0c4d4f39114271878fd3d0a81dd9b8c896b
+2026-07-13T02:26:22.7006538Z (node:2184) [DEP0169] DeprecationWarning: `url.parse()` behavior is not standardized and prone to errors that have security implications. Use the WHATWG URL API instead. CVEs are not issued for `url.parse()` vulnerabilities.
+2026-07-13T02:26:23.5764928Z Received 99662381 of 99662381 (100.0%), 120.9 MBs/sec
+2026-07-13T02:26:23.5765911Z Cache Size: ~95 MB (99662381 B)
+2026-07-13T02:26:23.5800892Z [command]/usr/bin/tar -xf /home/runner/work/_temp/a6193de7-4f19-41e1-a5b9-56b671148e38/cache.tzst -P -C /home/runner/work/llm-research-archive/llm-research-archive --use-compress-program unzstd
+2026-07-13T02:26:23.7368352Z Cache restored successfully
+2026-07-13T02:26:23.7411155Z Cache restored from key: node-cache-Linux-x64-npm-2930893f4e0f98b220bbb8757f1bb0c4d4f39114271878fd3d0a81dd9b8c896b
+2026-07-13T02:26:23.7575777Z ##[group]Run npm ci
+2026-07-13T02:26:23.7576273Z [36;1mnpm ci[0m
+2026-07-13T02:26:23.7755438Z shell: /usr/bin/bash -e {0}
+2026-07-13T02:26:23.7755996Z ##[endgroup]
+2026-07-13T02:26:25.9438530Z npm warn skipping integrity check for git dependency ssh://git@github.com/electron/node-gyp.git
+2026-07-13T02:26:28.2368517Z npm warn deprecated inflight@1.0.6: This module is not supported, and leaks memory. Do not use it. Check out lru-cache if you want a good and tested way to coalesce async requests by a key value, which is much more comprehensive and powerful.
+2026-07-13T02:26:28.2386812Z npm warn deprecated gar@1.0.4: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-07-13T02:26:28.2637554Z npm warn deprecated lodash.get@4.4.2: This package is deprecated. Use the optional chaining (?.) operator instead.
+2026-07-13T02:26:28.2748914Z npm warn deprecated @npmcli/move-file@2.0.1: This functionality has been moved to @npmcli/fs
+2026-07-13T02:26:28.3030119Z npm warn deprecated rimraf@2.6.3: Rimraf versions prior to v4 are no longer supported
+2026-07-13T02:26:28.3272312Z npm warn deprecated rimraf@3.0.2: Rimraf versions prior to v4 are no longer supported
+2026-07-13T02:26:28.3799870Z npm warn deprecated glob@7.2.3: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-07-13T02:26:28.3902076Z npm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-07-13T02:26:28.3919750Z npm warn deprecated glob@8.1.0: Old versions of glob are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-07-13T02:26:28.9210314Z npm warn deprecated boolean@3.2.0: Package no longer supported. Contact Support at https://www.npmjs.com/support for more info.
+2026-07-13T02:26:29.1979670Z npm warn deprecated tar@6.2.1: Old versions of tar are not supported, and contain widely publicized security vulnerabilities, which have been fixed in the current version. Please update. Support for old versions may be purchased (at exorbitant rates) by contacting i@izs.me
+2026-07-13T02:26:33.0076297Z 
+2026-07-13T02:26:33.0077175Z added 787 packages, and audited 795 packages in 9s
+2026-07-13T02:26:33.0077641Z 
+2026-07-13T02:26:33.0077962Z 130 packages are looking for funding
+2026-07-13T02:26:33.0078441Z   run `npm fund` for details
+2026-07-13T02:26:33.0431293Z 
+2026-07-13T02:26:33.0432412Z 30 vulnerabilities (3 low, 2 moderate, 24 high, 1 critical)
+2026-07-13T02:26:33.0432896Z 
+2026-07-13T02:26:33.0433136Z To address issues that do not require attention, run:
+2026-07-13T02:26:33.0433469Z   npm audit fix
+2026-07-13T02:26:33.0433592Z 
+2026-07-13T02:26:33.0433835Z To address all issues possible (including breaking changes), run:
+2026-07-13T02:26:33.0434183Z   npm audit fix --force
+2026-07-13T02:26:33.0434325Z 
+2026-07-13T02:26:33.0434498Z Some issues need review, and may require choosing
+2026-07-13T02:26:33.0434817Z a different dependency.
+2026-07-13T02:26:33.0434948Z 
+2026-07-13T02:26:33.0435068Z Run `npm audit` for details.
+2026-07-13T02:26:33.0443126Z npm warn allow-scripts 3 packages have install scripts not yet covered by allowScripts:
+2026-07-13T02:26:33.0444483Z npm warn allow-scripts   electron-winstaller@5.4.4 (install: node ./script/select-7z-arch.js)
+2026-07-13T02:26:33.0445634Z npm warn allow-scripts   esbuild@0.21.5 (postinstall: node install.js)
+2026-07-13T02:26:33.0446448Z npm warn allow-scripts   esbuild@0.28.1 (postinstall: node install.js)
+2026-07-13T02:26:33.0446885Z npm warn allow-scripts
+2026-07-13T02:26:33.0447974Z npm warn allow-scripts Run `npm approve-scripts --allow-scripts-pending` to review, or `npm approve-scripts <pkg>` to allow.
+2026-07-13T02:26:33.0972636Z ##[group]Run node scripts/apply-release-version.mjs
+2026-07-13T02:26:33.0973051Z [36;1mnode scripts/apply-release-version.mjs[0m
+2026-07-13T02:26:33.0994556Z shell: /usr/bin/bash -e {0}
+2026-07-13T02:26:33.0994821Z env:
+2026-07-13T02:26:33.0995031Z   RELEASE_VERSION: 0.1.0
+2026-07-13T02:26:33.0995312Z ##[endgroup]
+2026-07-13T02:26:33.1522198Z applied release version 0.1.0
+2026-07-13T02:26:33.1617002Z Node 20 is being deprecated. This workflow is running with Node 24 by default. If you need to temporarily use Node 20, you can set the ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION=true environment variable. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
+2026-07-13T02:26:33.1618298Z ##[group]Run actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+2026-07-13T02:26:33.1618670Z with:
+2026-07-13T02:26:33.1618879Z   name: aggregate-release-assets
+2026-07-13T02:26:33.1619152Z   path: dist/aggregate-release
+2026-07-13T02:26:33.1619397Z   merge-multiple: false
+2026-07-13T02:26:33.1619656Z   repository: PME26Elvis/llm-research-archive
+2026-07-13T02:26:33.1619939Z   run-id: 29219286047
+2026-07-13T02:26:33.1620141Z ##[endgroup]
+2026-07-13T02:26:33.3196233Z Downloading single artifact
+2026-07-13T02:26:33.3351722Z (node:2297) [DEP0040] DeprecationWarning: The `punycode` module is deprecated. Please use a userland alternative instead.
+2026-07-13T02:26:33.3353561Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-07-13T02:26:33.4454890Z Preparing to download the following artifacts:
+2026-07-13T02:26:33.4456805Z - aggregate-release-assets (ID: 8267705615, Size: 855709723, Expected Digest: sha256:8d099cbf9986e6557c73846c0887f11b7c83b1f1d6aed160fb5a40359869e951)
+2026-07-13T02:26:33.5409279Z Redirecting to blob download url: https://productionresultssa19.blob.core.windows.net/actions-results/301e5daf-091e-4be0-bf16-ceaad3bfb790/workflow-job-run-c6478b0d-0693-5758-ae37-fa07566e2f19/artifacts/7a91472fbd138fb111b2b61fe0183d9c0730ac39b92ee22279f411ed028d0b02.zip
+2026-07-13T02:26:33.5410860Z Starting download of artifact to: /home/runner/work/llm-research-archive/llm-research-archive/dist/aggregate-release
+2026-07-13T02:26:33.7061255Z (node:2297) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Please use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
+2026-07-13T02:26:45.2923452Z SHA256 digest of downloaded artifact is 8d099cbf9986e6557c73846c0887f11b7c83b1f1d6aed160fb5a40359869e951
+2026-07-13T02:26:45.2924480Z Artifact download completed successfully.
+2026-07-13T02:26:45.2925067Z Total of 1 artifact(s) downloaded
+2026-07-13T02:26:45.2932020Z Download artifact has finished successfully
+2026-07-13T02:26:45.3046140Z ##[group]Run set -euo pipefail
+2026-07-13T02:26:45.3046496Z [36;1mset -euo pipefail[0m
+2026-07-13T02:26:45.3047015Z [36;1mif gh release view "$TAG" --json isDraft,targetCommitish,assets > /tmp/release-before.json 2>/dev/null; then[0m
+2026-07-13T02:26:45.3047880Z [36;1m  node -e 'const r=require("/tmp/release-before.json"); if(!r.isDraft){console.error(`release ${process.env.TAG} is already published`); process.exit(1);}'[0m
+2026-07-13T02:26:45.3048627Z [36;1m  draft_target=$(node -p 'require("/tmp/release-before.json").targetCommitish')[0m
+2026-07-13T02:26:45.3049207Z [36;1m  resolved_target=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${draft_target}" --jq '.sha')[0m
+2026-07-13T02:26:45.3049683Z [36;1m  if [[ "$resolved_target" != "$TARGET_SHA" ]]; then[0m
+2026-07-13T02:26:45.3050114Z [36;1m    echo "draft $TAG resolves to $resolved_target, expected $TARGET_SHA" >&2[0m
+2026-07-13T02:26:45.3050515Z [36;1m    exit 1[0m
+2026-07-13T02:26:45.3050722Z [36;1m  fi[0m
+2026-07-13T02:26:45.3051707Z [36;1m  node -e 'const { spawnSync }=require("node:child_process"); const r=require("/tmp/release-before.json"); for(const a of r.assets){const result=spawnSync("gh",["release","delete-asset",process.env.TAG,a.name,"-y"],{stdio:"inherit"}); if(result.status!==0) process.exit(result.status ?? 1);}'[0m
+2026-07-13T02:26:45.3052683Z [36;1melse[0m
+2026-07-13T02:26:45.3053134Z [36;1m  gh release create "$TAG" --draft --target "$TARGET_SHA" --title "$TAG" --notes "Desktop release $TAG (${VERSION_SOURCE})"[0m
+2026-07-13T02:26:45.3053622Z [36;1mfi[0m
+2026-07-13T02:26:45.3053909Z [36;1mgh release upload "$TAG" dist/aggregate-release/* --clobber[0m
+2026-07-13T02:26:45.3077301Z shell: /usr/bin/bash --noprofile --norc -e -o pipefail {0}
+2026-07-13T02:26:45.3077657Z env:
+2026-07-13T02:26:45.3080387Z   GH_TOKEN: ***
+2026-07-13T02:26:45.3080628Z   TAG: v0.1.0
+2026-07-13T02:26:45.3080891Z   TARGET_SHA: 71d6b9a1518a8d010465fe9c7c91cb371c9a4645
+2026-07-13T02:26:45.3081252Z   VERSION_SOURCE: package-version
+2026-07-13T02:26:45.3081523Z ##[endgroup]
+2026-07-13T02:26:46.2299821Z draft v0.1.0 resolves to 0da85343629b0add40a61be05ee9432d6786cb0e, expected 71d6b9a1518a8d010465fe9c7c91cb371c9a4645
+2026-07-13T02:26:46.2314266Z ##[error]Process completed with exit code 1.
+2026-07-13T02:26:46.2547952Z Post job cleanup.
+2026-07-13T02:26:46.3403585Z [command]/usr/bin/git version
+2026-07-13T02:26:46.3454001Z git version 2.54.0
+2026-07-13T02:26:46.3501765Z Temporarily overriding HOME='/home/runner/work/_temp/3772f4fe-c302-4d77-b0fb-ec338bac30e5' before making global git config changes
+2026-07-13T02:26:46.3502643Z Adding repository directory to the temporary git global config as a safe directory
+2026-07-13T02:26:46.3508890Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/llm-research-archive/llm-research-archive
+2026-07-13T02:26:46.3552507Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-07-13T02:26:46.3591964Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-07-13T02:26:46.3814376Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-07-13T02:26:46.3843351Z http.https://github.com/.extraheader
+2026-07-13T02:26:46.3857064Z [command]/usr/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-07-13T02:26:46.3895363Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-07-13T02:26:46.4258635Z Cleaning up orphan processes
+2026-07-13T02:26:46.4535832Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0, actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/
