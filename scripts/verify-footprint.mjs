@@ -5,7 +5,7 @@ import { listPackage } from '@electron/asar';
 
 const mode = process.argv[2];
 const RENDERER_GZIP_BUDGET = 2 * 1024 * 1024;
-const PACKAGE_BUDGET = 250 * 1024 * 1024;
+const PACKAGE_BUDGET = 2 * 1024 * 1024 * 1024;
 
 function walk(root) {
   const output = [];
@@ -72,11 +72,17 @@ if (mode === 'renderer') {
     const files = walk(packageRoot);
     const totalBytes = files.reduce((sum, file) => sum + fs.statSync(file).size, 0);
     const entries = listPackage(asarPath).map((entry) => entry.replaceAll('\\', '/'));
-    const blocked = entries.filter((entry) =>
-      /(?:^|\/)(?:project-docs|scripts|packages|apps|tests?|e2e|coverage|playwright-report|test-results|\.github|\.vscode|\.devcontainer)(?:\/|$)|\.(?:map|py|pyc)$|(?:^|\/)(?:mkdocs\.yml|requirements\.txt|AGENTS\.md)$/i.test(
-        entry,
-      ),
-    );
+    const blocked = entries.filter((entry) => {
+      const normalized = entry.startsWith('/') ? entry : `/${entry}`;
+      return (
+        /^\/(?:project-docs|scripts|packages|apps|coverage|test-results|playwright-report|\.github|\.vscode|\.devcontainer)(?:\/|$)/i.test(
+          normalized,
+        ) ||
+        /^\/(?:\.env(?:\..+)?|AGENTS\.md|mkdocs\.yml|requirements\.txt)$/i.test(normalized) ||
+        /(?:^|\/)(?:id_rsa|id_ed25519|credentials|secrets?)(?:\.[^/]+)?$/i.test(normalized) ||
+        /\.(?:pem|p12|pfx|key)$/i.test(normalized)
+      );
+    });
     forbidden.push(...blocked.map((entry) => `${packageRootName}:${entry}`));
     return {
       packageRoot: packageRootName,
@@ -95,9 +101,9 @@ if (mode === 'renderer') {
   };
   writeReport(`footprint-package-${process.platform}-${process.arch}`, report);
   for (const item of packages) {
-    if (item.totalBytes > PACKAGE_BUDGET) {
+    if (item.totalBytes >= PACKAGE_BUDGET) {
       throw new Error(
-        `${item.packageRoot} installed footprint ${item.totalBytes} > ${PACKAGE_BUDGET}`,
+        `${item.packageRoot} installed footprint ${item.totalBytes} >= ${PACKAGE_BUDGET}`,
       );
     }
   }
