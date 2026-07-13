@@ -36,7 +36,8 @@ jobs:
               payload/.runtime-patches/02.diff \
               payload/.runtime-patches/03.diff \
               payload/.runtime-patches/04.diff \
-              payload/.runtime-patches/05.diff > /tmp/runtime-quality.patch
+              payload/.runtime-patches/05.diff \
+              payload/.runtime-patches/06.diff > /tmp/runtime-quality.patch
           git apply --check /tmp/runtime-quality.patch
           git apply /tmp/runtime-quality.patch
           rm -rf payload
