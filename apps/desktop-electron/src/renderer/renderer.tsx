@@ -42,6 +42,8 @@ import {
   type NavigationLocation,
 } from './navigation-history';
 import { ReaderSettings } from './reader-settings';
+import { PreferencesProvider, usePreferences } from './preferences-context';
+import type { Translator } from './i18n';
 import { ResizableLayout } from './resizable-layout';
 import { mountSyntaxHighlighting } from './syntax-highlight';
 
@@ -64,6 +66,7 @@ declare global {
       clearDiagnostics(): Promise<ArchiveDiagnosticsDto>;
       reportDiagnostic(request: RendererDiagnosticRequest): Promise<void>;
       markStartup(milestone: StartupMilestone): Promise<StartupTelemetryDto>;
+      setLocale(locale: 'zh-TW' | 'en'): Promise<void>;
     };
   }
 }
@@ -72,13 +75,6 @@ interface LightboxImage {
   src: string;
   alt: string;
 }
-
-const browseModes: { mode: BrowseMode; label: string }[] = [
-  { mode: 'all', label: '全部' },
-  { mode: 'category', label: '分類' },
-  { mode: 'tag', label: '標籤' },
-  { mode: 'timeline', label: '時間軸' },
-];
 
 function rewriteAssetLinks(markdown: string, assetRoot: string): string {
   return markdown.replace(
@@ -103,6 +99,7 @@ function hrefParts(href: string) {
 }
 
 function AboutModal({ info, onClose }: { info: AppInfoDto; onClose: () => void }) {
+  const { t } = usePreferences();
   const dialogRef = useRef<HTMLElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
@@ -138,31 +135,31 @@ function AboutModal({ info, onClose }: { info: AppInfoDto; onClose: () => void }
         aria-modal="true"
         aria-labelledby="about-title"
       >
-        <h2 id="about-title">關於 Research Observatory</h2>
+        <h2 id="about-title">{t('about.title')}</h2>
         <dl>
-          <dt>Product name</dt>
+          <dt>{t('about.productName')}</dt>
           <dd>{info.productName}</dd>
-          <dt>Version</dt>
+          <dt>{t('about.version')}</dt>
           <dd data-testid="about-version">{info.version}</dd>
-          <dt>Commit SHA</dt>
+          <dt>{t('about.commit')}</dt>
           <dd data-testid="about-commit">{info.commit}</dd>
-          <dt>Platform</dt>
+          <dt>{t('about.platform')}</dt>
           <dd data-testid="about-platform">{info.platform}</dd>
-          <dt>Mode</dt>
-          <dd>{info.packaged ? 'Packaged' : 'Development'}</dd>
-          <dt>Electron</dt>
+          <dt>{t('about.mode')}</dt>
+          <dd>{info.packaged ? t('about.packaged') : t('about.development')}</dd>
+          <dt>{t('about.electron')}</dt>
           <dd>{info.electronVersion}</dd>
-          <dt>Chromium</dt>
+          <dt>{t('about.chromium')}</dt>
           <dd>{info.chromiumVersion}</dd>
-          <dt>Node</dt>
+          <dt>{t('about.node')}</dt>
           <dd>{info.nodeVersion}</dd>
-          <dt>Content article count</dt>
+          <dt>{t('about.contentCount')}</dt>
           <dd>{info.contentArticleCount}</dd>
-          <dt>Content manifest hash</dt>
-          <dd>{info.contentManifestHash || 'Unavailable'}</dd>
+          <dt>{t('about.manifestHash')}</dt>
+          <dd>{info.contentManifestHash || t('common.unavailable')}</dd>
         </dl>
         <button ref={closeRef} type="button" onClick={onClose}>
-          關閉
+          {t('common.close')}
         </button>
       </section>
     </div>
@@ -170,6 +167,7 @@ function AboutModal({ info, onClose }: { info: AppInfoDto; onClose: () => void }
 }
 
 function ImageLightbox({ image, onClose }: { image: LightboxImage; onClose: () => void }) {
+  const { t } = usePreferences();
   const dialogRef = useRef<HTMLElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
 
@@ -215,20 +213,20 @@ function ImageLightbox({ image, onClose }: { image: LightboxImage; onClose: () =
         className="modal lightbox-modal"
         role="dialog"
         aria-modal="true"
-        aria-label={`圖片預覽：${image.alt}`}
+        aria-label={t('lightbox.title', { alt: image.alt })}
         data-testid="image-lightbox"
       >
         <img src={image.src} alt={image.alt} data-testid="lightbox-image" />
         <p>{image.alt}</p>
         <button ref={closeRef} type="button" onClick={onClose}>
-          關閉圖片
+          {t('lightbox.close')}
         </button>
       </section>
     </div>
   );
 }
 
-function decorateCodeBlocks(reader: HTMLElement): void {
+function decorateCodeBlocks(reader: HTMLElement, t: Translator): void {
   for (const pre of reader.querySelectorAll<HTMLPreElement>('pre')) {
     if (pre.parentElement?.classList.contains('code-block')) continue;
     const code = pre.querySelector<HTMLElement>('code');
@@ -242,7 +240,7 @@ function decorateCodeBlocks(reader: HTMLElement): void {
     toolbar.className = 'code-toolbar';
     const label = document.createElement('span');
     label.className = 'code-language';
-    label.textContent = language || '程式碼';
+    label.textContent = language || t('reader.code');
     const status = document.createElement('span');
     status.className = 'copy-code-status';
     status.dataset.copyCodeStatus = '';
@@ -252,8 +250,11 @@ function decorateCodeBlocks(reader: HTMLElement): void {
     button.type = 'button';
     button.className = 'copy-code';
     button.dataset.copyCode = '';
-    button.setAttribute('aria-label', language ? `複製 ${language} 程式碼` : '複製程式碼');
-    button.textContent = '複製';
+    button.setAttribute(
+      'aria-label',
+      language ? t('reader.copyLanguageCode', { language }) : t('reader.copyCode'),
+    );
+    button.textContent = t('reader.copy');
 
     toolbar.append(label, status, button);
     pre.replaceWith(wrapper);
@@ -262,6 +263,7 @@ function decorateCodeBlocks(reader: HTMLElement): void {
 }
 
 function App() {
+  const { t, locale, formatNumber, formatDateTime } = usePreferences();
   const [articles, setArticles] = useState<ArticleSummaryDto[]>([]);
   const [shown, setShown] = useState<(ArticleSummaryDto | SearchResultDto)[]>([]);
   const [query, setQuery] = useState('');
@@ -286,6 +288,15 @@ function App() {
   const interactiveMarkedRef = useRef(false);
   const readerRef = useRef<HTMLElement>(null);
   const lightboxTriggerRef = useRef<HTMLImageElement | null>(null);
+  const browseModes = useMemo(
+    () => [
+      { mode: 'all' as const, label: t('browse.all') },
+      { mode: 'category' as const, label: t('browse.category') },
+      { mode: 'tag' as const, label: t('browse.tag') },
+      { mode: 'timeline' as const, label: t('browse.timeline') },
+    ],
+    [t],
+  );
   const browseModel = useMemo(() => buildArchiveBrowseModel(articles), [articles]);
   const filteredArticles = useMemo(
     () => filterArticlesByBrowse(articles, browseMode, selectedFacet),
@@ -354,7 +365,7 @@ function App() {
       setSelected(article);
       setPendingFragment(location.fragment);
     } catch (error) {
-      setError('文章載入失敗；請查看工作區診斷。');
+      setError(t('error.articleLoad'));
       reportDiagnostic('renderer', 'article-load-failed', String(error));
     }
   }
@@ -385,7 +396,7 @@ function App() {
       setSelectedFacet('');
       setNavigationHistory(createNavigationHistory());
     } catch (error) {
-      setError('工作區重新載入失敗；請查看工作區診斷。');
+      setError(t('error.workspaceRefresh'));
       reportDiagnostic('renderer', 'workspace-refresh-failed', String(error));
     } finally {
       setLoading(false);
@@ -507,7 +518,7 @@ function App() {
         .search(q)
         .then((results) => setShown(filterArticlesByBrowse(results, browseMode, selectedFacet)))
         .catch((error) => {
-          setError('搜尋暫時無法使用；請重試。');
+          setError(t('error.search'));
           reportDiagnostic('search-index', 'search-query-failed', String(error));
         });
     }, 150);
@@ -519,7 +530,7 @@ function App() {
     requestAnimationFrame(() => {
       const target = document.getElementById(pendingFragment);
       if (target) target.scrollIntoView();
-      else setError(`找不到標題片段：${pendingFragment}`);
+      else setError(t('error.fragment', { fragment: pendingFragment }));
       setPendingFragment('');
     });
   }, [selected, pendingFragment]);
@@ -528,15 +539,24 @@ function App() {
     const reader = readerRef.current;
     if (!reader) return;
     for (const image of reader.querySelectorAll<HTMLImageElement>('img')) {
-      const description = image.alt.trim() || '文章圖片';
+      const description = image.alt.trim() || t('reader.image');
       image.tabIndex = 0;
       image.setAttribute('role', 'button');
-      image.setAttribute('aria-label', `放大圖片：${description}`);
+      image.setAttribute('aria-label', t('reader.enlargeImage', { alt: description }));
       image.loading = 'lazy';
       image.decoding = 'async';
     }
-    const cleanupMermaid = mountMermaidBlocks(reader);
-    decorateCodeBlocks(reader);
+    const cleanupMermaid = mountMermaidBlocks(reader, {
+      labels: {
+        diagram: t('mermaid.diagram'),
+        pending: t('mermaid.pending'),
+        source: t('mermaid.source'),
+        rendering: t('mermaid.rendering'),
+        done: t('mermaid.done'),
+        failed: t('mermaid.failed'),
+      },
+    });
+    decorateCodeBlocks(reader, t);
     const cleanupHighlighting = mountSyntaxHighlighting(reader);
     const cleanupFootnotes = mountFootnoteNavigation(reader);
     return () => {
@@ -544,7 +564,7 @@ function App() {
       cleanupHighlighting();
       cleanupMermaid();
     };
-  }, [selected]);
+  }, [selected, t]);
 
   async function open(id: string, fragment = '') {
     setError('');
@@ -556,7 +576,7 @@ function App() {
       setPendingFragment(fragment);
       pushNavigation({ articleId: id, fragment });
     } catch (error) {
-      setError('文章載入失敗；請查看工作區診斷。');
+      setError(t('error.articleLoad'));
       reportDiagnostic('renderer', 'article-load-failed', String(error));
     }
   }
@@ -571,7 +591,7 @@ function App() {
       setPendingFragment(fragment);
       pushNavigation({ articleId: id, fragment });
     } catch {
-      setError(`找不到內部文章連結：${href}`);
+      setError(t('error.internalLink', { href }));
     }
   }
 
@@ -583,7 +603,7 @@ function App() {
       if (target) {
         target.scrollIntoView();
         pushNavigation({ articleId: selected?.id ?? '', fragment });
-      } else setError(`找不到標題片段：${fragment}`);
+      } else setError(t('error.fragment', { fragment }));
     });
   }
 
@@ -596,7 +616,7 @@ function App() {
     try {
       setDiagnostics(await window.observatory.clearDiagnostics());
     } catch (error) {
-      setError('無法清除本機診斷紀錄。');
+      setError(t('error.clearDiagnostics'));
       reportDiagnostic('renderer', 'diagnostics-clear-failed', String(error));
     }
   }
@@ -611,7 +631,7 @@ function App() {
     try {
       setAbout(await window.observatory.appInfo());
     } catch (e) {
-      setError(`About 資訊載入失敗：${String(e)}`);
+      setError(t('error.about', { message: String(e) }));
     }
   }
 
@@ -635,7 +655,7 @@ function App() {
     const src = image.currentSrc || image.src;
     if (!src) return;
     lightboxTriggerRef.current = image;
-    setLightbox({ src, alt: image.alt.trim() || '文章圖片' });
+    setLightbox({ src, alt: image.alt.trim() || t('reader.image') });
   }
 
   function closeImageLightbox() {
@@ -654,16 +674,16 @@ function App() {
     button.dataset.copyPending = 'true';
     button.setAttribute('aria-busy', 'true');
     const copied = await copyText(code.textContent || '');
-    button.textContent = copied ? '已複製' : '複製失敗';
+    button.textContent = copied ? t('reader.copied') : t('reader.copyFailed');
     button.dataset.copyState = copied ? 'success' : 'error';
-    status.textContent = copied ? '程式碼已複製到剪貼簿' : '無法存取剪貼簿，請手動選取程式碼';
+    status.textContent = copied ? t('reader.copySuccessStatus') : t('reader.copyFailureStatus');
 
     window.setTimeout(() => {
       if (!button.isConnected) return;
       delete button.dataset.copyPending;
       delete button.dataset.copyState;
       button.removeAttribute('aria-busy');
-      button.textContent = '複製';
+      button.textContent = t('reader.copy');
       status.textContent = '';
     }, 1800);
   }
@@ -694,7 +714,7 @@ function App() {
     }
     if (/^(http:|javascript:|data:|file:)/i.test(href)) {
       e.preventDefault();
-      setError('已阻擋不安全連結');
+      setError(t('error.unsafeLink'));
       return;
     }
     const { path, fragment } = hrefParts(href);
@@ -713,7 +733,7 @@ function App() {
     }
     if (href) {
       e.preventDefault();
-      setError(`找不到內部文章連結：${href}`);
+      setError(t('error.internalLink', { href }));
     }
   }
 
@@ -730,7 +750,7 @@ function App() {
   return (
     <>
       <a className="skip-link" href="#main-reader">
-        跳至文章內容
+        {t('reader.skip')}
       </a>
       <ResizableLayout
         articleCount={articles.length}
@@ -745,38 +765,40 @@ function App() {
                   type="button"
                   onClick={() => setObservatoryOpen(true)}
                 >
-                  Observatory
+                  {t('observatory.button')}
                 </button>
                 <button ref={aboutButtonRef} type="button" onClick={openAbout}>
-                  關於
+                  {t('about.button')}
                 </button>
               </div>
             </div>
             {workspace && (
-              <section className="workspace-panel" aria-label="目前工作區">
+              <section className="workspace-panel" aria-label={t('workspace.current')}>
                 <div>
                   <strong data-testid="workspace-kind">
-                    {workspace.kind === 'local' ? '本機工作區' : '內建封存'}
+                    {workspace.kind === 'local' ? t('workspace.local') : t('workspace.bundled')}
                   </strong>
                   <small data-testid="workspace-path" title={workspace.rootPath}>
-                    {workspace.displayName}
+                    {workspace.kind === 'local' ? workspace.displayName : t('workspace.bundled')}
                   </small>
                 </div>
                 <div className="workspace-actions">
                   <button type="button" onClick={() => void chooseWorkspace()}>
-                    開啟資料夾
+                    {t('workspace.openFolder')}
                   </button>
                   <button
                     ref={importButtonRef}
                     type="button"
                     onClick={() => setImportWizardOpen(true)}
                   >
-                    匯入文章
+                    {t('workspace.import')}
                   </button>
                 </div>
                 <details data-testid="workspace-diagnostics">
                   <summary>
-                    工作區診斷（{workspace.warnings.length + workspace.invalidFiles.length}）
+                    {t('workspace.diagnostics', {
+                      count: workspace.warnings.length + workspace.invalidFiles.length,
+                    })}
                   </summary>
                   {[...workspace.warnings, ...workspace.invalidFiles].length ? (
                     <ul>
@@ -785,39 +807,39 @@ function App() {
                       ))}
                     </ul>
                   ) : (
-                    <p>內容掃描沒有發現問題。</p>
+                    <p>{t('workspace.noIssues')}</p>
                   )}
                   {diagnostics && (
                     <>
-                      <h3>啟動效能</h3>
+                      <h3>{t('workspace.startup')}</h3>
                       <dl className="startup-telemetry" data-testid="startup-telemetry">
                         {Object.entries(diagnostics.startup.milestones).map(([name, value]) => (
                           <React.Fragment key={name}>
                             <dt>{name}</dt>
-                            <dd>{Math.round(Number(value))} ms</dd>
+                            <dd>{t('common.ms', { count: Math.round(Number(value)) })}</dd>
                           </React.Fragment>
                         ))}
                       </dl>
                       {diagnostics.startup.materialRegression && (
-                        <p role="status">本次啟動時間明顯高於近期中位數。</p>
+                        <p role="status">{t('workspace.startupRegression')}</p>
                       )}
-                      <h3>本機事件</h3>
+                      <h3>{t('workspace.localEvents')}</h3>
                       {diagnostics.events.length ? (
                         <ol className="diagnostic-events" data-testid="diagnostic-events">
                           {diagnostics.events.map((event) => (
                             <li key={`${event.timestamp}-${event.code}`}>
                               <time dateTime={event.timestamp}>
-                                {new Date(event.timestamp).toLocaleString('zh-TW')}
+                                {formatDateTime(event.timestamp)}
                               </time>{' '}
                               <strong>{event.code}</strong>：{event.message}
                             </li>
                           ))}
                         </ol>
                       ) : (
-                        <p>尚無本機診斷事件。</p>
+                        <p>{t('workspace.noEvents')}</p>
                       )}
                       <button type="button" onClick={() => void clearDiagnostics()}>
-                        清除本機診斷
+                        {t('workspace.clearDiagnostics')}
                       </button>
                     </>
                   )}
@@ -825,10 +847,11 @@ function App() {
               </section>
             )}
             <label>
-              搜尋文章
+              {t('search.label')}
               <input
                 ref={searchInputRef}
-                aria-label="搜尋文章"
+                aria-label={t('search.label')}
+                data-search-input
                 value={query}
                 onChange={(event) => {
                   setQuery(event.target.value);
@@ -836,7 +859,7 @@ function App() {
                 }}
               />
             </label>
-            <nav className="browse-tabs" aria-label="瀏覽文章">
+            <nav className="browse-tabs" aria-label={t('search.browse')}>
               {browseModes.map(({ mode, label }) => (
                 <button
                   key={mode}
@@ -852,17 +875,21 @@ function App() {
             {browseMode !== 'all' && (
               <section
                 className="facet-panel"
-                aria-label={`${browseModes.find((x) => x.mode === browseMode)?.label}篩選`}
+                aria-label={t('search.filterAria', {
+                  label: browseModes.find((x) => x.mode === browseMode)?.label || '',
+                })}
               >
                 <div className="facet-heading">
                   <strong>
                     {selectedFacet
-                      ? `已篩選 ${shown.length} 篇`
-                      : `選擇${browseModes.find((x) => x.mode === browseMode)?.label}`}
+                      ? t('search.filtered', { count: formatNumber(shown.length) })
+                      : t('search.selectFacet', {
+                          label: browseModes.find((x) => x.mode === browseMode)?.label || '',
+                        })}
                   </strong>
                   {selectedFacet && (
                     <button type="button" className="clear-filter" onClick={clearFacet}>
-                      清除
+                      {t('common.clear')}
                     </button>
                   )}
                 </div>
@@ -871,7 +898,10 @@ function App() {
                     <button
                       key={facet.key}
                       type="button"
-                      aria-label={`${facet.label}（${facet.count} 篇）`}
+                      aria-label={t('search.facetCount', {
+                        label: facet.label,
+                        count: formatNumber(facet.count),
+                      })}
                       aria-pressed={selectedFacet === facet.key}
                       onClick={() => selectFacet(facet.key)}
                     >
@@ -883,10 +913,12 @@ function App() {
               </section>
             )}
             <p className="sr-only" role="status" aria-live="polite">
-              {loading ? '正在載入文章' : `目前顯示 ${shown.length} 篇文章`}
+              {loading
+                ? t('search.loadingStatus')
+                : t('search.shownStatus', { count: formatNumber(shown.length) })}
             </p>
-            {loading && <p>載入中…</p>}
-            {!loading && !shown.length && <p data-testid="empty-results">沒有符合的文章</p>}
+            {loading && <p>{t('common.loading')}</p>}
+            {!loading && !shown.length && <p data-testid="empty-results">{t('search.empty')}</p>}
             <ul className="article-list" data-testid="article-list">
               {shown.map((a) => (
                 <li key={a.id}>
@@ -897,7 +929,11 @@ function App() {
                   >
                     {a.title}
                     <small>
-                      {a.category} · {a.date} · 約 {a.readingStats.estimatedMinutes} 分鐘
+                      {t('search.articleMeta', {
+                        category: a.category,
+                        date: a.date,
+                        minutes: a.readingStats.estimatedMinutes,
+                      })}
                     </small>
                   </button>
                 </li>
@@ -912,25 +948,25 @@ function App() {
           onClick={onArticleClick}
           onKeyDown={onArticleKeyDown}
         >
-          <nav className="navigation-toolbar" aria-label="閱讀歷史">
+          <nav className="navigation-toolbar" aria-label={t('reader.history')}>
             <button
               type="button"
-              aria-label="上一個位置"
+              aria-label={t('reader.previousLocation')}
               disabled={!canNavigateBack(navigationHistory)}
               onClick={() => travelHistory(-1)}
             >
-              ← 上一頁
+              {t('reader.previousPage')}
             </button>
             <span aria-live="polite" data-testid="history-position">
               {navigationHistory.index + 1} / {navigationHistory.entries.length}
             </span>
             <button
               type="button"
-              aria-label="下一個位置"
+              aria-label={t('reader.nextLocation')}
               disabled={!canNavigateForward(navigationHistory)}
               onClick={() => travelHistory(1)}
             >
-              下一頁 →
+              {t('reader.nextPage')}
             </button>
           </nav>
           {error && <p role="alert">{error}</p>}
@@ -939,9 +975,15 @@ function App() {
               <header>
                 <h2>{selected.title}</h2>
                 <p data-testid="article-meta">
-                  發布 {selected.date}
-                  {selected.updatedAt ? ` · 修訂 ${selected.updatedAt}` : ''} · 約{' '}
-                  {selected.readingStats.estimatedMinutes} 分鐘 · {selected.tags.join('、')}
+                  {t('reader.published', { date: selected.date })}
+                  {selected.updatedAt
+                    ? ` · ${t('reader.updated', { date: selected.updatedAt })}`
+                    : ''}{' '}
+                  ·{' '}
+                  {t('reader.approxMinutes', {
+                    count: selected.readingStats.estimatedMinutes,
+                  })}{' '}
+                  · {selected.tags.join(locale === 'zh-TW' ? '、' : ', ')}
                 </p>
               </header>
               <section
@@ -953,7 +995,7 @@ function App() {
               />
             </>
           ) : (
-            <p>請選擇文章</p>
+            <p>{t('reader.selectArticle')}</p>
           )}
         </article>
       </ResizableLayout>
@@ -976,4 +1018,8 @@ function App() {
   );
 }
 
-createRoot(document.getElementById('root')!).render(<App />);
+createRoot(document.getElementById('root')!).render(
+  <PreferencesProvider>
+    <App />
+  </PreferencesProvider>,
+);

@@ -340,7 +340,8 @@ th {
   max-width: 480px;
 }
 
-.settings-theme {
+.settings-theme,
+.settings-language {
   display: grid;
   gap: 0.55rem;
   margin: 1rem 0;
@@ -349,13 +350,15 @@ th {
   border-radius: 10px;
 }
 
-.settings-theme label {
+.settings-theme label,
+.settings-language label {
   display: flex;
   gap: 0.55rem;
   align-items: center;
 }
 
-.settings-theme input {
+.settings-theme input,
+.settings-language input {
   width: auto;
   margin: 0;
 }

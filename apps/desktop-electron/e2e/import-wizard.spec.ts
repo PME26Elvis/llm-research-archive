@@ -103,7 +103,7 @@ test('rejects a late target conflict without partial output or source deletion',
   fs.writeFileSync(sentinel, 'keep');
 
   await dialog.getByTestId('commit-import').click();
-  await expect(dialog.getByRole('alert')).toContainText('Target article directory now exists');
+  await expect(dialog.getByRole('alert')).toContainText('目標文章已存在');
   expect(fs.readFileSync(sentinel, 'utf8')).toBe('keep');
   expect(fs.existsSync(fixture.source)).toBe(true);
   expect(fs.existsSync(path.join(target, 'index.md'))).toBe(false);

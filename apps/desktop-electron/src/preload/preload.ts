@@ -8,6 +8,7 @@ import {
   ImportPreviewRefreshRequestSchema,
   ImportPreviewResultSchema,
   ImportSourceSelectionRequestSchema,
+  LocaleUpdateRequestSchema,
   RendererDiagnosticRequestSchema,
   StartupMilestoneSchema,
   StartupTelemetrySchema,
@@ -24,6 +25,7 @@ import {
   type ImportPreviewRefreshRequest,
   type ImportPreviewResult,
   type ImportSourceKind,
+  type UiLocale,
   type RendererDiagnosticRequest,
   type StartupMilestone,
   type StartupTelemetryDto,
@@ -45,6 +47,8 @@ contextBridge.exposeInMainWorld('observatory', {
     StartupTelemetrySchema.parse(
       await ipcRenderer.invoke('telemetry:mark', StartupMilestoneSchema.parse(milestone)),
     ),
+  setLocale: (locale: UiLocale): Promise<void> =>
+    ipcRenderer.invoke('preferences:set-locale', LocaleUpdateRequestSchema.parse({ locale })),
   appInfo: async (): Promise<AppInfoDto> =>
     AppInfoResponseSchema.parse(await ipcRenderer.invoke('app:info')),
   openExternal: (url: string) => ipcRenderer.invoke('external:open', url),

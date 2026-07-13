@@ -1,16 +1,21 @@
+import type { LanguagePreference } from './i18n';
+
 export type ThemePreference = 'system' | 'light' | 'dark';
 export type ResolvedTheme = 'light' | 'dark';
 
 export interface ReaderPreferences {
-  schemaVersion: 1;
+  schemaVersion: 2;
   theme: ThemePreference;
   textScale: number;
+  language: LanguagePreference;
 }
 
 interface LegacyPreferences {
+  schemaVersion?: unknown;
   theme?: unknown;
   fontScale?: unknown;
   textScale?: unknown;
+  language?: unknown;
 }
 
 export const PREFERENCES_STORAGE_KEY = 'research-observatory.preferences';
@@ -20,13 +25,18 @@ export const MAX_TEXT_SCALE = 1.4;
 export const TEXT_SCALE_STEP = 0.1;
 
 export const DEFAULT_READER_PREFERENCES: ReaderPreferences = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   theme: 'system',
   textScale: 1,
+  language: 'zh-TW',
 };
 
 function validTheme(value: unknown): value is ThemePreference {
   return value === 'system' || value === 'light' || value === 'dark';
+}
+
+function validLanguage(value: unknown): value is LanguagePreference {
+  return value === 'system' || value === 'zh-TW' || value === 'en';
 }
 
 export function normalizeTextScale(value: unknown): number {
@@ -38,15 +48,17 @@ export function normalizeTextScale(value: unknown): number {
 export function parseReaderPreferences(raw: string | null): ReaderPreferences {
   if (!raw) return { ...DEFAULT_READER_PREFERENCES };
 
-  const parsed = JSON.parse(raw) as LegacyPreferences & { schemaVersion?: unknown };
+  const parsed = JSON.parse(raw) as LegacyPreferences;
   const theme = validTheme(parsed.theme) ? parsed.theme : DEFAULT_READER_PREFERENCES.theme;
-  const sourceScale =
-    parsed.schemaVersion === 1 ? parsed.textScale : (parsed.textScale ?? parsed.fontScale);
+  const sourceScale = parsed.textScale ?? parsed.fontScale;
 
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     theme,
     textScale: normalizeTextScale(sourceScale),
+    language: validLanguage(parsed.language)
+      ? parsed.language
+      : DEFAULT_READER_PREFERENCES.language,
   };
 }
 

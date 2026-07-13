@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { DesktopCommand } from '@research-observatory/platform-contracts';
 import { filterDesktopCommands } from './desktop-commands';
+import { usePreferences } from './preferences-context';
 
 interface CommandPaletteProps {
   open: boolean;
@@ -9,12 +10,13 @@ interface CommandPaletteProps {
 }
 
 export function CommandPalette({ open, onClose, onExecute }: CommandPaletteProps) {
+  const { locale, t } = usePreferences();
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
-  const results = useMemo(() => filterDesktopCommands(query), [query]);
+  const results = useMemo(() => filterDesktopCommands(query, locale), [locale, query]);
 
   useEffect(() => {
     if (!open) return;
@@ -39,7 +41,7 @@ export function CommandPalette({ open, onClose, onExecute }: CommandPaletteProps
     if (command !== 'search.focus') return;
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        const search = document.querySelector<HTMLInputElement>('input[aria-label="搜尋文章"]');
+        const search = document.querySelector<HTMLInputElement>('input[data-search-input]');
         search?.focus();
         search?.select();
       });
@@ -87,19 +89,19 @@ export function CommandPalette({ open, onClose, onExecute }: CommandPaletteProps
           }
         }}
       >
-        <h2 id="command-palette-title">指令面板</h2>
+        <h2 id="command-palette-title">{t('palette.title')}</h2>
         <input
           ref={inputRef}
           type="search"
-          aria-label="搜尋指令"
-          placeholder="輸入指令名稱…"
+          aria-label={t('palette.searchLabel')}
+          placeholder={t('palette.placeholder')}
           value={query}
           onChange={(event) => {
             setQuery(event.target.value);
             setActiveIndex(0);
           }}
         />
-        <div className="command-results" role="listbox" aria-label="可用指令">
+        <div className="command-results" role="listbox" aria-label={t('palette.available')}>
           {results.map((command, index) => (
             <button
               key={command.id}
@@ -113,7 +115,7 @@ export function CommandPalette({ open, onClose, onExecute }: CommandPaletteProps
               {command.shortcut && <kbd>{command.shortcut}</kbd>}
             </button>
           ))}
-          {!results.length && <p>沒有符合的指令</p>}
+          {!results.length && <p>{t('palette.empty')}</p>}
         </div>
       </section>
     </div>

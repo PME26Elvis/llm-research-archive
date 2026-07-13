@@ -32,6 +32,19 @@ if (applyVersionStepCount !== 4) {
 if (releaseWorkflow.includes('npm version "$RELEASE_VERSION"')) {
   throw new Error('release workflow must not use shell-specific RELEASE_VERSION expansion');
 }
+if (!releaseWorkflow.includes("release_notes: { type: string, required: false, default: '' }")) {
+  throw new Error('release workflow must expose an optional structured release_notes input');
+}
+const releaseNotesCommand = 'run: node scripts/release-notes.mjs /tmp/release-notes.md';
+const releaseNotesStepCount = releaseWorkflow.split(releaseNotesCommand).length - 1;
+if (releaseNotesStepCount !== 2) {
+  throw new Error(
+    `release notes must be validated in preflight and rendered in release; found ${releaseNotesStepCount}`,
+  );
+}
+if (!releaseWorkflow.includes('--notes-file /tmp/release-notes.md')) {
+  throw new Error('GitHub release body must use the rendered Markdown notes file');
+}
 const packageFootprintCommand = 'run: npm run validate:footprint:package';
 const packageFootprintStepCount = releaseWorkflow.split(packageFootprintCommand).length - 1;
 if (packageFootprintStepCount !== 1) {

@@ -40,18 +40,33 @@ class MemoryStorage implements Storage {
 }
 
 describe('reader preferences', () => {
-  it('returns defaults for an empty store', () => {
+  it('returns backwards-compatible Traditional Chinese defaults for an empty store', () => {
     expect(parseReaderPreferences(null)).toEqual(DEFAULT_READER_PREFERENCES);
+    expect(DEFAULT_READER_PREFERENCES.language).toBe('zh-TW');
   });
 
-  it('migrates the legacy fontScale shape and clamps values', () => {
-    expect(parseReaderPreferences('{"theme":"dark","fontScale":1.28}')).toEqual({
-      schemaVersion: 1,
+  it('migrates v1 and legacy fontScale shapes while preserving the previous locale', () => {
+    expect(parseReaderPreferences('{"schemaVersion":1,"theme":"dark","textScale":1.28}')).toEqual({
+      schemaVersion: 2,
       theme: 'dark',
       textScale: 1.3,
+      language: 'zh-TW',
+    });
+    expect(parseReaderPreferences('{"theme":"dark","fontScale":1.28}')).toEqual({
+      schemaVersion: 2,
+      theme: 'dark',
+      textScale: 1.3,
+      language: 'zh-TW',
     });
     expect(normalizeTextScale(4)).toBe(1.4);
     expect(normalizeTextScale(0)).toBe(0.8);
+  });
+
+  it('accepts system, Traditional Chinese, and English language preferences', () => {
+    for (const language of ['system', 'zh-TW', 'en'] as const) {
+      expect(parseReaderPreferences(JSON.stringify({ language }))).toMatchObject({ language });
+    }
+    expect(parseReaderPreferences('{"language":"unsupported"}').language).toBe('zh-TW');
   });
 
   it('backs up corrupt data and resets safely', () => {
@@ -65,7 +80,12 @@ describe('reader preferences', () => {
 
   it('persists a normalized versioned payload', () => {
     const storage = new MemoryStorage();
-    const preferences = { schemaVersion: 1 as const, theme: 'light' as const, textScale: 1.2 };
+    const preferences = {
+      schemaVersion: 2 as const,
+      theme: 'light' as const,
+      textScale: 1.2,
+      language: 'en' as const,
+    };
 
     saveReaderPreferences(storage, preferences);
     expect(loadReaderPreferences(storage)).toEqual(preferences);

@@ -6,6 +6,7 @@ on:
       requested_version: { type: string, required: false, default: '' }
       channel: { type: string, required: false, default: prerelease }
       publish: { type: boolean, required: false, default: false }
+      release_notes: { type: string, required: false, default: '' }
 concurrency:
   group: desktop-release
   cancel-in-progress: false
@@ -91,6 +92,13 @@ jobs:
             echo "draft $TAG resolves to $resolved_target, expected $TARGET_SHA" >&2
             exit 1
           fi
+      - name: Validate structured release notes
+        shell: bash
+        env:
+          RELEASE_NOTES: ${{ inputs.release_notes }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
+          RELEASE_VERSION_SOURCE: ${{ steps.release.outputs.version_source }}
+        run: node scripts/release-notes.mjs /tmp/release-notes.md
       - name: Apply resolved version to the verification workspace
         run: node scripts/apply-release-version.mjs
         env:
@@ -191,6 +199,12 @@ jobs:
         run: node scripts/apply-release-version.mjs
         env:
           RELEASE_VERSION: ${{ needs.preflight.outputs.version }}
+      - name: Render release description
+        env:
+          RELEASE_NOTES: ${{ inputs.release_notes }}
+          RELEASE_TAG: ${{ needs.preflight.outputs.tag }}
+          RELEASE_VERSION_SOURCE: ${{ needs.preflight.outputs.version_source }}
+        run: node scripts/release-notes.mjs /tmp/release-notes.md
       - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
         with: { name: aggregate-release-assets, path: dist/aggregate-release }
       - name: Create or refresh draft release assets
@@ -212,8 +226,9 @@ jobs:
             fi
             node -e 'const { spawnSync }=require("node:child_process"); const r=require("/tmp/release-before.json"); for(const a of r.assets){const result=spawnSync("gh",["release","delete-asset",process.env.TAG,a.name,"-y"],{stdio:"inherit"}); if(result.status!==0) process.exit(result.status ?? 1);}'
           else
-            gh release create "$TAG" --draft --target "$TARGET_SHA" --title "$TAG" --notes "Desktop release $TAG (${VERSION_SOURCE})"
+            gh release create "$TAG" --draft --target "$TARGET_SHA" --title "$TAG" --notes-file /tmp/release-notes.md
           fi
+          gh release edit "$TAG" --notes-file /tmp/release-notes.md
           gh release upload "$TAG" dist/aggregate-release/* --clobber
       - name: Verify GitHub release assets
         shell: bash
@@ -264,6 +279,12 @@ jobs:
           console.log(`Resolved SHA: ${process.env.TARGET_SHA}`);
           console.log(`Channel: ${process.env.CHANNEL}`);
           console.log(`Publish requested: ${process.env.PUBLISH}\n`);
+          const notes = (process.env.RELEASE_NOTES || '').split(/[\n,;]+/).map((item) => item.trim().replace(/^[-*+]\s+/, '')).filter(Boolean);
+          if (notes.length) {
+            console.log("## What's changed");
+            for (const item of [...new Set(notes)]) console.log(`- ${item}`);
+            console.log('');
+          }
           console.log('## Build verification');
           console.log('- Quality gate: passed');
           console.log('- Windows x64 make and packaged smoke: passed');
@@ -294,3 +315,4 @@ jobs:
           TARGET_SHA: ${{ needs.preflight.outputs.sha }}
           CHANNEL: ${{ inputs.channel }}
           PUBLISH: ${{ inputs.publish }}
+          RELEASE_NOTES: ${{ inputs.release_notes }}

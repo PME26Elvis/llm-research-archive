@@ -20,6 +20,7 @@ import { loadWindowState, saveWindowState } from './window-state';
 import { ImportSessionService } from './import-session';
 import { LocalDiagnostics } from './local-diagnostics';
 import { StartupTelemetry } from './startup-telemetry';
+import { mainTranslate } from './main-i18n';
 import {
   DEFAULT_WORKSPACE_STATE,
   loadWorkspaceState,
@@ -43,12 +44,14 @@ import {
   ImportPreviewRefreshRequestSchema,
   ImportPreviewResultSchema,
   ImportSourceSelectionRequestSchema,
+  LocaleUpdateRequestSchema,
   RendererDiagnosticRequestSchema,
   StartupMilestoneSchema,
   WorkspaceInfoSchema,
   WorkspaceSelectionResultSchema,
   type DesktopCommand,
   type WorkspaceInfoDto,
+  type UiLocale,
 } from '@research-observatory/platform-contracts';
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
@@ -66,6 +69,7 @@ let localDiagnostics: LocalDiagnostics | undefined;
 let workspaceRecoveryWarnings: string[] = [];
 let trustedRendererUrl = '';
 let trustedRendererOrigin = '';
+let currentLocale: UiLocale = 'zh-TW';
 function bundledContentRoot(): string {
   if (!app.isPackaged)
     return process.env.ARCHIVE_CONTENT_ROOT || path.resolve(__dirname, '../../docs');
@@ -145,51 +149,51 @@ function validateSender(sender: WebContents, frame?: WebFrameMain | null): void 
   }
   if (actual !== trustedRendererUrl) throw new Error(`invalid-ipc-sender:${actual}`);
 }
-function installApplicationMenu(win: BrowserWindow): void {
+function installApplicationMenu(win: BrowserWindow, locale: UiLocale = currentLocale): void {
   const send = (command: DesktopCommand) =>
     win.webContents.send('app:command', DesktopCommandSchema.parse(command));
   const template: MenuItemConstructorOptions[] = [
     {
-      label: '導覽',
+      label: mainTranslate(locale, 'navigation'),
       submenu: [
-        { label: '上一個閱讀位置', click: () => send('navigation.back') },
-        { label: '下一個閱讀位置', click: () => send('navigation.forward') },
+        { label: mainTranslate(locale, 'back'), click: () => send('navigation.back') },
+        { label: mainTranslate(locale, 'forward'), click: () => send('navigation.forward') },
         { type: 'separator' },
         {
-          label: '聚焦搜尋',
+          label: mainTranslate(locale, 'search'),
           accelerator: 'CmdOrCtrl+F',
           click: () => send('search.focus'),
         },
         {
-          label: '開啟本機工作區',
+          label: mainTranslate(locale, 'workspace'),
           accelerator: 'CmdOrCtrl+O',
           click: () => send('workspace.open'),
         },
         {
-          label: '匯入文章…',
+          label: mainTranslate(locale, 'import'),
           accelerator: 'CmdOrCtrl+Shift+I',
           click: () => send('import.open'),
         },
       ],
     },
     {
-      label: '檢視',
+      label: mainTranslate(locale, 'view'),
       submenu: [
         {
-          label: '指令面板',
+          label: mainTranslate(locale, 'palette'),
           accelerator: 'CmdOrCtrl+K',
           click: () => send('palette.open'),
         },
         {
-          label: 'Observatory 摘要',
+          label: mainTranslate(locale, 'observatory'),
           accelerator: 'CmdOrCtrl+Shift+O',
           click: () => send('observatory.open'),
         },
       ],
     },
     {
-      label: '說明',
-      submenu: [{ label: '關於 Research Observatory', click: () => send('about.open') }],
+      label: mainTranslate(locale, 'help'),
+      submenu: [{ label: mainTranslate(locale, 'about'), click: () => send('about.open') }],
     },
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
@@ -292,7 +296,7 @@ ipcMain.handle('workspace:select', async (event) => {
   validateSender(event.sender, event.senderFrame);
   const owner = BrowserWindow.fromWebContents(event.sender);
   const options: OpenDialogOptions = {
-    title: '選擇 Research Observatory 工作區',
+    title: mainTranslate(currentLocale, 'workspaceDialog'),
     properties: ['openDirectory'],
   };
   const selection = owner
@@ -317,7 +321,7 @@ ipcMain.handle('workspace:select', async (event) => {
     localDiagnostics?.record('warning', 'workspace', 'workspace-open-rejected', error);
     return WorkspaceSelectionResultSchema.parse({
       status: 'rejected',
-      message: '無法開啟工作區；請確認資料夾包含可讀取的 Markdown 文章且未使用符號連結。',
+      message: mainTranslate(currentLocale, 'workspaceRejected'),
     });
   }
 });
@@ -330,10 +334,12 @@ ipcMain.handle('import:select-source', async (event, rawRequest: unknown) => {
   const owner = BrowserWindow.fromWebContents(event.sender);
   const options: OpenDialogOptions = {
     title:
-      request.kind === 'markdown-file' ? '選擇要匯入的 Markdown 檔案' : '選擇要匯入的文章資料夾',
+      request.kind === 'markdown-file'
+        ? mainTranslate(currentLocale, 'markdownDialog')
+        : mainTranslate(currentLocale, 'folderDialog'),
     properties: request.kind === 'markdown-file' ? ['openFile'] : ['openDirectory'],
     ...(request.kind === 'markdown-file'
-      ? { filters: [{ name: 'Markdown', extensions: ['md'] }] }
+      ? { filters: [{ name: mainTranslate(currentLocale, 'markdownFilter'), extensions: ['md'] }] }
       : {}),
   };
   const selection = owner
@@ -372,6 +378,13 @@ ipcMain.handle('import:commit', (event, rawRequest: unknown) => {
     sourceStatus: committed.sourceStatus,
     ...(committed.message ? { message: committed.message } : {}),
   });
+});
+ipcMain.handle('preferences:set-locale', (event, rawRequest: unknown) => {
+  validateSender(event.sender, event.senderFrame);
+  const request = LocaleUpdateRequestSchema.parse(rawRequest);
+  currentLocale = request.locale;
+  const owner = BrowserWindow.fromWebContents(event.sender);
+  if (owner) installApplicationMenu(owner, currentLocale);
 });
 ipcMain.handle('diagnostics:get', (event) => {
   validateSender(event.sender, event.senderFrame);
