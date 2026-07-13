@@ -1,0 +1,111 @@
+diff --git a/.github/workflows/desktop-release-reusable.yml b/.github/workflows/desktop-release-reusable.yml
+index 6747caf..83b7540 100644
+--- a/.github/workflows/desktop-release-reusable.yml
++++ b/.github/workflows/desktop-release-reusable.yml
+@@ -6,6 +6,7 @@ on:
+       requested_version: { type: string, required: false, default: '' }
+       channel: { type: string, required: false, default: prerelease }
+       publish: { type: boolean, required: false, default: false }
++      release_notes: { type: string, required: false, default: '' }
+ concurrency:
+   group: desktop-release
+   cancel-in-progress: false
+@@ -200,8 +201,11 @@ jobs:
+           TAG: ${{ needs.preflight.outputs.tag }}
+           TARGET_SHA: ${{ needs.preflight.outputs.sha }}
+           VERSION_SOURCE: ${{ needs.preflight.outputs.version_source }}
++          RELEASE_NOTES_INPUT: ${{ inputs.release_notes }}
+         run: |
+           set -euo pipefail
++          RELEASE_TAG="$TAG" RELEASE_VERSION_SOURCE="$VERSION_SOURCE" \
++            node scripts/release-notes.mjs /tmp/release-notes.md
+           if gh release view "$TAG" --json isDraft,targetCommitish,assets > /tmp/release-before.json 2>/dev/null; then
+             node -e 'const r=require("/tmp/release-before.json"); if(!r.isDraft){console.error(`release ${process.env.TAG} is already published`); process.exit(1);}'
+             draft_target=$(node -p 'require("/tmp/release-before.json").targetCommitish')
+@@ -211,8 +215,9 @@ jobs:
+               exit 1
+             fi
+             node -e 'const { spawnSync }=require("node:child_process"); const r=require("/tmp/release-before.json"); for(const a of r.assets){const result=spawnSync("gh",["release","delete-asset",process.env.TAG,a.name,"-y"],{stdio:"inherit"}); if(result.status!==0) process.exit(result.status ?? 1);}'
++            gh release edit "$TAG" --title "$TAG" --notes-file /tmp/release-notes.md
+           else
+-            gh release create "$TAG" --draft --target "$TARGET_SHA" --title "$TAG" --notes "Desktop release $TAG (${VERSION_SOURCE})"
++            gh release create "$TAG" --draft --target "$TARGET_SHA" --title "$TAG" --notes-file /tmp/release-notes.md
+           fi
+           gh release upload "$TAG" dist/aggregate-release/* --clobber
+       - name: Verify GitHub release assets
+@@ -264,6 +269,8 @@ jobs:
+           console.log(`Resolved SHA: ${process.env.TARGET_SHA}`);
+           console.log(`Channel: ${process.env.CHANNEL}`);
+           console.log(`Publish requested: ${process.env.PUBLISH}\n`);
++          const highlights = process.env.RELEASE_NOTES_INPUT?.trim();
++          if (highlights) console.log(`Release highlights input: ${highlights}\n`);
+           console.log('## Build verification');
+           console.log('- Quality gate: passed');
+           console.log('- Windows x64 make and packaged smoke: passed');
+@@ -294,3 +301,4 @@ jobs:
+           TARGET_SHA: ${{ needs.preflight.outputs.sha }}
+           CHANNEL: ${{ inputs.channel }}
+           PUBLISH: ${{ inputs.publish }}
++          RELEASE_NOTES_INPUT: ${{ inputs.release_notes }}
+diff --git a/apps/desktop-electron/e2e/localization.spec.ts b/apps/desktop-electron/e2e/localization.spec.ts
+new file mode 100644
+index 0000000..e75750a
+--- /dev/null
++++ b/apps/desktop-electron/e2e/localization.spec.ts
+@@ -0,0 +1,56 @@
++import fs from 'node:fs';
++import os from 'node:os';
++import path from 'node:path';
++import { expect, test } from './electron-test';
++
++function writeArticle(root: string) {
++  const directory = path.join(root, 'language', 'sample');
++  fs.mkdirSync(directory, { recursive: true });
++  fs.writeFileSync(
++    path.join(directory, 'index.md'),
++    `---\ndate: 2026-07-13\ntags: [language]\n---\n# Bilingual Article\n\nBody with a footnote.[^1]\n\n[^1]: Localized footnote.\n`,
++  );
++}
++
++test('switches the complete desktop chrome to English and persists it across restart', async ({
++  launchElectron,
++}) => {
++  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'observatory-locale-content-'));
++  const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'observatory-locale-profile-'));
++  writeArticle(root);
++
++  const first = await launchElectron({
++    args: [`--user-data-dir=${profile}`],
++    env: { ARCHIVE_CONTENT_ROOT: root },
++  });
++  await expect(first.page.getByTestId('app-ready')).toBeVisible({ timeout: 30000 });
++  await first.page.getByRole('button', { name: '設定' }).click();
++  await first.page.getByLabel('語言').selectOption('en');
++
++  await expect(first.page.locator('html')).toHaveAttribute('lang', 'en');
++  await expect(first.page.locator('html')).toHaveAttribute('data-locale', 'en');
++  await expect(first.page.getByRole('heading', { name: 'Reading settings' })).toBeVisible();
++  await first.page.getByRole('button', { name: 'Close settings' }).click();
++  await expect(first.page.getByLabel('Search articles')).toBeVisible();
++  await expect(first.page.getByRole('button', { name: 'Import article' })).toBeVisible();
++  await first.page.getByRole('button', { name: 'Observatory' }).click();
++  await expect(first.page.getByRole('heading', { name: 'Observatory archive summary' })).toBeVisible();
++  await first.page.getByRole('button', { name: 'Close' }).click();
++
++  const menuLabels = await first.app.evaluate(({ Menu }) =>
++    Menu.getApplicationMenu()?.items.map((item) => item.label) ?? [],
++  );
++  expect(menuLabels).toEqual(expect.arrayContaining(['Navigate', 'View', 'Help']));
++  await first.app.close();
++
++  const second = await launchElectron({
++    args: [`--user-data-dir=${profile}`],
++    env: { ARCHIVE_CONTENT_ROOT: root },
++    cleanupPaths: [root, profile],
++  });
++  await expect(second.page.getByTestId('app-ready')).toBeVisible({ timeout: 30000 });
++  await expect(second.page.locator('html')).toHaveAttribute('lang', 'en');
++  await expect(second.page.getByRole('button', { name: 'Settings' })).toBeVisible();
++  await second.page.getByRole('button', { name: /Bilingual Article/ }).click();
++  await expect(second.page.getByRole('region', { name: 'Footnotes' })).toBeVisible();
++});
