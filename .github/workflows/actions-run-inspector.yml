@@ -1,5 +1,5 @@
 name: Release Run Inspector
-run-name: Capture failing Desktop Release job diagnostics
+run-name: Inspect draft discovery finalizer run
 
 on:
   push:
@@ -14,27 +14,25 @@ permissions:
 
 jobs:
   inspect:
-    if: github.event.head_commit.message == 'Capture failing Desktop Release diagnostics'
+    if: github.event.head_commit.message == 'Inspect draft discovery finalizer run'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
           ref: fix/fresh-release-recovery
           fetch-depth: 0
-      - name: Capture release job diagnostics
+      - name: Capture finalizer workflow runs
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_JOB_ID: '86721755305'
         run: |
-          gh api "repos/${GITHUB_REPOSITORY}/actions/jobs/${RELEASE_JOB_ID}/logs" > /tmp/release-job.log
-          tail -n 160 /tmp/release-job.log > .release-job-tail.log
-          grep -iE 'error|failed|failure|HTTP|validation|gh release|release create|release upload' /tmp/release-job.log \
-            > .release-job-errors.log || true
+          gh api "repos/${GITHUB_REPOSITORY}/actions/runs?per_page=100" \
+            --jq '[.workflow_runs[] | select(.path == ".github/workflows/tmp-patch-release-draft-discovery.yml") | {id, name, display_title, status, conclusion, head_sha, created_at, updated_at, html_url}]' \
+            > .release-finalizer-runs.json
       - name: Publish inspector result
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add .release-job-tail.log .release-job-errors.log
-          git commit -m "Record failing Desktop Release diagnostics"
+          git add .release-finalizer-runs.json
+          git commit -m "Record release draft finalizer runs"
           git pull --rebase origin fix/fresh-release-recovery
           git push origin HEAD:fix/fresh-release-recovery
