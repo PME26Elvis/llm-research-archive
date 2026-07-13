@@ -43,6 +43,21 @@ jobs:
             test -f "$part" || { echo "missing patch part: $part" >&2; exit 1; }
           done
           cat "${parts[@]}" > /tmp/bilingual-feature.diff
+          python - <<'PY'
+          from pathlib import Path
+          patch = Path('/tmp/bilingual-feature.diff')
+          lines = patch.read_text().splitlines(keepends=True)
+          suffix = 'function SettingsDialog({ preferences, onChange, onClose }: SettingsDialogProps) {'
+          repaired = 0
+          for index, line in enumerate(lines):
+              stripped = line.rstrip('\n')
+              if stripped.startswith('@@') and stripped.endswith(suffix):
+                  lines[index] = stripped[:-2] + ('\n' if line.endswith('\n') else '')
+                  repaired += 1
+          if repaired != 2:
+              raise SystemExit(f'expected exactly two transferred hunk headers, repaired {repaired}')
+          patch.write_text(''.join(lines))
+          PY
           actual=$(sha256sum /tmp/bilingual-feature.diff | awk '{print $1}')
           test "$actual" = "$expected" || { echo "patch digest $actual != $expected" >&2; exit 1; }
           cd repo
