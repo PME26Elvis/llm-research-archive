@@ -1,5 +1,5 @@
 name: Release Run Inspector
-run-name: Inspect current draft-aware Desktop Release
+run-name: Verify published Desktop Release metadata
 
 on:
   push:
@@ -9,30 +9,29 @@ on:
       - .github/workflows/actions-run-inspector.yml
 
 permissions:
-  actions: read
   contents: write
 
 jobs:
   inspect:
-    if: github.event.head_commit.message == 'Inspect current draft-aware Desktop Release'
+    if: github.event.head_commit.message == 'Verify published Desktop Release metadata'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
           ref: fix/fresh-release-recovery
           fetch-depth: 0
-      - name: Capture current recovery runs
+      - name: Capture latest published release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh api "repos/${GITHUB_REPOSITORY}/actions/runs?per_page=100" \
-            --jq '[.workflow_runs[] | select(.path == ".github/workflows/desktop-release-recovery.yml") | {id, name, display_title, run_number, status, conclusion, head_sha, created_at, updated_at, html_url}] | .[:10]' \
-            > .current-release-recovery-runs.json
-      - name: Publish inspector result
+          gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=20" \
+            --jq '[.[] | select(.draft == false) | {id, tag_name, name, prerelease, draft, target_commitish, published_at, html_url, assets: [.assets[] | {name, size, state, content_type}]}] | .[0]' \
+            > .published-release-verification.json
+      - name: Publish verification result
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add .current-release-recovery-runs.json
-          git commit -m "Record current draft-aware release runs"
+          git add .published-release-verification.json
+          git commit -m "Record published Desktop Release metadata"
           git pull --rebase origin fix/fresh-release-recovery
           git push origin HEAD:fix/fresh-release-recovery
