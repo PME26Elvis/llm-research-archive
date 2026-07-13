@@ -1,8 +1,8 @@
 {
-  "runId": 29226872634,
-  "result": "failure",
-  "verifiedCommitSha": null,
-  "pushResult": null,
-  "triggerSha": "ecf8dfc8a8f797c6eb27d5e80bc86b836d88d701",
-  "recordedAt": "2026-07-13T05:40:18.827Z"
+  "runId": 29226968223,
+  "result": "success",
+  "verifiedCommitSha": "e2e5d7f6fb44a5a7d6bcc5577cca05c3ea4fbd25",
+  "pushResult": "workflow-permission-rejected",
+  "triggerSha": "7327bfa6b62d2d972131a0ca867fedcbf9b15a45",
+  "recordedAt": "2026-07-13T05:43:37.732Z"
 }
