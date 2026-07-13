@@ -1,0 +1,213 @@
+@@ -2,6 +2,7 @@ import MarkdownIt from 'markdown-it';
+ import footnote from 'markdown-it-footnote';
+ import sanitizeHtml from 'sanitize-html';
+ import { HeadingSlugger } from '@research-observatory/domain';
++import type { AppLocale } from '@research-observatory/platform-contracts';
+ 
+ export * from './browse';
+ 
+@@ -24,33 +25,43 @@ function footnoteReferenceId(token: FootnoteToken): string {
+ 
+ const md = new MarkdownIt({ html: true, linkify: true, typographer: true }).use(footnote);
+ 
+-md.renderer.rules.footnote_ref = (tokens, idx) => {
++md.renderer.rules.footnote_ref = (tokens, idx, _options, env) => {
+   const token = tokens[idx] as unknown as FootnoteToken;
+   const number = footnoteNumber(token);
+   const subId = Number(token.meta.subId ?? 0);
+   const caption = `[${number}${subId > 0 ? `:${subId}` : ''}]`;
+-  return `<sup class="footnote-ref"><a href="#fn-${number}" id="${footnoteReferenceId(token)}" aria-label="註腳 ${number}">${caption}</a></sup>`;
++  const locale = (env.locale as AppLocale | undefined) ?? 'zh-TW';
++  const label = locale === 'en' ? `Footnote ${number}` : `註腳 ${number}`;
++  return `<sup class="footnote-ref"><a href="#fn-${number}" id="${footnoteReferenceId(token)}" aria-label="${label}">${caption}</a></sup>`;
+ };
+ 
+-md.renderer.rules.footnote_block_open = () =>
+-  '<hr class="footnotes-sep">\n<section class="footnotes" aria-label="註腳">\n<ol class="footnotes-list">\n';
++md.renderer.rules.footnote_block_open = (_tokens, _idx, _options, env) => {
++  const locale = (env.locale as AppLocale | undefined) ?? 'zh-TW';
++  const label = locale === 'en' ? 'Footnotes' : '註腳';
++  return `<hr class="footnotes-sep">\n<section class="footnotes" aria-label="${label}">\n<ol class="footnotes-list">\n`;
++};
+ md.renderer.rules.footnote_block_close = () => '</ol>\n</section>\n';
+ md.renderer.rules.footnote_open = (tokens, idx) => {
+   const number = footnoteNumber(tokens[idx] as unknown as FootnoteToken);
+   return `<li id="fn-${number}" class="footnote-item" tabindex="-1">`;
+ };
+ md.renderer.rules.footnote_close = () => '</li>\n';
+-md.renderer.rules.footnote_anchor = (tokens, idx) => {
++md.renderer.rules.footnote_anchor = (tokens, idx, _options, env) => {
+   const token = tokens[idx] as unknown as FootnoteToken;
+   const number = footnoteNumber(token);
+   const subId = Number(token.meta.subId ?? 0);
+-  const position = subId > 0 ? `第 ${subId + 1} 個` : '第一個';
+-  return ` <a href="#${footnoteReferenceId(token)}" class="footnote-backref" aria-label="返回註腳 ${number} 的${position}引用位置">↩︎</a>`;
++  const locale = (env.locale as AppLocale | undefined) ?? 'zh-TW';
++  const position = subId > 0 ? subId + 1 : 1;
++  const label =
++    locale === 'en'
++      ? `Return to reference ${position} for footnote ${number}`
++      : `返回註腳 ${number} 的${position === 1 ? '第一個' : `第 ${position} 個`}引用位置`;
++  return ` <a href="#${footnoteReferenceId(token)}" class="footnote-backref" aria-label="${label}">↩︎</a>`;
+ };
+ 
+-export function renderMarkdown(markdown: string): string {
++export function renderMarkdown(markdown: string, locale: AppLocale = 'zh-TW'): string {
+   const slugger = new HeadingSlugger();
+-  const env = { slugger };
++  const env = { slugger, locale };
+   md.renderer.rules.heading_open = (tokens, idx, options, currentEnv, self) => {
+     const inline = tokens[idx + 1];
+     const text = inline?.type === 'inline' ? inline.content : '';
+diff --git a/scripts/release-notes.mjs b/scripts/release-notes.mjs
+new file mode 100644
+index 0000000..3f8ced9
+--- /dev/null
++++ b/scripts/release-notes.mjs
+@@ -0,0 +1,67 @@
++const MAX_HIGHLIGHTS = 12;
++const MAX_HIGHLIGHT_LENGTH = 180;
++
++export function parseReleaseHighlights(raw = '') {
++  const seen = new Set();
++  const highlights = [];
++  for (const part of String(raw).split(/[\n,，;；]+/)) {
++    const cleaned = part
++      .replace(/^\s*(?:[-*+]\s+|\d+[.)]\s+)/, '')
++      .replace(/[\u0000-\u001f\u007f]+/g, ' ')
++      .replace(/<[^>]*>/g, '')
++      .replace(/\s+/g, ' ')
++      .trim();
++    if (!cleaned) continue;
++    if (cleaned.length > MAX_HIGHLIGHT_LENGTH) {
++      throw new Error(`release highlight exceeds ${MAX_HIGHLIGHT_LENGTH} characters`);
++    }
++    const key = cleaned.toLocaleLowerCase('en-US');
++    if (seen.has(key)) continue;
++    seen.add(key);
++    highlights.push(cleaned);
++    if (highlights.length > MAX_HIGHLIGHTS) {
++      throw new Error(`release notes support at most ${MAX_HIGHLIGHTS} highlights`);
++    }
++  }
++  return highlights;
++}
++
++export function renderReleaseNotes({ tag, highlights = [], versionSource = 'automatic' }) {
++  const items = highlights.length
++    ? highlights
++    : ['Verified maintenance release for the current desktop baseline.'];
++  return [
++    `# Research Observatory ${tag}`,
++    '',
++    '## Highlights',
++    ...items.map((item) => `- ${item}`),
++    '',
++    '## Verified builds',
++    '- Windows x64 installer and portable ZIP',
++    '- Linux x64 portable ZIP, DEB, and RPM',
++    '- macOS Apple Silicon and Intel ZIPs',
++    '- Checksums, release manifest, and CycloneDX SBOM',
++    '',
++    `Version selection: \`${versionSource}\`.`,
++    '',
++    '> macOS ZIPs are ad-hoc signed but not Apple-notarized; Gatekeeper may require an explicit Open action.',
++    '',
++  ].join('\n');
++}
++
++if (process.argv[1]?.endsWith('release-notes.mjs') && process.argv[2]) {
++  const fs = await import('node:fs');
++  const outputPath = process.argv[2];
++  const tag = process.env.RELEASE_TAG;
++  if (!tag) throw new Error('RELEASE_TAG is required');
++  const highlights = parseReleaseHighlights(process.env.RELEASE_NOTES_INPUT);
++  fs.writeFileSync(
++    outputPath,
++    renderReleaseNotes({
++      tag,
++      highlights,
++      versionSource: process.env.RELEASE_VERSION_SOURCE || 'automatic',
++    }),
++  );
++  console.log(`wrote release notes with ${highlights.length} highlight(s) to ${outputPath}`);
++}
+diff --git a/scripts/release-notes.test.ts b/scripts/release-notes.test.ts
+new file mode 100644
+index 0000000..c6f0150
+--- /dev/null
++++ b/scripts/release-notes.test.ts
+@@ -0,0 +1,28 @@
++import { describe, expect, it } from 'vitest';
++import { parseReleaseHighlights, renderReleaseNotes } from './release-notes.mjs';
++
++describe('release notes', () => {
++  it('normalizes comma, full-width comma, semicolon, newline, and existing bullets', () => {
++    expect(parseReleaseHighlights('add language, fix something；- fix another\n* Add language')).toEqual([
++      'add language',
++      'fix something',
++      'fix another',
++    ]);
++  });
++
++  it('renders release highlights as Markdown bullets with verified platform context', () => {
++    const notes = renderReleaseNotes({
++      tag: 'v0.1.3',
++      versionSource: 'auto-next-patch',
++      highlights: ['Add bilingual interface', 'Improve release notes'],
++    });
++    expect(notes).toContain('## Highlights\n- Add bilingual interface\n- Improve release notes');
++    expect(notes).toContain('## Verified builds');
++    expect(notes).toContain('macOS Apple Silicon and Intel');
++  });
++
++  it('rejects unbounded inputs and supplies a safe default', () => {
++    expect(() => parseReleaseHighlights('x'.repeat(181))).toThrow(/180/);
++    expect(renderReleaseNotes({ tag: 'v1.0.0' })).toContain('Verified maintenance release');
++  });
++});
+diff --git a/scripts/validate-release-assets.mjs b/scripts/validate-release-assets.mjs
+index 223179a..c1e713c 100644
+--- a/scripts/validate-release-assets.mjs
++++ b/scripts/validate-release-assets.mjs
+@@ -29,6 +29,15 @@ if (applyVersionStepCount !== 4) {
+     `all four release stages must use the cross-platform version applicator; found ${applyVersionStepCount}`,
+   );
+ }
++if (!releaseWorkflow.includes("release_notes: { type: string, required: false, default: '' }")) {
++  throw new Error('release workflow must expose optional release highlights');
++}
++if (!releaseWorkflow.includes('node scripts/release-notes.mjs /tmp/release-notes.md')) {
++  throw new Error('release workflow must render structured Markdown release notes');
++}
++if (releaseWorkflow.split('--notes-file /tmp/release-notes.md').length - 1 !== 2) {
++  throw new Error('new and refreshed drafts must both use the generated notes file');
++}
+ if (releaseWorkflow.includes('npm version "$RELEASE_VERSION"')) {
+   throw new Error('release workflow must not use shell-specific RELEASE_VERSION expansion');
+ }
+diff --git a/scripts/workflow-release.test.ts b/scripts/workflow-release.test.ts
+index b9d436a..98859d3 100644
+--- a/scripts/workflow-release.test.ts
++++ b/scripts/workflow-release.test.ts
+@@ -19,6 +19,14 @@ describe('desktop release workflow safety', () => {
+     for (const ref of actionRefs) expect(ref).toMatch(/^[^@]+@[0-9a-f]{40}$/);
+   });
+ 
++  it('turns optional release highlights into refreshed Markdown notes', () => {
++    expect(workflow).toContain("release_notes: { type: string, required: false, default: '' }");
++    const refresh = namedStep('Create or refresh draft release assets');
++    expect(refresh).toContain('node scripts/release-notes.mjs /tmp/release-notes.md');
++    expect(refresh).toContain('gh release edit "$TAG" --title "$TAG" --notes-file /tmp/release-notes.md');
++    expect(refresh).toContain('gh release create "$TAG" --draft --target "$TARGET_SHA" --title "$TAG" --notes-file /tmp/release-notes.md');
++  });
++
+   it('keeps release writes in the single release job and publishes only on explicit input', () => {
+     expect(workflow).toContain('permissions: { contents: write }');
+     expect(workflow).toContain('- if: inputs.publish');
+diff --git a/vitest.config.ts b/vitest.config.ts
+index 06704ea..7da9dd4 100644
+--- a/vitest.config.ts
++++ b/vitest.config.ts
+@@ -27,8 +27,8 @@ export default defineConfig({
+       all: true,
