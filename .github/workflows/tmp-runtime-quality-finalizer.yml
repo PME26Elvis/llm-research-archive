@@ -1,5 +1,5 @@
-name: Temporary Enforced Quality Finalizer
-run-name: Run enforced quality gates attempt 6
+name: Temporary Release Footprint Finalizer
+run-name: Finalize release footprint enforcement
 
 on:
   push:
@@ -13,103 +13,76 @@ permissions:
 
 jobs:
   finalize:
-    if: startsWith(github.event.head_commit.message, 'Run enforced quality gates attempt 6')
+    if: startsWith(github.event.head_commit.message, 'Finalize release footprint enforcement')
     runs-on: ubuntu-latest
+    outputs:
+      commit_sha: ${{ steps.commit.outputs.commit_sha }}
+      push_result: ${{ steps.commit.outputs.push_result }}
     steps:
-      - name: Checkout target branch
+      - name: Checkout feature branch
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
           ref: agent/enforced-quality-gates
           fetch-depth: 0
-      - name: Checkout staged patches
+      - name: Checkout staged release patch
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
           ref: ops/planned-audit-receipt
           path: payload
           fetch-depth: 1
-      - name: Repair and apply transparent quality patches
+      - name: Apply release footprint patch
         shell: bash
         run: |
           set -euo pipefail
-          python - <<'PY'
-          import re
-          from pathlib import Path
-
-          header = re.compile(r'^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@(.*)$')
-          output = []
-          patch_root = Path('payload/.quality-gate-patches')
-          sources = sorted(patch_root.glob('*.diff'))
-          if not sources:
-              raise SystemExit('no staged quality patches found')
-          for source in sources:
-              lines = source.read_text().splitlines(keepends=True)
-              index = 0
-              while index < len(lines):
-                  line = lines[index]
-                  match = header.match(line.rstrip('\n'))
-                  if not match:
-                      output.append(line)
-                      index += 1
-                      continue
-                  end = index + 1
-                  while end < len(lines) and not lines[end].startswith('@@ ') and not lines[end].startswith('diff --git '):
-                      end += 1
-                  old_count = 0
-                  new_count = 0
-                  for hunk_line in lines[index + 1:end]:
-                      if hunk_line.startswith('\\ No newline'):
-                          continue
-                      if hunk_line.startswith(' ') or hunk_line.startswith('-'):
-                          old_count += 1
-                      if hunk_line.startswith(' ') or hunk_line.startswith('+'):
-                          new_count += 1
-                  output.append(
-                      f'@@ -{match.group(1)},{old_count} +{match.group(2)},{new_count} @@{match.group(3)}\n'
-                  )
-                  output.extend(lines[index + 1:end])
-                  index = end
-          Path('/tmp/quality-gates.patch').write_text(''.join(output))
-          PY
-          git apply --check /tmp/quality-gates.patch
-          git apply /tmp/quality-gates.patch
+          git apply --check payload/.quality-gate-patches/06-release-workflow.diff
+          git apply payload/.quality-gate-patches/06-release-workflow.diff
           rm -rf payload
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
           cache: npm
-      - name: Refresh lockfile for governed dependencies
-        run: npm install --package-lock-only --ignore-scripts
       - run: npm ci
       - run: npm run format:write
       - name: Execute complete quality gate
         shell: bash
         run: |
           set -o pipefail
-          npm run verify 2>&1 | tee enforced-quality-verify.log
-      - name: Upload quality evidence
+          npm run verify 2>&1 | tee release-footprint-verify.log
+      - name: Upload verification evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: enforced-quality-evidence-${{ github.run_attempt }}
+          name: release-footprint-verification-${{ github.run_attempt }}
           path: |
-            enforced-quality-verify.log
+            release-footprint-verify.log
             coverage/
             dist/quality/
             dist/performance/
           if-no-files-found: warn
           retention-days: 14
-      - name: Publish verified quality gates
+      - name: Create verified commit
+        id: commit
         shell: bash
         run: |
           set -euo pipefail
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add apps forge.config.ts package.json package-lock.json packages project-docs/quality scripts vite.*.config.ts vitest.config.ts
-          git commit -m "Enforce desktop quality gates"
+          git add .github/workflows/desktop-release-reusable.yml scripts/validate-release-assets.mjs
+          git commit -m "Enforce installed footprint in Desktop Release"
+          commit_sha=$(git rev-parse HEAD)
+          echo "commit_sha=$commit_sha" >> "$GITHUB_OUTPUT"
+          set +e
           git push origin HEAD:agent/enforced-quality-gates
+          push_status=$?
+          set -e
+          if [[ $push_status -eq 0 ]]; then
+            echo 'push_result=success' >> "$GITHUB_OUTPUT"
+          else
+            echo 'push_result=workflow-permission-rejected' >> "$GITHUB_OUTPUT"
+          fi
 
   receipt:
-    if: always() && startsWith(github.event.head_commit.message, 'Run enforced quality gates attempt 6')
+    if: always() && startsWith(github.event.head_commit.message, 'Finalize release footprint enforcement')
     needs: finalize
     runs-on: ubuntu-latest
     steps:
@@ -121,6 +94,8 @@ jobs:
         env:
           FINALIZER_RUN_ID: ${{ github.run_id }}
           FINALIZER_RESULT: ${{ needs.finalize.result }}
+          VERIFIED_COMMIT_SHA: ${{ needs.finalize.outputs.commit_sha }}
+          PUSH_RESULT: ${{ needs.finalize.outputs.push_result }}
           FINALIZER_TRIGGER_SHA: ${{ github.sha }}
         run: |
           node - <<'NODE'
@@ -128,14 +103,16 @@ jobs:
           const receipt = {
             runId: Number(process.env.FINALIZER_RUN_ID),
             result: process.env.FINALIZER_RESULT,
+            verifiedCommitSha: process.env.VERIFIED_COMMIT_SHA || null,
+            pushResult: process.env.PUSH_RESULT || null,
             triggerSha: process.env.FINALIZER_TRIGGER_SHA,
             recordedAt: new Date().toISOString(),
           };
-          fs.writeFileSync('.enforced-quality-finalizer.json', `${JSON.stringify(receipt, null, 2)}\n`);
+          fs.writeFileSync('.release-footprint-finalizer.json', `${JSON.stringify(receipt, null, 2)}\n`);
           NODE
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add .enforced-quality-finalizer.json
-          git commit -m "Record enforced quality finalizer ${FINALIZER_RUN_ID}"
+          git add .release-footprint-finalizer.json
+          git commit -m "Record release footprint finalizer ${FINALIZER_RUN_ID}"
           git pull --rebase origin ops/planned-audit-receipt
           git push origin HEAD:ops/planned-audit-receipt
