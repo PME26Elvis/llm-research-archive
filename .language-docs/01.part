@@ -1,0 +1,91 @@
+diff --git a/project-docs/architecture/adr/0019-localized-interface-and-structured-release-notes.md b/project-docs/architecture/adr/0019-localized-interface-and-structured-release-notes.md
+new file mode 100644
+index 0000000..55d0cac
+--- /dev/null
++++ b/project-docs/architecture/adr/0019-localized-interface-and-structured-release-notes.md
+@@ -0,0 +1,23 @@
++---
++status: accepted
++owner: repository-maintainer
++last-verified: 2026-07-13
++---
++
++# ADR-0019: Localized Interface and Structured Release Notes
++
++## Context
++
++Research Observatory shipped with a Traditional Chinese interface and a safe release pipeline, but language was not a persisted product preference and native Electron surfaces could not follow renderer text. Automated releases also used a generic description even when the operator knew the important changes.
++
++## Decision
++
++1. Keep Traditional Chinese as the backwards-compatible default and support `system`, `zh-TW`, and `en` preferences through a versioned renderer-owned schema.
++2. Use type-complete dictionaries for application chrome. Research article content remains canonical and is not translated automatically.
++3. Resolve `system` in the renderer, update `<html lang>` immediately, and send only the resolved allowlisted locale through validated IPC. Main remains the sole owner of native menus and dialogs.
++4. Treat language switching as an accessibility and persistence journey: visible UI, focus restoration, native menu labels, restart persistence, and switching back require Electron E2E evidence.
++5. Accept optional bounded release change items, normalize common list formats, and render one deterministic Markdown body for draft creation and refresh.
++
++## Consequences
++
++The UI can be switched without restart and remains consistent across renderer/native surfaces. Dictionaries add maintenance cost, but compile-time key coverage and E2E prevent partial locale drift. The renderer gains no native authority. Release descriptions become human-readable while remaining safe for unattended workflow execution. Future locales require complete evidence rather than ad hoc string patches.
+diff --git a/project-docs/architecture/ipc-contract.md b/project-docs/architecture/ipc-contract.md
+index 2291a59..78e7ec5 100644
+--- a/project-docs/architecture/ipc-contract.md
++++ b/project-docs/architecture/ipc-contract.md
+@@ -8,6 +8,7 @@ related-adrs:
+   - ADR-0016
+   - ADR-0017
+   - ADR-0018
++  - ADR-0019
+ ---
+ 
+ # IPC Contract
+@@ -15,3 +16,7 @@ related-adrs:
+ IPC accepts and returns schema-validated JSON DTOs only. Main validates sender origin before performing privileged work. Current capabilities cover archive list/article/search, workspace select/info, import source selection/preview/commit, diagnostics read/clear/report, startup milestones, preferences, app/build information, external links, and typed desktop commands.
+ 
+ Renderer never receives unrestricted filesystem paths or reusable write authority. Import previews are sanitized and keyed by opaque plan IDs held in main. Diagnostics return bounded redacted events and aggregate startup timing, not raw logs. Menu shortcuts and Command Palette share the same command allowlist.
++
++## Locale update boundary
++
++`preferences:set-locale` accepts only `UiLocaleSchema` values (`zh-TW` or `en`). The renderer retains the user-facing `system` preference and resolves it locally; main receives only the resolved allowlisted locale needed to rebuild the application menu and localize native dialogs. The call grants no filesystem path, article content, or generic menu-construction capability.
+diff --git a/project-docs/product/desktop-product-spec.md b/project-docs/product/desktop-product-spec.md
+index a915396..ef95756 100644
+--- a/project-docs/product/desktop-product-spec.md
++++ b/project-docs/product/desktop-product-spec.md
+@@ -10,13 +10,14 @@ related-adrs:
+   - ADR-0012
+   - ADR-0016
+   - ADR-0018
++  - ADR-0019
+ ---
+ 
+ # Desktop Product Spec
+ 
+ ## Current P1 Offline Reader Scope
+ 
+-The current implementation provides the offline bundled reader, safe article import and publishing, secure Electron shell, canonical content parsing, serialized incremental full-text search, category/tag/timeline browsing, sanitized reading with local image lightbox, fenced-code copy, strict lazy Mermaid rendering, lazy syntax highlighting, accessible footnotes, persistent reader and layout preferences, semantic Back/Forward navigation, typed native commands and command palette, validated local workspaces, Observatory archive summaries, revision dates and word-count statistics, startup telemetry, privacy-safe local diagnostics, native four-platform packaging, enforced quality budgets, and a verified draft-first release pipeline. Every requirement in this specification has concrete production code and verification evidence.
++The current implementation provides the offline bundled reader, safe article import and publishing, secure Electron shell, canonical content parsing, serialized incremental full-text search, category/tag/timeline browsing, sanitized reading with local image lightbox, fenced-code copy, strict lazy Mermaid rendering, lazy syntax highlighting, accessible footnotes, persistent reader and layout preferences, switchable Traditional Chinese/English interface language, semantic Back/Forward navigation, typed native commands and command palette, validated local workspaces, Observatory archive summaries, revision dates and word-count statistics, startup telemetry, privacy-safe local diagnostics, native four-platform packaging, enforced quality budgets, and a verified draft-first release pipeline with structured Markdown change summaries. Every requirement in this specification has concrete production code and verification evidence.
+ 
+ The stable requirement names, acceptance rules for all remaining work, and sequenced delivery boundaries are defined in `project-docs/product/desktop-requirement-catalog.md`. Requirement IDs remain the traceability keys.
+ 
+@@ -200,6 +201,18 @@ Status: `implemented`. Verification: scripts/node-smoke.mjs.
+ 
+ Status: `implemented`. Verification: project-docs/migration/mkdocs-feature-parity-matrix.md.
+ 
++## FR-031
++
++**Name:** Switchable interface languages.
++
++Status: `implemented`. Verification: `apps/desktop-electron/src/renderer/i18n.test.ts`, `apps/desktop-electron/src/renderer/preferences.test.ts`, `apps/desktop-electron/src/main/main-i18n.test.ts`, and `apps/desktop-electron/e2e/preferences.spec.ts`. Users can choose system language, Traditional Chinese, or English; the interface, native menu, dialogs, accessibility labels, and document language switch immediately and persist across restart. Article content is not translated automatically.
++
++## FR-032
++
++**Name:** Structured release descriptions.
++
++Status: `implemented`. Verification: `scripts/release-notes.test.ts`, `scripts/workflow-release.test.ts`, `scripts/validate-release-assets.mjs`, and `.github/workflows/desktop-release-reusable.yml`. Optional comma-, semicolon-, newline-, or Markdown-bullet change items are bounded, normalized, deduplicated, converted to a `What's changed` Markdown list, and applied consistently to new or refreshed drafts.
++
+ ## NFR-001
+ 
+ **Name:** Offline-first operation.
+@@ -349,3 +362,9 @@ Status: `implemented`. Verification: project-docs/product/desktop-product-spec.m
+ **Name:** Local recovery and privacy-safe logging.
+ 

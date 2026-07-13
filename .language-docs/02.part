@@ -1,0 +1,83 @@
+ Status: `implemented`. Verification: `apps/desktop-electron/src/main/local-diagnostics.test.ts`, `apps/desktop-electron/e2e/accessibility.spec.ts`, and `packages/platform-contracts/src/quality-contract.test.ts`. Diagnostics are main-owned, bounded, atomically persisted, path/secret redacted, typed across IPC, and user-viewable/clearable.
++
++## NFR-026
++
++**Name:** Localization integrity and native authority.
++
++Status: `implemented`. Verification: `apps/desktop-electron/tests/security.spec.ts`, `packages/platform-contracts/src/index.ts`, and `apps/desktop-electron/e2e/preferences.spec.ts`. Renderer-owned preferences are migrated and persisted locally; only the resolved allowlisted locale crosses typed, schema-validated IPC so the main process can rebuild native menus and dialogs. Unsupported locales fall back safely, and localization never grants filesystem or navigation authority.
+diff --git a/project-docs/product/desktop-requirement-catalog.md b/project-docs/product/desktop-requirement-catalog.md
+index 4d6b18c..e2626e4 100644
+--- a/project-docs/product/desktop-requirement-catalog.md
++++ b/project-docs/product/desktop-requirement-catalog.md
+@@ -7,6 +7,7 @@ related-adrs:
+   - ADR-0016
+   - ADR-0017
+   - ADR-0018
++  - ADR-0019
+ ---
+ 
+ # Desktop Requirement Catalog
+@@ -28,6 +29,19 @@ A user chooses a Markdown file or article folder, reviews a deterministic import
+ 
+ Evidence: `packages/content-engine/src/article-import/index.test.ts`, `packages/content-engine/src/article-import/commit.test.ts`, `packages/platform-contracts/src/import-contract.test.ts`, `apps/desktop-electron/src/main/import-session.test.ts`, `apps/desktop-electron/tests/security.spec.ts`, and `apps/desktop-electron/e2e/import-wizard.spec.ts`.
+ 
++
++### FR-031 — Switchable interface languages
++
++The Settings dialog exposes system language, Traditional Chinese, and English. Selection applies immediately to renderer chrome, accessibility labels, formatting locale, native menus, and native dialogs; it persists through the versioned preferences schema and across restart. Research article bodies remain canonical and are not machine-translated.
++
++Evidence: `apps/desktop-electron/src/renderer/i18n.test.ts`, `apps/desktop-electron/src/renderer/preferences.test.ts`, `apps/desktop-electron/src/main/main-i18n.test.ts`, and `apps/desktop-electron/e2e/preferences.spec.ts`.
++
++### FR-032 — Structured release descriptions
++
++The reusable release workflow accepts bounded human-authored change items, normalizes comma/semicolon/newline/Markdown-bullet input, deduplicates entries, and renders a stable Markdown release body for both new drafts and refreshed matching drafts.
++
++Evidence: `scripts/release-notes.test.ts`, `scripts/workflow-release.test.ts`, `scripts/validate-release-assets.mjs`, and `.github/workflows/desktop-release-reusable.yml`.
++
+ ## Implemented non-functional requirements
+ 
+ ### NFR-010 — Enforced coverage thresholds
+@@ -58,8 +72,12 @@ Runtime dependencies are separated from development tooling and recorded in a ma
+ 
+ Unexpected main, renderer, preference, search-index, workspace, and import failures produce typed actionable errors where possible and bounded local diagnostics otherwise. Diagnostics are main-owned, atomically persisted with restrictive permissions, redacted for secrets and private roots, exposed through validated DTOs, and viewable/clearable by the user. Article bodies and raw IPC payloads are never logged.
+ 
++### NFR-026 — Localization integrity and native authority
++
++Preference persistence stays renderer-owned. Main receives only a schema-validated `zh-TW` or `en` locale through the typed preload boundary and retains sole authority to rebuild native menus or open native dialogs. Unsupported or corrupt preference data falls back safely without expanding renderer privileges.
++
+ ## Completed delivery sequence
+ 
+-PRs #27–#29 implemented the safe import domain, atomic transaction, Desktop Import Wizard, and complete E2E journey. PR #58 implemented the search index, startup telemetry, local diagnostics, revision/word-count presentation, and accessible Observatory. PR #73 converged coverage, accessibility, dependency, benchmark, renderer, package-footprint, and release gates. All traceable requirements are now implemented.
++PRs #27–#29 implemented the safe import domain, atomic transaction, Desktop Import Wizard, and complete E2E journey. PR #58 implemented the search index, startup telemetry, local diagnostics, revision/word-count presentation, and accessible Observatory. PR #73 converged coverage, accessibility, dependency, benchmark, renderer, package-footprint, and release gates. PR #91 added bilingual interface settings, native localization, and structured release descriptions. All traceable requirements are now implemented.
+ 
+ Future work is proposal-only and is maintained in `project-docs/roadmap/desktop-roadmap.md`; it does not create a new planned requirement until approved with stable IDs and acceptance evidence.
+diff --git a/project-docs/quality/acceptance-matrix.md b/project-docs/quality/acceptance-matrix.md
+index 08fed3c..bdbeecb 100644
+--- a/project-docs/quality/acceptance-matrix.md
++++ b/project-docs/quality/acceptance-matrix.md
+@@ -41,6 +41,8 @@ related-adrs:
+ | FR-028 | Explicit release publication | implemented | .github/workflows/desktop-release-reusable.yml, scripts/workflow-release.test.ts, project-docs/release/verification-run-29113199684.md |
+ | FR-029 | Supported Node smoke verification | implemented | scripts/node-smoke.mjs |
+ | FR-030 | MkDocs feature disposition | implemented | project-docs/migration/mkdocs-feature-parity-matrix.md |
++| FR-031 | Switchable interface languages | implemented | apps/desktop-electron/src/renderer/i18n.test.ts, apps/desktop-electron/src/renderer/preferences.test.ts, apps/desktop-electron/src/main/main-i18n.test.ts, apps/desktop-electron/e2e/preferences.spec.ts |
++| FR-032 | Structured release descriptions | implemented | scripts/release-notes.test.ts, scripts/workflow-release.test.ts, scripts/validate-release-assets.mjs, .github/workflows/desktop-release-reusable.yml |
+ | NFR-001 | Offline-first operation | implemented | apps/desktop-electron/e2e/source.spec.ts |
+ | NFR-002 | Renderer isolation | implemented | apps/desktop-electron/tests/security.spec.ts |
+ | NFR-003 | IPC sender validation | implemented | apps/desktop-electron/tests/security.spec.ts |
+@@ -66,3 +68,4 @@ related-adrs:
+ | NFR-023 | Focus-safe modal interaction | implemented | apps/desktop-electron/e2e/source.spec.ts |
+ | NFR-024 | Explicit product scope | implemented | project-docs/product/desktop-product-spec.md |
+ | NFR-025 | Local recovery and privacy-safe logging | implemented | apps/desktop-electron/src/main/local-diagnostics.test.ts, apps/desktop-electron/e2e/accessibility.spec.ts, packages/platform-contracts/src/quality-contract.test.ts |
++| NFR-026 | Localization integrity and native authority | implemented | apps/desktop-electron/tests/security.spec.ts, packages/platform-contracts/src/index.ts, apps/desktop-electron/e2e/preferences.spec.ts |
+diff --git a/project-docs/quality/security-model.md b/project-docs/quality/security-model.md
+index cb16459..cb3610a 100644
+--- a/project-docs/quality/security-model.md
++++ b/project-docs/quality/security-model.md
+@@ -7,6 +7,7 @@ related-adrs:
+   - ADR-0016
+   - ADR-0017
+   - ADR-0018
++  - ADR-0019
+ ---
+ 
+ # Security Model

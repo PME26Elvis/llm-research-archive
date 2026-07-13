@@ -1,0 +1,32 @@
++The offline desktop reader, safe importer, local workspaces, serialized search, Observatory, revision/word-count views, accessibility, startup telemetry, local diagnostics, four-platform packages, and draft-first release pipeline, switchable Traditional Chinese/English UI, localized native menus/dialogs, and structured Markdown release descriptions are implemented. Every current FR/NFR in the Product Spec is implemented and enforced by traceability and CI.
+ 
+ ## Proposed next phase
+ 
+@@ -22,7 +23,8 @@ These items are authorized for planning but are not yet traceable requirements.
+ 3. **Release provenance** — artifact attestations, dependency/license reports, reproducible provenance metadata, and verification instructions alongside SBOM/checksums.
+ 4. **Quality trend history** — retain coverage, startup, search, renderer, package, and audit baselines across releases with regression summaries that do not create flaky wall-clock gates.
+ 5. **Consented diagnostic export** — explicit user-reviewed export bundle with a manifest, redaction preview, bounded retention, and no automatic upload.
+-6. **Advanced offline retrieval** — ranking experiments beyond deterministic token matching while preserving serialized local indexes, bounded renderer work, explainability, and offline operation.
++6. **Additional interface locales** — add a locale only with a complete dictionary, native-label coverage, migration behavior, accessibility review, and real Electron persistence journey; article translation remains out of scope.
++7. **Advanced offline retrieval** — ranking experiments beyond deterministic token matching while preserving serialized local indexes, bounded renderer work, explainability, and offline operation.
+ 
+ ## Promotion rule
+ 
+diff --git a/project-docs/traceability/requirements.yaml b/project-docs/traceability/requirements.yaml
+index 3950463..4516632 100644
+--- a/project-docs/traceability/requirements.yaml
++++ b/project-docs/traceability/requirements.yaml
+@@ -28,6 +28,8 @@
+ - {id: FR-028, title: Explicit release publication, priority: P2, source: {document: project-docs/product/desktop-product-spec.md, section: FR-028}, implementation: {packages: *p}, verification: {tests: [.github/workflows/desktop-release-reusable.yml, scripts/workflow-release.test.ts, project-docs/release/verification-run-29113199684.md]}, status: implemented}
+ - {id: FR-029, title: Supported Node smoke verification, priority: P2, source: {document: project-docs/product/desktop-product-spec.md, section: FR-029}, implementation: {packages: *p}, verification: {tests: [scripts/node-smoke.mjs]}, status: implemented}
+ - {id: FR-030, title: MkDocs feature disposition, priority: P2, source: {document: project-docs/product/desktop-product-spec.md, section: FR-030}, implementation: {packages: *p}, verification: {tests: [project-docs/migration/mkdocs-feature-parity-matrix.md]}, status: implemented}
++- {id: FR-031, title: Switchable interface languages, priority: P2, source: {document: project-docs/product/desktop-product-spec.md, section: FR-031}, implementation: {packages: *p}, verification: {tests: [apps/desktop-electron/src/renderer/i18n.test.ts, apps/desktop-electron/src/renderer/preferences.test.ts, apps/desktop-electron/src/main/main-i18n.test.ts, apps/desktop-electron/e2e/preferences.spec.ts]}, status: implemented}
++- {id: FR-032, title: Structured release descriptions, priority: P2, source: {document: project-docs/product/desktop-product-spec.md, section: FR-032}, implementation: {packages: *p}, verification: {tests: [scripts/release-notes.test.ts, scripts/workflow-release.test.ts, scripts/validate-release-assets.mjs, .github/workflows/desktop-release-reusable.yml]}, status: implemented}
+ - {id: NFR-001, title: Offline-first operation, priority: P1, source: {document: project-docs/product/desktop-product-spec.md, section: NFR-001}, implementation: {packages: *p}, verification: {tests: [apps/desktop-electron/e2e/source.spec.ts]}, status: implemented}
+ - {id: NFR-002, title: Renderer isolation, priority: P1, source: {document: project-docs/product/desktop-product-spec.md, section: NFR-002}, implementation: {packages: *p}, verification: {tests: [apps/desktop-electron/tests/security.spec.ts]}, status: implemented}
+ - {id: NFR-003, title: IPC sender validation, priority: P1, source: {document: project-docs/product/desktop-product-spec.md, section: NFR-003}, implementation: {packages: *p}, verification: {tests: [apps/desktop-electron/tests/security.spec.ts]}, status: implemented}
+@@ -53,3 +55,4 @@
+ - {id: NFR-023, title: Focus-safe modal interaction, priority: P2, source: {document: project-docs/product/desktop-product-spec.md, section: NFR-023}, implementation: {packages: *p}, verification: {tests: [apps/desktop-electron/e2e/source.spec.ts]}, status: implemented}
+ - {id: NFR-024, title: Explicit product scope, priority: P2, source: {document: project-docs/product/desktop-product-spec.md, section: NFR-024}, implementation: {packages: *p}, verification: {tests: [apps/desktop-electron/e2e/source.spec.ts]}, status: implemented}
+ - {id: NFR-025, title: Local recovery and privacy-safe logging, priority: P2, source: {document: project-docs/product/desktop-product-spec.md, section: NFR-025}, implementation: {packages: *p}, verification: {tests: [apps/desktop-electron/src/main/local-diagnostics.test.ts, apps/desktop-electron/e2e/accessibility.spec.ts, packages/platform-contracts/src/quality-contract.test.ts]}, status: implemented}
++- {id: NFR-026, title: Localization integrity and native authority, priority: P2, source: {document: project-docs/product/desktop-product-spec.md, section: NFR-026}, implementation: {packages: *p}, verification: {tests: [apps/desktop-electron/tests/security.spec.ts, packages/platform-contracts/src/index.ts, apps/desktop-electron/e2e/preferences.spec.ts]}, status: implemented}

@@ -1,0 +1,82 @@
+@@ -18,3 +19,5 @@ Local workspaces and assets are canonicalized and confined; import plans are rea
+ Local diagnostics are bounded, atomically persisted, and redacted for configured private roots, absolute paths, authorization data, tokens, passwords, and secrets. They never contain article bodies or raw IPC payloads and can be inspected or cleared by the user. No diagnostics leave the device.
+ 
+ Dependency governance separates runtime and development tooling, inventories production packages, audits a production-only lockfile, and allows high/critical findings only through reviewed expiring exceptions. Packaged-output inspection rejects top-level repository internals and obvious credentials, secrets, private keys, or certificate-key files.
++
++Language preferences remain local renderer state. The preload validates resolved locales before IPC, main accepts only the two supported locale identifiers, and native menu/dialog construction remains main-owned. Translation keys never execute code, article content is not sent to a translation service, and language switching introduces no network access or expanded filesystem authority.
+diff --git a/project-docs/quality/testing-strategy.md b/project-docs/quality/testing-strategy.md
+index 73506e6..cd92140 100644
+--- a/project-docs/quality/testing-strategy.md
++++ b/project-docs/quality/testing-strategy.md
+@@ -8,6 +8,7 @@ related-adrs:
+   - ADR-0007
+   - ADR-0009
+   - ADR-0018
++  - ADR-0019
+ ---
+ 
+ # Testing Strategy
+@@ -31,7 +32,7 @@ Research Observatory uses layered verification. A feature is complete only when
+ | Search benchmark | `npm run benchmark:search` | 1k/10k serialization, query, filter, and renderer-block budgets. |
+ | Production build | `npm run build` | Bundled archive and Electron production output compile together. |
+ | Renderer footprint | `npm run validate:footprint:renderer` | Initial renderer JavaScript remains under 2 MiB gzip. |
+-| Electron E2E | `npm run test:e2e` | Complete user journeys inside the real Electron runtime. |
++| Electron E2E | `npm run test:e2e` | Complete user journeys inside the real Electron runtime, including immediate language switching, native menu localization, restart persistence, and locale reversal. |
+ | Packaged smoke | `npm run smoke:packaged` | Windows, Linux, macOS arm64, and macOS x64 packages launch and expose expected build data. |
+ | Installed footprint | `npm run validate:footprint:package` | Each packaged root stays below 2 GiB and excludes repository-private or secret material. |
+ 
+@@ -44,3 +45,7 @@ Playwright uses one Electron worker. The shared `electron-test.ts` fixture owns
+ ## Coverage rule
+ 
+ Every behavior adds the lowest-cost deterministic test that proves its contract. Parsing belongs in unit tests; DTOs require contract tests; renderer focus and accessibility require renderer/Electron evidence; filesystem, preload, IPC, navigation, recovery, and packaged-runtime behavior require Electron or packaged smoke. Tests and thresholds are not weakened merely to obtain a green run.
++
++## Localization and release-description coverage
++
++Translation dictionaries are type-complete at compile time and unit-tested in both locales with interpolation. Preference tests cover schema migration and supported locale values. Main-process tests cover native labels; security tests preserve renderer/main authority; Electron E2E proves immediate application, focus restoration, native menu updates, restart persistence, and switching back to Traditional Chinese. Release-description tests cover accepted separators, Markdown bullets, deduplication, bounds, workflow wiring, and draft refresh behavior.
+diff --git a/project-docs/release/release-process.md b/project-docs/release/release-process.md
+index bf80177..98e9265 100644
+--- a/project-docs/release/release-process.md
++++ b/project-docs/release/release-process.md
+@@ -5,15 +5,16 @@ last-verified: 2026-07-13
+ related-adrs:
+   - ADR-0007
+   - ADR-0018
++  - ADR-0019
+ ---
+ 
+ # Release Process
+ 
+-The default branch exposes `.github/workflows/desktop-release.yml`; it calls the reusable implementation from `app-main`. Inputs are `target_ref` (default `app-main`), optional exact `requested_version`, `channel` (`prerelease` or `stable`), and `publish` (default `false`).
++The default branch exposes `.github/workflows/desktop-release.yml`; it calls the reusable implementation from `app-main`. Inputs are `target_ref` (default `app-main`), optional exact `requested_version`, `channel` (`prerelease` or `stable`), `publish` (default `false`), and optional `release_notes`.
+ 
+ ## Verified sequence
+ 
+-1. Preflight resolves the requested ref to an immutable SHA, selects a collision-free version, applies it to the temporary build workspace, and runs `npm run verify`.
++1. Preflight validates and renders bounded structured release notes, resolves the requested ref to an immutable SHA, selects a collision-free version, applies it to the temporary build workspace, and runs `npm run verify`.
+ 2. Native Windows x64, Linux x64, macOS arm64, and macOS x64 jobs build without release-write permission.
+ 3. Every native job starts the packaged executable and enforces the 2 GiB package hard ceiling plus sensitive-file policy.
+ 4. Aggregate creates the exact binary set, `SHA256SUMS.txt`, `release-manifest.json`, and CycloneDX `sbom.cdx.json`.
+@@ -25,3 +26,7 @@ Published versions are immutable. Blank `requested_version` chooses the package
+ GitHub permits each release asset to be under 2 GiB. The repository's installed-package ceiling is also 2 GiB, while release-asset validation independently rejects zero-byte, missing, extra, duplicate, or mismatched artifacts.
+ 
+ The earlier dry run `29113199684` proved draft-first Windows/Linux release behavior. Current Desktop CI and reusable release jobs additionally cover macOS arm64/x64, enforced coverage, accessibility, dependency audit, search benchmarks, renderer footprint, and native installed footprint.
++
++## Structured release descriptions
++
++`release_notes` accepts a concise comma-, semicolon-, or newline-separated list; pasted Markdown bullets are also accepted. The renderer trims bullet prefixes, removes duplicates, limits input to 20 items / 200 characters per item / 2400 total characters, and writes a `## What's changed` list followed by the standard verification section. The same generated notes file is used when creating a draft or refreshing a matching existing draft, so GitHub Releases do not fall back to an opaque one-line description.
+diff --git a/project-docs/roadmap/desktop-roadmap.md b/project-docs/roadmap/desktop-roadmap.md
+index 1a8aeb2..a7b8ee0 100644
+--- a/project-docs/roadmap/desktop-roadmap.md
++++ b/project-docs/roadmap/desktop-roadmap.md
+@@ -5,13 +5,14 @@ last-verified: 2026-07-13
+ related-adrs:
+   - ADR-0007
+   - ADR-0018
++  - ADR-0019
+ ---
+ 
+ # Desktop Roadmap
+ 
+ ## Current baseline
+ 
+-The offline desktop reader, safe importer, local workspaces, serialized search, Observatory, revision/word-count views, accessibility, startup telemetry, local diagnostics, four-platform packages, and draft-first release pipeline are implemented. Every current FR/NFR in the Product Spec is implemented and enforced by traceability and CI.
