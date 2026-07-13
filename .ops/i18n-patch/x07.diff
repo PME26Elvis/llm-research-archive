@@ -1,0 +1,241 @@
+     expect(loadReaderPreferences(storage)).toEqual(preferences);
+diff --git a/apps/desktop-electron/src/renderer/preferences.ts b/apps/desktop-electron/src/renderer/preferences.ts
+index e07c471..2206c17 100644
+--- a/apps/desktop-electron/src/renderer/preferences.ts
++++ b/apps/desktop-electron/src/renderer/preferences.ts
+@@ -1,16 +1,21 @@
++import type { AppLocale } from '@research-observatory/platform-contracts';
++import { applyDocumentLocale, DEFAULT_APP_LOCALE } from './i18n';
++
+ export type ThemePreference = 'system' | 'light' | 'dark';
+ export type ResolvedTheme = 'light' | 'dark';
+ 
+ export interface ReaderPreferences {
+-  schemaVersion: 1;
++  schemaVersion: 2;
+   theme: ThemePreference;
+   textScale: number;
++  locale: AppLocale;
+ }
+ 
+ interface LegacyPreferences {
+   theme?: unknown;
+   fontScale?: unknown;
+   textScale?: unknown;
++  locale?: unknown;
+ }
+ 
+ export const PREFERENCES_STORAGE_KEY = 'research-observatory.preferences';
+@@ -20,15 +25,20 @@ export const MAX_TEXT_SCALE = 1.4;
+ export const TEXT_SCALE_STEP = 0.1;
+ 
+ export const DEFAULT_READER_PREFERENCES: ReaderPreferences = {
+-  schemaVersion: 1,
++  schemaVersion: 2,
+   theme: 'system',
+   textScale: 1,
++  locale: DEFAULT_APP_LOCALE,
+ };
+ 
+ function validTheme(value: unknown): value is ThemePreference {
+   return value === 'system' || value === 'light' || value === 'dark';
+ }
+ 
++function validLocale(value: unknown): value is AppLocale {
++  return value === 'zh-TW' || value === 'en';
++}
++
+ export function normalizeTextScale(value: unknown): number {
+   if (typeof value !== 'number' || !Number.isFinite(value)) return 1;
+   const clamped = Math.min(MAX_TEXT_SCALE, Math.max(MIN_TEXT_SCALE, value));
+@@ -41,12 +51,15 @@ export function parseReaderPreferences(raw: string | null): ReaderPreferences {
+   const parsed = JSON.parse(raw) as LegacyPreferences & { schemaVersion?: unknown };
+   const theme = validTheme(parsed.theme) ? parsed.theme : DEFAULT_READER_PREFERENCES.theme;
+   const sourceScale =
+-    parsed.schemaVersion === 1 ? parsed.textScale : (parsed.textScale ?? parsed.fontScale);
++    parsed.schemaVersion === 1 || parsed.schemaVersion === 2
++      ? parsed.textScale
++      : (parsed.textScale ?? parsed.fontScale);
+ 
+   return {
+-    schemaVersion: 1,
++    schemaVersion: 2,
+     theme,
+     textScale: normalizeTextScale(sourceScale),
++    locale: validLocale(parsed.locale) ? parsed.locale : DEFAULT_APP_LOCALE,
+   };
+ }
+ 
+@@ -80,6 +93,7 @@ export function applyReaderPreferences(
+   document.documentElement.dataset.theme = resolved;
+   document.documentElement.style.colorScheme = resolved;
+   document.documentElement.style.setProperty('--reader-text-scale', String(preferences.textScale));
++  applyDocumentLocale(document, preferences.locale);
+ }
+ 
+ export function adjustTextScale(current: number, direction: -1 | 1): number {
+diff --git a/apps/desktop-electron/src/renderer/reader-settings.tsx b/apps/desktop-electron/src/renderer/reader-settings.tsx
+index 16e3716..96bbcb5 100644
+--- a/apps/desktop-electron/src/renderer/reader-settings.tsx
++++ b/apps/desktop-electron/src/renderer/reader-settings.tsx
+@@ -1,18 +1,11 @@
+ import React, { useEffect, useRef, useState } from 'react';
++import type { AppLocale } from '@research-observatory/platform-contracts';
+ import {
+-  DEFAULT_READER_PREFERENCES,
+   adjustTextScale,
+-  applyReaderPreferences,
+-  loadReaderPreferences,
+-  resolveTheme,
+-  saveReaderPreferences,
+   type ReaderPreferences,
+   type ThemePreference,
+ } from './preferences';
+-
+-const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
+-const initialPreferences = loadReaderPreferences(window.localStorage);
+-applyReaderPreferences(document, initialPreferences, systemTheme.matches);
++import { translate } from './i18n';
+ 
+ interface SettingsDialogProps {
+   preferences: ReaderPreferences;
+@@ -23,6 +16,7 @@ interface SettingsDialogProps {
+ function SettingsDialog({ preferences, onChange, onClose }: SettingsDialogProps) {
+   const dialogRef = useRef<HTMLElement>(null);
+   const closeRef = useRef<HTMLButtonElement>(null);
++  const t = (key: Parameters<typeof translate>[1]) => translate(preferences.locale, key);
+ 
+   useEffect(() => {
+     closeRef.current?.focus();
+@@ -53,13 +47,7 @@ function SettingsDialog({ preferences, onChange, onClose }: SettingsDialogProps) {
+     return () => document.removeEventListener('keydown', onKey);
+   }, [onClose]);
+ 
+-  function setTheme(theme: ThemePreference) {
+-    onChange({ ...preferences, theme });
+-  }
+-
+-  function setTextScale(textScale: number) {
+-    onChange({ ...preferences, textScale });
+-  }
++  const update = (patch: Partial<ReaderPreferences>) => onChange({ ...preferences, ...patch });
+ 
+   return (
+     <div className="modal-backdrop" role="presentation">
+@@ -70,107 +58,82 @@ function SettingsDialog({ preferences, onChange, onClose }: SettingsDialogProps) {
+         aria-modal="true"
+         aria-labelledby="settings-title"
+       >
+-        <h2 id="settings-title">閱讀設定</h2>
++        <h2 id="settings-title">{t('settings.title')}</h2>
+         <fieldset className="settings-theme">
+-          <legend>外觀</legend>
++          <legend>{t('settings.appearance')}</legend>
+           {(
+             [
+-              ['system', '跟隨系統'],
+-              ['light', '淺色'],
+-              ['dark', '深色'],
++              ['system', 'settings.theme.system'],
++              ['light', 'settings.theme.light'],
++              ['dark', 'settings.theme.dark'],
+             ] as const
+-          ).map(([value, label]) => (
++          ).map(([value, key]) => (
+             <label key={value}>
+               <input
+                 type="radio"
+                 name="theme"
+                 value={value}
+                 checked={preferences.theme === value}
+-                onChange={() => setTheme(value)}
++                onChange={() => update({ theme: value as ThemePreference })}
+               />
+-              {label}
++              {t(key)}
+             </label>
+           ))}
+         </fieldset>
++        <section className="settings-language" aria-labelledby="language-title">
++          <h3 id="language-title">{t('settings.language')}</h3>
++          <select
++            aria-label={t('settings.language')}
++            value={preferences.locale}
++            onChange={(event) => update({ locale: event.target.value as AppLocale })}
++          >
++            <option value="zh-TW">{t('settings.language.zhTW')}</option>
++            <option value="en">{t('settings.language.en')}</option>
++          </select>
++          <p className="settings-hint">{t('settings.language.description')}</p>
++        </section>
+         <section className="settings-text" aria-labelledby="text-size-title">
+-          <h3 id="text-size-title">文章文字大小</h3>
++          <h3 id="text-size-title">{t('settings.textSize')}</h3>
+           <div className="text-scale-controls">
+             <button
+               type="button"
+-              aria-label="縮小文章文字"
+-              onClick={() => setTextScale(adjustTextScale(preferences.textScale, -1))}
++              aria-label={t('settings.textSmaller')}
++              onClick={() => update({ textScale: adjustTextScale(preferences.textScale, -1) })}
+             >
+               A−
+             </button>
+-            <button type="button" aria-label="重設文章文字大小" onClick={() => setTextScale(1)}>
++            <button type="button" aria-label={t('settings.textReset')} onClick={() => update({ textScale: 1 })}>
+               <output data-testid="settings-text-scale">
+                 {Math.round(preferences.textScale * 100)}%
+               </output>
+             </button>
+             <button
+               type="button"
+-              aria-label="放大文章文字"
+-              onClick={() => setTextScale(adjustTextScale(preferences.textScale, 1))}
++              aria-label={t('settings.textLarger')}
++              onClick={() => update({ textScale: adjustTextScale(preferences.textScale, 1) })}
+             >
+               A+
+             </button>
+           </div>
+-          <p className="settings-hint">快捷鍵：Ctrl++、Ctrl+-、Ctrl+0</p>
++          <p className="settings-hint">{t('settings.shortcuts')}</p>
+         </section>
+         <button ref={closeRef} type="button" onClick={onClose}>
+-          關閉設定
++          {t('settings.close')}
+         </button>
+       </section>
+     </div>
+   );
+ }
+ 
+-export function ReaderSettings() {
+-  const [preferences, setPreferences] = useState<ReaderPreferences>(initialPreferences);
+-  const [systemPrefersDark, setSystemPrefersDark] = useState(systemTheme.matches);
++interface ReaderSettingsProps {
++  preferences: ReaderPreferences;
++  onChange(preferences: ReaderPreferences): void;
++}
++
++export function ReaderSettings({ preferences, onChange }: ReaderSettingsProps) {
+   const [open, setOpen] = useState(false);
+   const buttonRef = useRef<HTMLButtonElement>(null);
+-  const resolvedThemeRef = useRef(resolveTheme(initialPreferences.theme, systemTheme.matches));
+-
+-  useEffect(() => {
+-    const onChange = (event: MediaQueryListEvent) => setSystemPrefersDark(event.matches);
+-    systemTheme.addEventListener('change', onChange);
+-    return () => systemTheme.removeEventListener('change', onChange);
+-  }, []);
+-
+-  useEffect(() => {
+-    applyReaderPreferences(document, preferences, systemPrefersDark);
+-    saveReaderPreferences(window.localStorage, preferences);
+-    const resolved = resolveTheme(preferences.theme, systemPrefersDark);
+-    if (resolved !== resolvedThemeRef.current) {
+-      resolvedThemeRef.current = resolved;
+-      document.dispatchEvent(new Event('observatory-theme-change'));
+-    }
+-  }, [preferences, systemPrefersDark]);
+-
+-  useEffect(() => {
