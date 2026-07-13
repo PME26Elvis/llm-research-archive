@@ -1,14 +1,14 @@
 ---
 status: accepted
 owner: repository-maintainer
-last-verified: 2026-07-10
+last-verified: 2026-07-13
 related-adrs:
   - ADR-0001
 ---
 
 # Artifact Manifest
 
-A complete desktop draft release contains exactly eight assets.
+A complete desktop draft release contains exactly ten assets.
 
 ## Native binaries
 
@@ -17,6 +17,8 @@ A complete desktop draft release contains exactly eight assets.
 - `research-observatory-<version>-linux-x64-portable.zip`
 - `research-observatory-<version>-linux-x64.deb`
 - `research-observatory-<version>-linux-x64.rpm`
+- `research-observatory-<version>-macos-arm64.zip`
+- `research-observatory-<version>-macos-x64.zip`
 
 ## Verification metadata
 

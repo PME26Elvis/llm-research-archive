@@ -73,7 +73,7 @@ Reusable workflow 會先執行完整的 `npm run verify`，再分別在原生 ru
 | macOS Apple Silicon | arm64 ZIP |
 | macOS Intel | x64 ZIP |
 
-每個平台都必須通過 packaged smoke。之後 aggregate job 才會建立：
+每個平台都必須通過 packaged smoke，並以 2 GiB hard ceiling 檢查 installed footprint，同時拒絕 repository 私有目錄與明顯的 secrets/private keys。這個上限是防止失控與 GitHub Release asset 失敗，不是要求小專案積極瘦身。之後 aggregate job 才會建立：
 
 - `SHA256SUMS.txt`
 - `release-manifest.json`

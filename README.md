@@ -209,4 +209,4 @@ https://PME26Elvis.github.io/llm-research-archive/
 
 ## Research Observatory Desktop
 
-This branch contains a TypeScript/Electron desktop refactor. Use `npm ci`, then `npm run verify` for the full local gate. Windows, Linux and WSL developers use the same root npm scripts; native packaging is exposed as `npm run make:windows` and `npm run make:linux`. The app reads canonical Markdown from `docs/` by default or `ARCHIVE_CONTENT_ROOT` for a local workspace.
+This branch contains the completed TypeScript/Electron desktop implementation. Use `npm ci`, then `npm run verify` for coverage, architecture, accessibility, dependency, performance, build, and renderer-footprint gates. Desktop CI additionally runs Electron E2E plus native Windows x64, Linux x64, macOS arm64, and macOS x64 make, packaged smoke, and installed-footprint checks. The app reads canonical Markdown from `docs/` by default and can select validated local workspaces through the native UI.
