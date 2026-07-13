@@ -1,0 +1,244 @@
+   type ArchiveDiagnosticsDto,
+   type ArticleDto,
+   type ArticleSummaryDto,
+@@ -48,6 +50,10 @@ contextBridge.exposeInMainWorld('observatory', {
+   appInfo: async (): Promise<AppInfoDto> =>
+     AppInfoResponseSchema.parse(await ipcRenderer.invoke('app:info')),
+   openExternal: (url: string) => ipcRenderer.invoke('external:open', url),
++  setLocale: async (locale: AppLocale): Promise<AppLocale> =>
++    AppLocaleSchema.parse(
++      await ipcRenderer.invoke('app:set-locale', AppLocaleSchema.parse(locale)),
++    ),
+   workspaceInfo: async (): Promise<WorkspaceInfoDto> =>
+     WorkspaceInfoSchema.parse(await ipcRenderer.invoke('workspace:info')),
+   selectWorkspace: async (): Promise<WorkspaceSelectionResult> =>
+diff --git a/apps/desktop-electron/src/renderer/command-palette.tsx b/apps/desktop-electron/src/renderer/command-palette.tsx
+index 2d2d24c..0b89b31 100644
+--- a/apps/desktop-electron/src/renderer/command-palette.tsx
++++ b/apps/desktop-electron/src/renderer/command-palette.tsx
+@@ -1,20 +1,23 @@
+ import React, { useEffect, useMemo, useRef, useState } from 'react';
+-import type { DesktopCommand } from '@research-observatory/platform-contracts';
++import type { AppLocale, DesktopCommand } from '@research-observatory/platform-contracts';
+ import { filterDesktopCommands } from './desktop-commands';
++import { translate } from './i18n';
+ 
+ interface CommandPaletteProps {
+   open: boolean;
++  locale: AppLocale;
+   onClose(): void;
+   onExecute(command: DesktopCommand): void;
+ }
+ 
+-export function CommandPalette({ open, onClose, onExecute }: CommandPaletteProps) {
++export function CommandPalette({ open, locale, onClose, onExecute }: CommandPaletteProps) {
+   const [query, setQuery] = useState('');
+   const [activeIndex, setActiveIndex] = useState(0);
+   const inputRef = useRef<HTMLInputElement>(null);
+   const dialogRef = useRef<HTMLElement>(null);
+   const returnFocusRef = useRef<HTMLElement | null>(null);
+-  const results = useMemo(() => filterDesktopCommands(query), [query]);
++  const results = useMemo(() => filterDesktopCommands(query, locale), [locale, query]);
++  const t = (key: Parameters<typeof translate>[1]) => translate(locale, key);
+ 
+   useEffect(() => {
+     if (!open) return;
+@@ -39,7 +42,7 @@ export function CommandPalette({ open, onClose, onExecute }: CommandPaletteProps
+     if (command !== 'search.focus') return;
+     requestAnimationFrame(() => {
+       requestAnimationFrame(() => {
+-        const search = document.querySelector<HTMLInputElement>('input[aria-label="搜尋文章"]');
++        const search = document.querySelector<HTMLInputElement>('[data-testid="article-search"]');
+         search?.focus();
+         search?.select();
+       });
+@@ -60,7 +63,7 @@ export function CommandPalette({ open, onClose, onExecute }: CommandPaletteProps
+             event.preventDefault();
+             onClose();
+           } else if (event.key === 'Tab' && dialogRef.current) {
+-            const focusable: HTMLElement[] = Array.from(
++            const focusable = Array.from(
+               dialogRef.current.querySelectorAll<HTMLElement>(
+                 'button, input, [href], [tabindex]:not([tabindex="-1"])',
+               ),
+@@ -87,19 +90,19 @@ export function CommandPalette({ open, onClose, onExecute }: CommandPaletteProps
+           }
+         }}
+       >
+-        <h2 id="command-palette-title">指令面板</h2>
++        <h2 id="command-palette-title">{t('palette.title')}</h2>
+         <input
+           ref={inputRef}
+           type="search"
+-          aria-label="搜尋指令"
+-          placeholder="輸入指令名稱…"
++          aria-label={t('palette.search')}
++          placeholder={t('palette.placeholder')}
+           value={query}
+           onChange={(event) => {
+             setQuery(event.target.value);
+             setActiveIndex(0);
+           }}
+         />
+-        <div className="command-results" role="listbox" aria-label="可用指令">
++        <div className="command-results" role="listbox" aria-label={t('palette.results')}>
+           {results.map((command, index) => (
+             <button
+               key={command.id}
+@@ -113,7 +116,7 @@ export function CommandPalette({ open, onClose, onExecute }: CommandPaletteProps
+               {command.shortcut && <kbd>{command.shortcut}</kbd>}
+             </button>
+           ))}
+-          {!results.length && <p>沒有符合的指令</p>}
++          {!results.length && <p>{t('palette.empty')}</p>}
+         </div>
+       </section>
+     </div>
+diff --git a/apps/desktop-electron/src/renderer/desktop-commands.test.ts b/apps/desktop-electron/src/renderer/desktop-commands.test.ts
+index f1fe561..4e843d3 100644
+--- a/apps/desktop-electron/src/renderer/desktop-commands.test.ts
++++ b/apps/desktop-electron/src/renderer/desktop-commands.test.ts
+@@ -18,6 +18,11 @@ describe('desktop command catalog', () => {
+     ]);
+   });
+ 
++  it('localizes command labels while keeping bilingual search aliases', () => {
++    expect(filterDesktopCommands('', 'en')[0].label).toBe('Focus search');
++    expect(filterDesktopCommands('搜尋', 'en').map((command) => command.id)).toEqual(['search.focus']);
++  });
++
+   it('returns no arbitrary action for an unknown query', () => {
+     expect(filterDesktopCommands('delete everything')).toEqual([]);
+   });
+diff --git a/apps/desktop-electron/src/renderer/desktop-commands.ts b/apps/desktop-electron/src/renderer/desktop-commands.ts
+index 00f3b6a..d476f20 100644
+--- a/apps/desktop-electron/src/renderer/desktop-commands.ts
++++ b/apps/desktop-electron/src/renderer/desktop-commands.ts
+@@ -1,4 +1,5 @@
+-import type { DesktopCommand } from '@research-observatory/platform-contracts';
++import type { AppLocale, DesktopCommand } from '@research-observatory/platform-contracts';
++import { translate } from './i18n';
+ 
+ export interface DesktopCommandDescriptor {
+   id: DesktopCommand;
+@@ -7,57 +8,65 @@ export interface DesktopCommandDescriptor {
+   shortcut?: string;
+ }
+ 
+-export const DESKTOP_COMMANDS: DesktopCommandDescriptor[] = [
+-  {
+-    id: 'search.focus',
+-    label: '聚焦搜尋',
+-    keywords: ['search', 'find', '搜尋', '查找'],
+-    shortcut: 'Ctrl+F',
+-  },
+-  {
+-    id: 'navigation.back',
+-    label: '上一個閱讀位置',
+-    keywords: ['back', 'previous', '返回', '上一頁'],
+-    shortcut: 'Alt+←',
+-  },
+-  {
+-    id: 'navigation.forward',
+-    label: '下一個閱讀位置',
+-    keywords: ['forward', 'next', '前進', '下一頁'],
+-    shortcut: 'Alt+→',
+-  },
+-  {
+-    id: 'workspace.open',
+-    label: '開啟本機工作區',
+-    keywords: ['workspace', 'folder', 'archive', '工作區', '資料夾', '封存'],
+-    shortcut: 'Ctrl+O',
+-  },
+-  {
+-    id: 'import.open',
+-    label: '匯入文章',
+-    keywords: ['import', 'markdown', 'publish', '匯入', '文章', '發布'],
+-    shortcut: 'Ctrl+Shift+I',
+-  },
+-  {
+-    id: 'observatory.open',
+-    label: '開啟 Observatory 摘要',
+-    keywords: ['observatory', 'statistics', 'summary', '字數', '統計', '摘要', '修訂'],
+-    shortcut: 'Ctrl+Shift+O',
+-  },
+-  {
+-    id: 'about.open',
+-    label: '開啟關於資訊',
+-    keywords: ['about', 'version', 'build', '關於', '版本'],
+-  },
+-];
++export function desktopCommands(locale: AppLocale): DesktopCommandDescriptor[] {
++  return [
++    {
++      id: 'search.focus',
++      label: translate(locale, 'command.search'),
++      keywords: ['search', 'find', '搜尋', '查找'],
++      shortcut: 'Ctrl+F',
++    },
++    {
++      id: 'navigation.back',
++      label: translate(locale, 'command.back'),
++      keywords: ['back', 'previous', '返回', '上一頁'],
++      shortcut: 'Alt+←',
++    },
++    {
++      id: 'navigation.forward',
++      label: translate(locale, 'command.forward'),
++      keywords: ['forward', 'next', '前進', '下一頁'],
++      shortcut: 'Alt+→',
++    },
++    {
++      id: 'workspace.open',
++      label: translate(locale, 'command.workspace'),
++      keywords: ['workspace', 'folder', 'archive', '工作區', '資料夾', '封存'],
++      shortcut: 'Ctrl+O',
++    },
++    {
++      id: 'import.open',
++      label: translate(locale, 'command.import'),
++      keywords: ['import', 'markdown', 'publish', '匯入', '文章', '發布'],
++      shortcut: 'Ctrl+Shift+I',
++    },
++    {
++      id: 'observatory.open',
++      label: translate(locale, 'command.observatory'),
++      keywords: ['observatory', 'statistics', 'summary', '字數', '統計', '摘要', '修訂'],
++      shortcut: 'Ctrl+Shift+O',
++    },
++    {
++      id: 'about.open',
++      label: translate(locale, 'command.about'),
++      keywords: ['about', 'version', 'build', '關於', '版本'],
++    },
++  ];
++}
++
++export const DESKTOP_COMMANDS = desktopCommands('zh-TW');
+ 
+-export function filterDesktopCommands(query: string): DesktopCommandDescriptor[] {
+-  const normalized = query.trim().toLocaleLowerCase('zh-TW');
+-  if (!normalized) return DESKTOP_COMMANDS;
+-  return DESKTOP_COMMANDS.filter((command) =>
++export function filterDesktopCommands(
++  query: string,
++  locale: AppLocale = 'zh-TW',
++): DesktopCommandDescriptor[] {
++  const commands = desktopCommands(locale);
++  const normalized = query.trim().toLocaleLowerCase(locale === 'en' ? 'en-US' : 'zh-TW');
++  if (!normalized) return commands;
++  return commands.filter((command) =>
+     [command.label, command.id, ...command.keywords]
+       .join(' ')
+-      .toLocaleLowerCase('zh-TW')
++      .toLocaleLowerCase(locale === 'en' ? 'en-US' : 'zh-TW')
+       .includes(normalized),
+   );
+ }
+diff --git a/apps/desktop-electron/src/renderer/i18n.test.ts b/apps/desktop-electron/src/renderer/i18n.test.ts
+new file mode 100644
+index 0000000..c0dd590
+--- /dev/null
++++ b/apps/desktop-electron/src/renderer/i18n.test.ts
+@@ -0,0 +1,20 @@
++import { describe, expect, it } from 'vitest';
