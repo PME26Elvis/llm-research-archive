@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-07-13T07:48:50.266Z",
+  "targetSha": "939e76513979b90f0678d9068810e4218a5108fd",
+  "workflow": {
+    "id": 29232880792,
+    "name": "Publish completed app-main prerelease",
+    "displayTitle": "Publish completed app-main prerelease",
+    "event": "push",
+    "status": "completed",
+    "conclusion": "success",
+    "htmlUrl": "https://github.com/PME26Elvis/llm-research-archive/actions/runs/29232880792",
+    "createdAt": "2026-07-13T07:41:22Z",
+    "updatedAt": "2026-07-13T07:48:42Z",
+    "runAttempt": 1
+  },
+  "jobs": [
+    {
+      "id": 86760802286,
+      "name": "release / preflight",
+      "status": "completed",
+      "conclusion": "success",
+      "htmlUrl": "https://github.com/PME26Elvis/llm-research-archive/actions/runs/29232880792/job/86760802286"
+    },
+    {
+      "id": 86760980439,
+      "name": "release / build (ubuntu-latest, make:linux, desktop-linux-x64)",
+      "status": "completed",
+      "conclusion": "success",
+      "htmlUrl": "https://github.com/PME26Elvis/llm-research-archive/actions/runs/29232880792/job/86760980439"
+    },
+    {
+      "id": 86760980453,
+      "name": "release / build (macos-15, make:macos:arm64, desktop-macos-arm64)",
+      "status": "completed",
+      "conclusion": "success",
+      "htmlUrl": "https://github.com/PME26Elvis/llm-research-archive/actions/runs/29232880792/job/86760980453"
+    },
+    {
+      "id": 86760980464,
+      "name": "release / build (macos-15-intel, make:macos:x64, desktop-macos-x64)",
+      "status": "completed",
+      "conclusion": "success",
+      "htmlUrl": "https://github.com/PME26Elvis/llm-research-archive/actions/runs/29232880792/job/86760980464"
+    },
+    {
+      "id": 86760980500,
+      "name": "release / build (windows-latest, make:windows, desktop-windows-x64)",
+      "status": "completed",
+      "conclusion": "success",
+      "htmlUrl": "https://github.com/PME26Elvis/llm-research-archive/actions/runs/29232880792/job/86760980500"
+    },
+    {
+      "id": 86761591021,
+      "name": "release / aggregate",
+      "status": "completed",
+      "conclusion": "success",
+      "htmlUrl": "https://github.com/PME26Elvis/llm-research-archive/actions/runs/29232880792/job/86761591021"
+    },
+    {
+      "id": 86761799360,
+      "name": "release / release",
+      "status": "completed",
+      "conclusion": "success",
+      "htmlUrl": "https://github.com/PME26Elvis/llm-research-archive/actions/runs/29232880792/job/86761799360"
+    }
+  ],
+  "release": {
+    "id": 352996269,
+    "tagName": "v0.1.2",
+    "name": "v0.1.2",
+    "htmlUrl": "https://github.com/PME26Elvis/llm-research-archive/releases/tag/v0.1.2",
+    "targetCommitish": "939e76513979b90f0678d9068810e4218a5108fd",
+    "draft": false,
+    "prerelease": true,
+    "publishedAt": "2026-07-13T07:48:37Z",
+    "assets": [
+      {
+        "name": "release-manifest.json",
+        "size": 1454,
+        "downloadCount": 0
+      },
+      {
+        "name": "research-observatory-0.1.2-linux-x64-portable.zip",
+        "size": 164764430,
+        "downloadCount": 0
+      },
+      {
+        "name": "research-observatory-0.1.2-linux-x64.deb",
+        "size": 123344874,
+        "downloadCount": 0
+      },
+      {
+        "name": "research-observatory-0.1.2-linux-x64.rpm",
+        "size": 132659977,
+        "downloadCount": 0
+      },
+      {
+        "name": "research-observatory-0.1.2-macos-arm64.zip",
+        "size": 159656694,
+        "downloadCount": 0
+      },
+      {
+        "name": "research-observatory-0.1.2-macos-x64.zip",
+        "size": 161550250,
+        "downloadCount": 0
+      },
+      {
+        "name": "research-observatory-0.1.2-windows-x64-portable.zip",
+        "size": 183924055,
+        "downloadCount": 0
+      },
+      {
+        "name": "research-observatory-0.1.2-windows-x64-setup.exe",
+        "size": 178071552,
+        "downloadCount": 0
+      },
+      {
+        "name": "sbom.cdx.json",
+        "size": 881305,
+        "downloadCount": 0
+      },
+      {
+        "name": "SHA256SUMS.txt",
+        "size": 779,
+        "downloadCount": 0
+      }
+    ]
+  }
+}
