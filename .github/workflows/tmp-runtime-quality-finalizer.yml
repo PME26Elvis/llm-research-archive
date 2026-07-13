@@ -1,5 +1,5 @@
 name: Temporary Completed Quality Docs Finalizer
-run-name: Run completed quality documentation
+run-name: Run repaired completed quality documentation
 
 on:
   push:
@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   finalize:
-    if: startsWith(github.event.head_commit.message, 'Run completed quality documentation')
+    if: startsWith(github.event.head_commit.message, 'Run repaired completed quality documentation')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout documentation branch
@@ -27,14 +27,28 @@ jobs:
           ref: ops/docs-sync-payload
           path: payload
           fetch-depth: 1
-      - name: Apply documentation convergence atomically
+      - name: Reconstruct and apply documentation convergence atomically
         shell: bash
         run: |
           set -euo pipefail
-          cat payload/.docs-sync-patch/part-00.diff \
-              payload/.docs-sync-patch/part-01.diff \
-              payload/.docs-sync-patch/part-02.diff \
-              payload/.docs-sync-patch/part-03.diff > /tmp/docs-sync.patch
+          python - <<'PY'
+          from hashlib import sha256
+          from pathlib import Path
+
+          root = Path('payload/.docs-sync-patch')
+          parts = [bytearray((root / f'part-{index:02d}.diff').read_bytes()) for index in range(4)]
+          for index in range(3):
+              if not parts[index].endswith(b'\n'):
+                  raise SystemExit(f'part-{index:02d} is missing the expected API-added LF')
+              del parts[index][-1:]
+          combined = b''.join(parts)
+          digest = sha256(combined).hexdigest()
+          expected = '74d3fb4d1c8a0e1fc02cde6030c3788ebfe1983674d620f8ee2ecad693f418b3'
+          if digest != expected:
+              raise SystemExit(f'documentation patch digest mismatch: {digest} != {expected}')
+          Path('/tmp/docs-sync.patch').write_bytes(combined)
+          print(f'documentation patch verified: {digest}')
+          PY
           git apply --check /tmp/docs-sync.patch
           git apply /tmp/docs-sync.patch
           mkdir -p project-docs/architecture/adr project-docs/roadmap
@@ -79,7 +93,7 @@ jobs:
           retention-days: 14
 
   receipt:
-    if: always() && startsWith(github.event.head_commit.message, 'Run completed quality documentation')
+    if: always() && startsWith(github.event.head_commit.message, 'Run repaired completed quality documentation')
     needs: finalize
     runs-on: ubuntu-latest
     steps:
