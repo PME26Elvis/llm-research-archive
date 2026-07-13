@@ -31,7 +31,11 @@ jobs:
         run: |
           set -euo pipefail
           expected='9309f4169fab6ec62407ddc12b64f7eeb2146127998e2c77e971ee9cc8ad2c11'
-          parts=(receipt/.ops/i18n-patch/00.diff)
+          parts=(
+            receipt/.ops/i18n-patch/00.diff
+            receipt/.ops/i18n-patch/m00a.diff
+            receipt/.ops/i18n-patch/m00b.diff
+          )
           for index in $(seq -w 0 13); do
             parts+=("receipt/.ops/i18n-patch/x${index}.diff")
           done
