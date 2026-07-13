@@ -32,6 +32,18 @@ if (applyVersionStepCount !== 4) {
 if (releaseWorkflow.includes('npm version "$RELEASE_VERSION"')) {
   throw new Error('release workflow must not use shell-specific RELEASE_VERSION expansion');
 }
+const preflightStart = releaseWorkflow.indexOf('  preflight:\n');
+const buildStart = releaseWorkflow.indexOf('  build:\n');
+if (preflightStart < 0 || buildStart <= preflightStart) {
+  throw new Error('release workflow must contain ordered preflight and build jobs');
+}
+const preflightWorkflow = releaseWorkflow.slice(preflightStart, buildStart);
+if (!preflightWorkflow.includes('    permissions:\n      contents: write\n')) {
+  throw new Error('release preflight needs contents: write to discover draft releases');
+}
+if (!preflightWorkflow.includes('/releases?per_page=100')) {
+  throw new Error('release preflight must enumerate GitHub releases before selecting a version');
+}
 const artifacts = artifactNames(version);
 if (artifacts.length !== 7)
   throw new Error(`expected seven binary artifacts, got ${artifacts.length}`);
