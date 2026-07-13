@@ -1,0 +1,61 @@
+name: Temporary app-main i18n snapshot
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    if: contains(github.event.head_commit.message, 'capture app-main i18n snapshot')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout current app-main
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: app-main
+          fetch-depth: 1
+      - name: Create tracked source archive
+        id: source
+        shell: bash
+        run: |
+          set -euo pipefail
+          app_sha=$(git rev-parse HEAD)
+          git archive --format=zip --output=/tmp/app-main-i18n-source.zip HEAD
+          echo "sha=$app_sha" >> "$GITHUB_OUTPUT"
+      - name: Upload source artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: app-main-i18n-source-${{ github.run_id }}
+          path: /tmp/app-main-i18n-source.zip
+          retention-days: 1
+      - name: Checkout receipt branch
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: ops/i18n-receipt
+          path: receipt
+          fetch-depth: 1
+      - name: Record immutable snapshot receipt
+        shell: bash
+        env:
+          APP_SHA: ${{ steps.source.outputs.sha }}
+        run: |
+          set -euo pipefail
+          cd receipt
+          mkdir -p .ops
+          cat > .ops/i18n-snapshot.json <<JSON
+          {
+            "run_id": "${GITHUB_RUN_ID}",
+            "run_attempt": "${GITHUB_RUN_ATTEMPT}",
+            "artifact": "app-main-i18n-source-${GITHUB_RUN_ID}",
+            "app_main_sha": "${APP_SHA}",
+            "trigger_sha": "${GITHUB_SHA}"
+          }
+          JSON
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .ops/i18n-snapshot.json
+          git commit -m "Record app-main i18n snapshot ${GITHUB_RUN_ID}"
+          git push origin HEAD:ops/i18n-receipt
