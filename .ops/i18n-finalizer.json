@@ -1,0 +1,9 @@
+{
+  "run_id": "29250828567",
+  "run_attempt": "1",
+  "outcome": "failure",
+  "verified_sha": "",
+  "pushed": "",
+  "baseline_sha": "939e76513979b90f0678d9068810e4218a5108fd",
+  "patch_sha256": "9309f4169fab6ec62407ddc12b64f7eeb2146127998e2c77e971ee9cc8ad2c11"
+}
