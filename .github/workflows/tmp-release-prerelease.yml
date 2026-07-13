@@ -1,0 +1,23 @@
+name: Completed Desktop Prerelease
+run-name: Publish completed app-main prerelease
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/tmp-release-prerelease.yml
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    permissions:
+      contents: write
+    uses: PME26Elvis/llm-research-archive/.github/workflows/desktop-release-reusable.yml@app-main
+    with:
+      target_ref: app-main
+      requested_version: ''
+      channel: prerelease
+      publish: true
