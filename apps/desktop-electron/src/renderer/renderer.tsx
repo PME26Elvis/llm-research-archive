@@ -9,6 +9,7 @@ import {
 } from '@research-observatory/renderer-ui';
 import type {
   AppInfoDto,
+  ArchiveDiagnosticsDto,
   ArticleDto,
   ArticleSummaryDto,
   SearchResultDto,
@@ -20,12 +21,16 @@ import type {
   ImportPreviewRefreshRequest,
   ImportPreviewResult,
   ImportSourceKind,
+  RendererDiagnosticRequest,
+  StartupMilestone,
+  StartupTelemetryDto,
 } from '@research-observatory/platform-contracts';
 import { CommandPalette } from './command-palette';
 import { copyText } from './copy-code';
 import { mountFootnoteNavigation } from './footnotes';
 import { mountMermaidBlocks } from './mermaid-dom';
 import { ImportWizard } from './import-wizard';
+import { ObservatoryModal } from './observatory-modal';
 import {
   canNavigateBack,
   canNavigateForward,
@@ -55,12 +60,10 @@ declare global {
       selectImportSource(kind: ImportSourceKind): Promise<ImportPreviewResult>;
       refreshImportPreview(request: ImportPreviewRefreshRequest): Promise<ImportPreviewResult>;
       commitImport(request: ImportCommitRequest): Promise<ImportCommitResult>;
-      diagnostics(): Promise<{
-        warnings: string[];
-        invalidFiles: string[];
-        brokenLinks: string[];
-        missingAssets: string[];
-      }>;
+      diagnostics(): Promise<ArchiveDiagnosticsDto>;
+      clearDiagnostics(): Promise<ArchiveDiagnosticsDto>;
+      reportDiagnostic(request: RendererDiagnosticRequest): Promise<void>;
+      markStartup(milestone: StartupMilestone): Promise<StartupTelemetryDto>;
     };
   }
 }
@@ -274,9 +277,13 @@ function App() {
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [workspace, setWorkspace] = useState<WorkspaceInfoDto | null>(null);
   const [importWizardOpen, setImportWizardOpen] = useState(false);
+  const [observatoryOpen, setObservatoryOpen] = useState(false);
+  const [diagnostics, setDiagnostics] = useState<ArchiveDiagnosticsDto | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const aboutButtonRef = useRef<HTMLButtonElement>(null);
   const importButtonRef = useRef<HTMLButtonElement>(null);
+  const observatoryButtonRef = useRef<HTMLButtonElement>(null);
+  const interactiveMarkedRef = useRef(false);
   const readerRef = useRef<HTMLElement>(null);
   const lightboxTriggerRef = useRef<HTMLImageElement | null>(null);
   const browseModel = useMemo(() => buildArchiveBrowseModel(articles), [articles]);
@@ -292,6 +299,14 @@ function App() {
         : browseMode === 'timeline'
           ? browseModel.timeline
           : [];
+
+  function reportDiagnostic(
+    area: RendererDiagnosticRequest['area'],
+    code: string,
+    message: string,
+  ) {
+    void window.observatory.reportDiagnostic({ area, code, message }).catch(() => undefined);
+  }
 
   function navigationSnapshot(overrides: Partial<NavigationLocation> = {}): NavigationLocation {
     return {
@@ -339,7 +354,8 @@ function App() {
       setSelected(article);
       setPendingFragment(location.fragment);
     } catch (error) {
-      setError(`文章載入失敗：${String(error)}`);
+      setError('文章載入失敗；請查看工作區診斷。');
+      reportDiagnostic('renderer', 'article-load-failed', String(error));
     }
   }
 
@@ -354,11 +370,13 @@ function App() {
     setLoading(true);
     setError('');
     try {
-      const [nextArticles, info] = await Promise.all([
+      const [nextArticles, info, nextDiagnostics] = await Promise.all([
         window.observatory.listArticles(),
         nextWorkspace ? Promise.resolve(nextWorkspace) : window.observatory.workspaceInfo(),
+        window.observatory.diagnostics(),
       ]);
       setWorkspace(info);
+      setDiagnostics(nextDiagnostics);
       setArticles(nextArticles);
       setShown(nextArticles);
       setSelected(null);
@@ -367,9 +385,19 @@ function App() {
       setSelectedFacet('');
       setNavigationHistory(createNavigationHistory());
     } catch (error) {
-      setError(`工作區重新載入失敗：${String(error)}`);
+      setError('工作區重新載入失敗；請查看工作區診斷。');
+      reportDiagnostic('renderer', 'workspace-refresh-failed', String(error));
     } finally {
       setLoading(false);
+      if (!interactiveMarkedRef.current) {
+        interactiveMarkedRef.current = true;
+        void window.observatory
+          .markStartup('interactive')
+          .then((startup) =>
+            setDiagnostics((current) => (current ? { ...current, startup } : current)),
+          )
+          .catch(() => undefined);
+      }
     }
   }
 
@@ -413,6 +441,8 @@ function App() {
       setImportWizardOpen(true);
     } else if (command === 'about.open') {
       void openAbout();
+    } else if (command === 'observatory.open') {
+      setObservatoryOpen(true);
     }
   }
 
@@ -424,6 +454,9 @@ function App() {
       if (event.shiftKey && key === 'i') {
         event.preventDefault();
         executeDesktopCommand('import.open');
+      } else if (event.shiftKey && key === 'o') {
+        event.preventDefault();
+        executeDesktopCommand('observatory.open');
       } else if (event.shiftKey) return;
       else if (key === 'k') {
         event.preventDefault();
@@ -444,6 +477,7 @@ function App() {
   }, [navigationHistory, selected, query, browseMode, selectedFacet]);
 
   useEffect(() => {
+    void window.observatory.markStartup('renderer-ready').catch(() => undefined);
     void refreshWorkspace();
   }, []);
 
@@ -472,7 +506,10 @@ function App() {
       window.observatory
         .search(q)
         .then((results) => setShown(filterArticlesByBrowse(results, browseMode, selectedFacet)))
-        .catch((e) => setError(String(e)));
+        .catch((error) => {
+          setError('搜尋暫時無法使用；請重試。');
+          reportDiagnostic('search-index', 'search-query-failed', String(error));
+        });
     }, 150);
     return () => clearTimeout(timer);
   }, [query, filteredArticles, browseMode, selectedFacet]);
@@ -519,7 +556,8 @@ function App() {
       setPendingFragment(fragment);
       pushNavigation({ articleId: id, fragment });
     } catch (error) {
-      setError(`文章載入失敗：${String(error)}`);
+      setError('文章載入失敗；請查看工作區診斷。');
+      reportDiagnostic('renderer', 'article-load-failed', String(error));
     }
   }
 
@@ -547,6 +585,20 @@ function App() {
         pushNavigation({ articleId: selected?.id ?? '', fragment });
       } else setError(`找不到標題片段：${fragment}`);
     });
+  }
+
+  function closeObservatory() {
+    setObservatoryOpen(false);
+    requestAnimationFrame(() => observatoryButtonRef.current?.focus());
+  }
+
+  async function clearDiagnostics() {
+    try {
+      setDiagnostics(await window.observatory.clearDiagnostics());
+    } catch (error) {
+      setError('無法清除本機診斷紀錄。');
+      reportDiagnostic('renderer', 'diagnostics-clear-failed', String(error));
+    }
   }
 
   function closeAbout() {
@@ -677,6 +729,9 @@ function App() {
 
   return (
     <>
+      <a className="skip-link" href="#main-reader">
+        跳至文章內容
+      </a>
       <ResizableLayout
         articleCount={articles.length}
         sidebar={
@@ -685,6 +740,13 @@ function App() {
               <h1>Research Observatory</h1>
               <div className="app-header-actions">
                 <ReaderSettings />
+                <button
+                  ref={observatoryButtonRef}
+                  type="button"
+                  onClick={() => setObservatoryOpen(true)}
+                >
+                  Observatory
+                </button>
                 <button ref={aboutButtonRef} type="button" onClick={openAbout}>
                   關於
                 </button>
@@ -712,16 +774,54 @@ function App() {
                     匯入文章
                   </button>
                 </div>
-                {(workspace.warnings.length > 0 || workspace.invalidFiles.length > 0) && (
-                  <details data-testid="workspace-diagnostics" open>
-                    <summary>工作區診斷</summary>
+                <details data-testid="workspace-diagnostics">
+                  <summary>
+                    工作區診斷（{workspace.warnings.length + workspace.invalidFiles.length}）
+                  </summary>
+                  {[...workspace.warnings, ...workspace.invalidFiles].length ? (
                     <ul>
                       {[...workspace.warnings, ...workspace.invalidFiles].map((message) => (
                         <li key={message}>{message}</li>
                       ))}
                     </ul>
-                  </details>
-                )}
+                  ) : (
+                    <p>內容掃描沒有發現問題。</p>
+                  )}
+                  {diagnostics && (
+                    <>
+                      <h3>啟動效能</h3>
+                      <dl className="startup-telemetry" data-testid="startup-telemetry">
+                        {Object.entries(diagnostics.startup.milestones).map(([name, value]) => (
+                          <React.Fragment key={name}>
+                            <dt>{name}</dt>
+                            <dd>{Math.round(Number(value))} ms</dd>
+                          </React.Fragment>
+                        ))}
+                      </dl>
+                      {diagnostics.startup.materialRegression && (
+                        <p role="status">本次啟動時間明顯高於近期中位數。</p>
+                      )}
+                      <h3>本機事件</h3>
+                      {diagnostics.events.length ? (
+                        <ol className="diagnostic-events" data-testid="diagnostic-events">
+                          {diagnostics.events.map((event) => (
+                            <li key={`${event.timestamp}-${event.code}`}>
+                              <time dateTime={event.timestamp}>
+                                {new Date(event.timestamp).toLocaleString('zh-TW')}
+                              </time>{' '}
+                              <strong>{event.code}</strong>：{event.message}
+                            </li>
+                          ))}
+                        </ol>
+                      ) : (
+                        <p>尚無本機診斷事件。</p>
+                      )}
+                      <button type="button" onClick={() => void clearDiagnostics()}>
+                        清除本機診斷
+                      </button>
+                    </>
+                  )}
+                </details>
               </section>
             )}
             <label>
@@ -782,6 +882,9 @@ function App() {
                 </div>
               </section>
             )}
+            <p className="sr-only" role="status" aria-live="polite">
+              {loading ? '正在載入文章' : `目前顯示 ${shown.length} 篇文章`}
+            </p>
             {loading && <p>載入中…</p>}
             {!loading && !shown.length && <p data-testid="empty-results">沒有符合的文章</p>}
             <ul className="article-list" data-testid="article-list">
@@ -803,7 +906,12 @@ function App() {
           </>
         }
       >
-        <article onClick={onArticleClick} onKeyDown={onArticleKeyDown}>
+        <article
+          id="main-reader"
+          tabIndex={-1}
+          onClick={onArticleClick}
+          onKeyDown={onArticleKeyDown}
+        >
           <nav className="navigation-toolbar" aria-label="閱讀歷史">
             <button
               type="button"
@@ -831,8 +939,9 @@ function App() {
               <header>
                 <h2>{selected.title}</h2>
                 <p data-testid="article-meta">
-                  {selected.date} · 約 {selected.readingStats.estimatedMinutes} 分鐘 ·{' '}
-                  {selected.tags.join('、')}
+                  發布 {selected.date}
+                  {selected.updatedAt ? ` · 修訂 ${selected.updatedAt}` : ''} · 約{' '}
+                  {selected.readingStats.estimatedMinutes} 分鐘 · {selected.tags.join('、')}
                 </p>
               </header>
               <section
@@ -854,6 +963,7 @@ function App() {
         onExecute={executeDesktopCommand}
       />
       {about && <AboutModal info={about} onClose={closeAbout} />}
+      {observatoryOpen && <ObservatoryModal articles={articles} onClose={closeObservatory} />}
       <ImportWizard
         open={importWizardOpen}
         workspace={workspace}

@@ -13,6 +13,9 @@ describe('desktop command catalog', () => {
     ]);
     expect(filterDesktopCommands('version').map((command) => command.id)).toEqual(['about.open']);
     expect(filterDesktopCommands('匯入').map((command) => command.id)).toEqual(['import.open']);
+    expect(filterDesktopCommands('字數').map((command) => command.id)).toEqual([
+      'observatory.open',
+    ]);
   });
 
   it('returns no arbitrary action for an unknown query', () => {

@@ -1,15 +1,20 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import {
   AppInfoResponseSchema,
+  ArchiveDiagnosticsSchema,
   DesktopCommandSchema,
   ImportCommitRequestSchema,
   ImportCommitResultSchema,
   ImportPreviewRefreshRequestSchema,
   ImportPreviewResultSchema,
   ImportSourceSelectionRequestSchema,
+  RendererDiagnosticRequestSchema,
+  StartupMilestoneSchema,
+  StartupTelemetrySchema,
   WorkspaceInfoSchema,
   WorkspaceSelectionResultSchema,
   type AppInfoDto,
+  type ArchiveDiagnosticsDto,
   type ArticleDto,
   type ArticleSummaryDto,
   type SearchResultDto,
@@ -19,6 +24,9 @@ import {
   type ImportPreviewRefreshRequest,
   type ImportPreviewResult,
   type ImportSourceKind,
+  type RendererDiagnosticRequest,
+  type StartupMilestone,
+  type StartupTelemetryDto,
   type WorkspaceInfoDto,
   type WorkspaceSelectionResult,
 } from '@research-observatory/platform-contracts';
@@ -27,7 +35,16 @@ contextBridge.exposeInMainWorld('observatory', {
   getArticle: (id: string): Promise<ArticleDto> => ipcRenderer.invoke('article:get', { id }),
   search: (query: string): Promise<SearchResultDto[]> =>
     ipcRenderer.invoke('search:query', { query }),
-  diagnostics: () => ipcRenderer.invoke('diagnostics:get'),
+  diagnostics: async (): Promise<ArchiveDiagnosticsDto> =>
+    ArchiveDiagnosticsSchema.parse(await ipcRenderer.invoke('diagnostics:get')),
+  clearDiagnostics: async (): Promise<ArchiveDiagnosticsDto> =>
+    ArchiveDiagnosticsSchema.parse(await ipcRenderer.invoke('diagnostics:clear')),
+  reportDiagnostic: (request: RendererDiagnosticRequest): Promise<void> =>
+    ipcRenderer.invoke('diagnostics:report', RendererDiagnosticRequestSchema.parse(request)),
+  markStartup: async (milestone: StartupMilestone): Promise<StartupTelemetryDto> =>
+    StartupTelemetrySchema.parse(
+      await ipcRenderer.invoke('telemetry:mark', StartupMilestoneSchema.parse(milestone)),
+    ),
   appInfo: async (): Promise<AppInfoDto> =>
     AppInfoResponseSchema.parse(await ipcRenderer.invoke('app:info')),
   openExternal: (url: string) => ipcRenderer.invoke('external:open', url),

@@ -39,6 +39,12 @@ export const DESKTOP_COMMANDS: DesktopCommandDescriptor[] = [
     shortcut: 'Ctrl+Shift+I',
   },
   {
+    id: 'observatory.open',
+    label: '開啟 Observatory 摘要',
+    keywords: ['observatory', 'statistics', 'summary', '字數', '統計', '摘要', '修訂'],
+    shortcut: 'Ctrl+Shift+O',
+  },
+  {
     id: 'about.open',
     label: '開啟關於資訊',
     keywords: ['about', 'version', 'build', '關於', '版本'],

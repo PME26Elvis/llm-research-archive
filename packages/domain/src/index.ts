@@ -38,6 +38,7 @@ export interface ArticleManifestEntry {
   slug: string;
   title: string;
   date: string;
+  updatedAt?: string;
   category: CategoryId;
   tags: readonly string[];
   excerpt: string;

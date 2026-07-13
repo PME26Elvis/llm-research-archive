@@ -4,10 +4,11 @@ import {
   type ArchiveDiagnostics,
 } from '@research-observatory/content-engine';
 import type { Article } from '@research-observatory/domain';
-import { searchArticles } from '@research-observatory/search-engine';
+import { SearchIndex } from '@research-observatory/search-engine';
 
 export class ResearchObservatoryApp {
   private articles: Article[] = [];
+  private readonly searchIndex = new SearchIndex();
   private archiveDiagnostics: ArchiveDiagnostics = {
     warnings: [],
     invalidFiles: [],
@@ -23,6 +24,7 @@ export class ResearchObservatoryApp {
     const snapshot = scanArchiveWithDiagnostics(root);
     this.root = root;
     this.articles = snapshot.articles;
+    this.searchIndex.replaceAll(this.articles);
     this.archiveDiagnostics = snapshot.diagnostics;
   }
 
@@ -37,7 +39,7 @@ export class ResearchObservatoryApp {
   }
 
   search(query: string) {
-    return searchArticles(this.articles, query);
+    return this.searchIndex.search(query);
   }
 
   manifest() {

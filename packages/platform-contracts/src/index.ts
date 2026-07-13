@@ -11,6 +11,7 @@ export const ArticleSummaryDtoSchema = z.object({
   slug: z.string().min(1),
   title: z.string().min(1),
   date: z.string().min(1),
+  updatedAt: z.string().min(1).optional(),
   category: z.string().min(1),
   tags: z.array(z.string()),
   excerpt: z.string(),
@@ -46,6 +47,64 @@ export const AppInfoResponseSchema = z.object({
 export const SearchResultDtoSchema = ArticleSummaryDtoSchema.extend({
   score: z.number().nonnegative(),
 });
+
+export const StartupMilestoneSchema = z.enum([
+  'process-start',
+  'app-ready',
+  'archive-ready',
+  'window-created',
+  'renderer-ready',
+  'interactive',
+]);
+export const StartupTelemetrySchema = z.object({
+  milestones: z.object({
+    'process-start': z.number().nonnegative().optional(),
+    'app-ready': z.number().nonnegative().optional(),
+    'archive-ready': z.number().nonnegative().optional(),
+    'window-created': z.number().nonnegative().optional(),
+    'renderer-ready': z.number().nonnegative().optional(),
+    interactive: z.number().nonnegative().optional(),
+  }),
+  interactiveMs: z.number().nonnegative().optional(),
+  previousMedianMs: z.number().nonnegative().optional(),
+  materialRegression: z.boolean(),
+});
+export const DiagnosticLevelSchema = z.enum(['info', 'warning', 'error']);
+export const DiagnosticAreaSchema = z.enum([
+  'main',
+  'renderer',
+  'preferences',
+  'search-index',
+  'workspace',
+  'import',
+]);
+export const LocalDiagnosticEventSchema = z.object({
+  timestamp: z.string().datetime(),
+  level: DiagnosticLevelSchema,
+  area: DiagnosticAreaSchema,
+  code: z
+    .string()
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+    .max(80),
+  message: z.string().min(1).max(500),
+});
+export const RendererDiagnosticRequestSchema = z.object({
+  area: z.enum(['renderer', 'preferences', 'search-index']),
+  code: z
+    .string()
+    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
+    .max(80),
+  message: z.string().min(1).max(500),
+});
+export const ArchiveDiagnosticsSchema = z.object({
+  validArticles: z.number().int().nonnegative(),
+  warnings: z.array(z.string()),
+  invalidFiles: z.array(z.string()),
+  brokenLinks: z.array(z.string()),
+  missingAssets: z.array(z.string()),
+  startup: StartupTelemetrySchema,
+  events: z.array(LocalDiagnosticEventSchema),
+});
 export const SearchRequestSchema = z.object({ query: z.string().max(200) });
 export const ArticleRequestSchema = z.object({
   id: z.string().min(1).max(300),
@@ -62,6 +121,7 @@ export const DesktopCommandSchema = z.enum([
   'about.open',
   'workspace.open',
   'import.open',
+  'observatory.open',
 ]);
 export const WorkspaceInfoSchema = z.object({
   kind: z.enum(['bundled', 'local']),
@@ -204,6 +264,14 @@ export const ImportCommitResultSchema = z.discriminatedUnion('status', [
 export const ArticleListResponseSchema = z.array(ArticleSummaryDtoSchema);
 export const SearchResponseSchema = z.array(SearchResultDtoSchema);
 export type DesktopCommand = z.infer<typeof DesktopCommandSchema>;
+
+export type StartupMilestone = z.infer<typeof StartupMilestoneSchema>;
+export type StartupTelemetryDto = z.infer<typeof StartupTelemetrySchema>;
+export type DiagnosticLevel = z.infer<typeof DiagnosticLevelSchema>;
+export type DiagnosticArea = z.infer<typeof DiagnosticAreaSchema>;
+export type LocalDiagnosticEventDto = z.infer<typeof LocalDiagnosticEventSchema>;
+export type RendererDiagnosticRequest = z.infer<typeof RendererDiagnosticRequestSchema>;
+export type ArchiveDiagnosticsDto = z.infer<typeof ArchiveDiagnosticsSchema>;
 export type WorkspaceInfoDto = z.infer<typeof WorkspaceInfoSchema>;
 export type WorkspaceSelectionResult = z.infer<typeof WorkspaceSelectionResultSchema>;
 export type ImportSourceKind = z.infer<typeof ImportSourceKindSchema>;
