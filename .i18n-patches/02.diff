@@ -1,0 +1,149 @@
+diff --git a/apps/desktop-electron/src/renderer/desktop-commands.test.ts b/apps/desktop-electron/src/renderer/desktop-commands.test.ts
+index f1fe561..21865ba 100644
+--- a/apps/desktop-electron/src/renderer/desktop-commands.test.ts
++++ b/apps/desktop-electron/src/renderer/desktop-commands.test.ts
+@@ -1,24 +1,33 @@
+ import { describe, expect, it } from 'vitest';
+-import { DESKTOP_COMMANDS, filterDesktopCommands } from './desktop-commands';
++import { filterDesktopCommands, getDesktopCommands } from './desktop-commands';
+ 
+ describe('desktop command catalog', () => {
+-  it('returns the full deterministic catalog for an empty query', () => {
+-    expect(filterDesktopCommands('')).toEqual(DESKTOP_COMMANDS);
++  it('returns a deterministic localized catalog for an empty query', () => {
++    expect(filterDesktopCommands('', 'zh-TW')).toEqual(getDesktopCommands('zh-TW'));
++    expect(getDesktopCommands('en').find((command) => command.id === 'search.focus')?.label).toBe(
++      'Focus search',
++    );
+   });
+ 
+-  it('matches Traditional Chinese labels and English aliases', () => {
+-    expect(filterDesktopCommands('搜尋').map((command) => command.id)).toEqual(['search.focus']);
+-    expect(filterDesktopCommands('previous').map((command) => command.id)).toEqual([
++  it('matches Traditional Chinese labels and English aliases in either locale', () => {
++    expect(filterDesktopCommands('搜尋', 'zh-TW').map((command) => command.id)).toEqual([
++      'search.focus',
++    ]);
++    expect(filterDesktopCommands('previous', 'en').map((command) => command.id)).toEqual([
+       'navigation.back',
+     ]);
+-    expect(filterDesktopCommands('version').map((command) => command.id)).toEqual(['about.open']);
+-    expect(filterDesktopCommands('匯入').map((command) => command.id)).toEqual(['import.open']);
+-    expect(filterDesktopCommands('字數').map((command) => command.id)).toEqual([
++    expect(filterDesktopCommands('version', 'en').map((command) => command.id)).toEqual([
++      'about.open',
++    ]);
++    expect(filterDesktopCommands('匯入', 'en').map((command) => command.id)).toEqual([
++      'import.open',
++    ]);
++    expect(filterDesktopCommands('字數', 'en').map((command) => command.id)).toEqual([
+       'observatory.open',
+     ]);
+   });
+ 
+   it('returns no arbitrary action for an unknown query', () => {
+-    expect(filterDesktopCommands('delete everything')).toEqual([]);
++    expect(filterDesktopCommands('delete everything', 'en')).toEqual([]);
+   });
+ });
+diff --git a/apps/desktop-electron/src/renderer/desktop-commands.ts b/apps/desktop-electron/src/renderer/desktop-commands.ts
+index 00f3b6a..ca6d81c 100644
+--- a/apps/desktop-electron/src/renderer/desktop-commands.ts
++++ b/apps/desktop-electron/src/renderer/desktop-commands.ts
+@@ -1,4 +1,5 @@
+ import type { DesktopCommand } from '@research-observatory/platform-contracts';
++import { translate, type TranslationKey, type UiLocale } from './i18n';
+ 
+ export interface DesktopCommandDescriptor {
+   id: DesktopCommand;
+@@ -7,57 +8,77 @@ export interface DesktopCommandDescriptor {
+   shortcut?: string;
+ }
+ 
+-export const DESKTOP_COMMANDS: DesktopCommandDescriptor[] = [
++interface DesktopCommandDefinition {
++  id: DesktopCommand;
++  labelKey: TranslationKey;
++  keywords: string[];
++  shortcut?: string;
++}
++
++const COMMAND_DEFINITIONS: DesktopCommandDefinition[] = [
+   {
+     id: 'search.focus',
+-    label: '聚焦搜尋',
++    labelKey: 'command.search',
+     keywords: ['search', 'find', '搜尋', '查找'],
+     shortcut: 'Ctrl+F',
+   },
+   {
+     id: 'navigation.back',
+-    label: '上一個閱讀位置',
++    labelKey: 'command.back',
+     keywords: ['back', 'previous', '返回', '上一頁'],
+     shortcut: 'Alt+←',
+   },
+   {
+     id: 'navigation.forward',
+-    label: '下一個閱讀位置',
++    labelKey: 'command.forward',
+     keywords: ['forward', 'next', '前進', '下一頁'],
+     shortcut: 'Alt+→',
+   },
+   {
+     id: 'workspace.open',
+-    label: '開啟本機工作區',
++    labelKey: 'command.workspace',
+     keywords: ['workspace', 'folder', 'archive', '工作區', '資料夾', '封存'],
+     shortcut: 'Ctrl+O',
+   },
+   {
+     id: 'import.open',
+-    label: '匯入文章',
++    labelKey: 'command.import',
+     keywords: ['import', 'markdown', 'publish', '匯入', '文章', '發布'],
+     shortcut: 'Ctrl+Shift+I',
+   },
+   {
+     id: 'observatory.open',
+-    label: '開啟 Observatory 摘要',
++    labelKey: 'command.observatory',
+     keywords: ['observatory', 'statistics', 'summary', '字數', '統計', '摘要', '修訂'],
+     shortcut: 'Ctrl+Shift+O',
+   },
+   {
+     id: 'about.open',
+-    label: '開啟關於資訊',
++    labelKey: 'command.about',
+     keywords: ['about', 'version', 'build', '關於', '版本'],
+   },
+ ];
+ 
+-export function filterDesktopCommands(query: string): DesktopCommandDescriptor[] {
+-  const normalized = query.trim().toLocaleLowerCase('zh-TW');
+-  if (!normalized) return DESKTOP_COMMANDS;
+-  return DESKTOP_COMMANDS.filter((command) =>
++export function getDesktopCommands(locale: UiLocale): DesktopCommandDescriptor[] {
++  return COMMAND_DEFINITIONS.map((command) => ({
++    id: command.id,
++    label: translate(locale, command.labelKey),
++    keywords: command.keywords,
++    ...(command.shortcut ? { shortcut: command.shortcut } : {}),
++  }));
++}
++
++export function filterDesktopCommands(
++  query: string,
++  locale: UiLocale = 'zh-TW',
++): DesktopCommandDescriptor[] {
++  const commands = getDesktopCommands(locale);
++  const normalized = query.trim().toLocaleLowerCase(locale);
++  if (!normalized) return commands;
++  return commands.filter((command) =>
+     [command.label, command.id, ...command.keywords]
+       .join(' ')
+-      .toLocaleLowerCase('zh-TW')
++      .toLocaleLowerCase(locale)
+       .includes(normalized),
+   );
+ }

@@ -1,0 +1,363 @@
+diff --git a/.github/workflows/desktop-release-reusable.yml b/.github/workflows/desktop-release-reusable.yml
+index 6747caf..61da85d 100644
+--- a/.github/workflows/desktop-release-reusable.yml
++++ b/.github/workflows/desktop-release-reusable.yml
+@@ -6,6 +6,7 @@ on:
+       requested_version: { type: string, required: false, default: '' }
+       channel: { type: string, required: false, default: prerelease }
+       publish: { type: boolean, required: false, default: false }
++      release_notes: { type: string, required: false, default: '' }
+ concurrency:
+   group: desktop-release
+   cancel-in-progress: false
+@@ -91,6 +92,13 @@ jobs:
+             echo "draft $TAG resolves to $resolved_target, expected $TARGET_SHA" >&2
+             exit 1
+           fi
++      - name: Validate structured release notes
++        shell: bash
++        env:
++          RELEASE_NOTES: ${{ inputs.release_notes }}
++          RELEASE_TAG: ${{ steps.release.outputs.tag }}
++          RELEASE_VERSION_SOURCE: ${{ steps.release.outputs.version_source }}
++        run: node scripts/release-notes.mjs /tmp/release-notes.md
+       - name: Apply resolved version to the verification workspace
+         run: node scripts/apply-release-version.mjs
+         env:
+@@ -191,6 +199,12 @@ jobs:
+         run: node scripts/apply-release-version.mjs
+         env:
+           RELEASE_VERSION: ${{ needs.preflight.outputs.version }}
++      - name: Render release description
++        env:
++          RELEASE_NOTES: ${{ inputs.release_notes }}
++          RELEASE_TAG: ${{ needs.preflight.outputs.tag }}
++          RELEASE_VERSION_SOURCE: ${{ needs.preflight.outputs.version_source }}
++        run: node scripts/release-notes.mjs /tmp/release-notes.md
+       - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+         with: { name: aggregate-release-assets, path: dist/aggregate-release }
+       - name: Create or refresh draft release assets
+@@ -212,8 +226,9 @@ jobs:
+             fi
+             node -e 'const { spawnSync }=require("node:child_process"); const r=require("/tmp/release-before.json"); for(const a of r.assets){const result=spawnSync("gh",["release","delete-asset",process.env.TAG,a.name,"-y"],{stdio:"inherit"}); if(result.status!==0) process.exit(result.status ?? 1);}'
+           else
+-            gh release create "$TAG" --draft --target "$TARGET_SHA" --title "$TAG" --notes "Desktop release $TAG (${VERSION_SOURCE})"
++            gh release create "$TAG" --draft --target "$TARGET_SHA" --title "$TAG" --notes-file /tmp/release-notes.md
+           fi
++          gh release edit "$TAG" --notes-file /tmp/release-notes.md
+           gh release upload "$TAG" dist/aggregate-release/* --clobber
+       - name: Verify GitHub release assets
+         shell: bash
+@@ -264,6 +279,12 @@ jobs:
+           console.log(`Resolved SHA: ${process.env.TARGET_SHA}`);
+           console.log(`Channel: ${process.env.CHANNEL}`);
+           console.log(`Publish requested: ${process.env.PUBLISH}\n`);
++          const notes = (process.env.RELEASE_NOTES || '').split(/[\n,;]+/).map((item) => item.trim().replace(/^[-*+]\s+/, '')).filter(Boolean);
++          if (notes.length) {
++            console.log("## What's changed");
++            for (const item of [...new Set(notes)]) console.log(`- ${item}`);
++            console.log('');
++          }
+           console.log('## Build verification');
+           console.log('- Quality gate: passed');
+           console.log('- Windows x64 make and packaged smoke: passed');
+@@ -294,3 +315,4 @@ jobs:
+           TARGET_SHA: ${{ needs.preflight.outputs.sha }}
+           CHANNEL: ${{ inputs.channel }}
+           PUBLISH: ${{ inputs.publish }}
++          RELEASE_NOTES: ${{ inputs.release_notes }}
+diff --git a/apps/desktop-electron/e2e/preferences.spec.ts b/apps/desktop-electron/e2e/preferences.spec.ts
+index 6cb29ea..b748f8f 100644
+--- a/apps/desktop-electron/e2e/preferences.spec.ts
++++ b/apps/desktop-electron/e2e/preferences.spec.ts
+@@ -67,3 +67,46 @@ test('persists theme and text size across an Electron restart', async ({ launchE
+   await expect(second.page.getByLabel('淺色')).toBeChecked();
+   await expect(second.page.getByTestId('settings-text-scale')).toHaveText('120%');
+ });
++
++test('switches the interface and native menu to English and persists the language', async ({
++  launchElectron,
++}) => {
++  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'observatory-language-content-'));
++  const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'observatory-language-profile-'));
++  writeArticle(root);
++
++  const first = await launchElectron({
++    args: [`--user-data-dir=${profile}`],
++    env: { ARCHIVE_CONTENT_ROOT: root },
++  });
++  await expect(first.page.getByTestId('app-ready')).toBeVisible({ timeout: 30000 });
++  await first.page.getByRole('button', { name: '設定' }).click();
++  await first.page.getByLabel('English').check();
++  await expect(first.page.locator('html')).toHaveAttribute('lang', 'en');
++  await expect(first.page.getByRole('heading', { name: 'Reading & language settings' })).toBeVisible();
++  await expect(first.page.getByRole('button', { name: 'Close settings' })).toBeVisible();
++  await first.page.getByRole('button', { name: 'Close settings' }).click();
++  await expect(first.page.getByRole('button', { name: 'Settings' })).toBeFocused();
++  await expect(first.page.getByLabel('Search articles')).toBeVisible();
++
++  await expect
++    .poll(() =>
++      first.app.evaluate(({ Menu }) => Menu.getApplicationMenu()?.items.map((item) => item.label)),
++    )
++    .toEqual(expect.arrayContaining(['Navigation', 'View', 'Help']));
++  await first.app.close();
++
++  const second = await launchElectron({
++    args: [`--user-data-dir=${profile}`],
++    env: { ARCHIVE_CONTENT_ROOT: root },
++    cleanupPaths: [root, profile],
++  });
++  await expect(second.page.getByTestId('app-ready')).toBeVisible({ timeout: 30000 });
++  await expect(second.page.locator('html')).toHaveAttribute('lang', 'en');
++  await expect(second.page.getByRole('button', { name: 'Settings' })).toBeVisible();
++  await second.page.getByRole('button', { name: 'Settings' }).click();
++  await expect(second.page.getByLabel('English')).toBeChecked();
++  await second.page.getByLabel('繁體中文').check();
++  await expect(second.page.locator('html')).toHaveAttribute('lang', 'zh-TW');
++  await expect(second.page.getByRole('heading', { name: '閱讀與語言設定' })).toBeVisible();
++});
+diff --git a/apps/desktop-electron/src/main/main.ts b/apps/desktop-electron/src/main/main.ts
+index 79ba7e4..ad2a100 100644
+--- a/apps/desktop-electron/src/main/main.ts
++++ b/apps/desktop-electron/src/main/main.ts
+@@ -20,6 +20,7 @@ import { loadWindowState, saveWindowState } from './window-state';
+ import { ImportSessionService } from './import-session';
+ import { LocalDiagnostics } from './local-diagnostics';
+ import { StartupTelemetry } from './startup-telemetry';
++import { mainTranslate } from './main-i18n';
+ import {
+   DEFAULT_WORKSPACE_STATE,
+   loadWorkspaceState,
+@@ -43,12 +44,14 @@ import {
+   ImportPreviewRefreshRequestSchema,
+   ImportPreviewResultSchema,
+   ImportSourceSelectionRequestSchema,
++  LocaleUpdateRequestSchema,
+   RendererDiagnosticRequestSchema,
+   StartupMilestoneSchema,
+   WorkspaceInfoSchema,
+   WorkspaceSelectionResultSchema,
+   type DesktopCommand,
+   type WorkspaceInfoDto,
++  type UiLocale,
+ } from '@research-observatory/platform-contracts';
+ 
+ declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
+@@ -66,6 +69,7 @@ let localDiagnostics: LocalDiagnostics | undefined;
+ let workspaceRecoveryWarnings: string[] = [];
+ let trustedRendererUrl = '';
+ let trustedRendererOrigin = '';
++let currentLocale: UiLocale = 'zh-TW';
+ function bundledContentRoot(): string {
+   if (!app.isPackaged)
+     return process.env.ARCHIVE_CONTENT_ROOT || path.resolve(__dirname, '../../docs');
+@@ -145,51 +149,51 @@ function validateSender(sender: WebContents, frame?: WebFrameMain | null): void
+   }
+   if (actual !== trustedRendererUrl) throw new Error(`invalid-ipc-sender:${actual}`);
+ }
+-function installApplicationMenu(win: BrowserWindow): void {
++function installApplicationMenu(win: BrowserWindow, locale: UiLocale = currentLocale): void {
+   const send = (command: DesktopCommand) =>
+     win.webContents.send('app:command', DesktopCommandSchema.parse(command));
+   const template: MenuItemConstructorOptions[] = [
+     {
+-      label: '導覽',
++      label: mainTranslate(locale, 'navigation'),
+       submenu: [
+-        { label: '上一個閱讀位置', click: () => send('navigation.back') },
+-        { label: '下一個閱讀位置', click: () => send('navigation.forward') },
++        { label: mainTranslate(locale, 'back'), click: () => send('navigation.back') },
++        { label: mainTranslate(locale, 'forward'), click: () => send('navigation.forward') },
+         { type: 'separator' },
+         {
+-          label: '聚焦搜尋',
++          label: mainTranslate(locale, 'search'),
+           accelerator: 'CmdOrCtrl+F',
+           click: () => send('search.focus'),
+         },
+         {
+-          label: '開啟本機工作區',
++          label: mainTranslate(locale, 'workspace'),
+           accelerator: 'CmdOrCtrl+O',
+           click: () => send('workspace.open'),
+         },
+         {
+-          label: '匯入文章…',
++          label: mainTranslate(locale, 'import'),
+           accelerator: 'CmdOrCtrl+Shift+I',
+           click: () => send('import.open'),
+         },
+       ],
+     },
+     {
+-      label: '檢視',
++      label: mainTranslate(locale, 'view'),
+       submenu: [
+         {
+-          label: '指令面板',
++          label: mainTranslate(locale, 'palette'),
+           accelerator: 'CmdOrCtrl+K',
+           click: () => send('palette.open'),
+         },
+         {
+-          label: 'Observatory 摘要',
++          label: mainTranslate(locale, 'observatory'),
+           accelerator: 'CmdOrCtrl+Shift+O',
+           click: () => send('observatory.open'),
+         },
+       ],
+     },
+     {
+-      label: '說明',
+-      submenu: [{ label: '關於 Research Observatory', click: () => send('about.open') }],
++      label: mainTranslate(locale, 'help'),
++      submenu: [{ label: mainTranslate(locale, 'about'), click: () => send('about.open') }],
+     },
+   ];
+   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+@@ -292,7 +296,7 @@ ipcMain.handle('workspace:select', async (event) => {
+   validateSender(event.sender, event.senderFrame);
+   const owner = BrowserWindow.fromWebContents(event.sender);
+   const options: OpenDialogOptions = {
+-    title: '選擇 Research Observatory 工作區',
++    title: mainTranslate(currentLocale, 'workspaceDialog'),
+     properties: ['openDirectory'],
+   };
+   const selection = owner
+@@ -317,7 +321,7 @@ ipcMain.handle('workspace:select', async (event) => {
+     localDiagnostics?.record('warning', 'workspace', 'workspace-open-rejected', error);
+     return WorkspaceSelectionResultSchema.parse({
+       status: 'rejected',
+-      message: '無法開啟工作區；請確認資料夾包含可讀取的 Markdown 文章且未使用符號連結。',
++      message: mainTranslate(currentLocale, 'workspaceRejected'),
+     });
+   }
+ });
+@@ -330,10 +334,12 @@ ipcMain.handle('import:select-source', async (event, rawRequest: unknown) => {
+   const owner = BrowserWindow.fromWebContents(event.sender);
+   const options: OpenDialogOptions = {
+     title:
+-      request.kind === 'markdown-file' ? '選擇要匯入的 Markdown 檔案' : '選擇要匯入的文章資料夾',
++      request.kind === 'markdown-file'
++        ? mainTranslate(currentLocale, 'markdownDialog')
++        : mainTranslate(currentLocale, 'folderDialog'),
+     properties: request.kind === 'markdown-file' ? ['openFile'] : ['openDirectory'],
+     ...(request.kind === 'markdown-file'
+-      ? { filters: [{ name: 'Markdown', extensions: ['md'] }] }
++      ? { filters: [{ name: mainTranslate(currentLocale, 'markdownFilter'), extensions: ['md'] }] }
+       : {}),
+   };
+   const selection = owner
+@@ -373,6 +379,13 @@ ipcMain.handle('import:commit', (event, rawRequest: unknown) => {
+     ...(committed.message ? { message: committed.message } : {}),
+   });
+ });
++ipcMain.handle('preferences:set-locale', (event, rawRequest: unknown) => {
++  validateSender(event.sender, event.senderFrame);
++  const request = LocaleUpdateRequestSchema.parse(rawRequest);
++  currentLocale = request.locale;
++  const owner = BrowserWindow.fromWebContents(event.sender);
++  if (owner) installApplicationMenu(owner, currentLocale);
++});
+ ipcMain.handle('diagnostics:get', (event) => {
+   validateSender(event.sender, event.senderFrame);
+   return ArchiveDiagnosticsSchema.parse({
+diff --git a/apps/desktop-electron/src/preload/preload.ts b/apps/desktop-electron/src/preload/preload.ts
+index 2cb8c86..fd1ce0e 100644
+--- a/apps/desktop-electron/src/preload/preload.ts
++++ b/apps/desktop-electron/src/preload/preload.ts
+@@ -8,6 +8,7 @@ import {
+   ImportPreviewRefreshRequestSchema,
+   ImportPreviewResultSchema,
+   ImportSourceSelectionRequestSchema,
++  LocaleUpdateRequestSchema,
+   RendererDiagnosticRequestSchema,
+   StartupMilestoneSchema,
+   StartupTelemetrySchema,
+@@ -24,6 +25,7 @@ import {
+   type ImportPreviewRefreshRequest,
+   type ImportPreviewResult,
+   type ImportSourceKind,
++  type UiLocale,
+   type RendererDiagnosticRequest,
+   type StartupMilestone,
+   type StartupTelemetryDto,
+@@ -45,6 +47,8 @@ contextBridge.exposeInMainWorld('observatory', {
+     StartupTelemetrySchema.parse(
+       await ipcRenderer.invoke('telemetry:mark', StartupMilestoneSchema.parse(milestone)),
+     ),
++  setLocale: (locale: UiLocale): Promise<void> =>
++    ipcRenderer.invoke('preferences:set-locale', LocaleUpdateRequestSchema.parse({ locale })),
+   appInfo: async (): Promise<AppInfoDto> =>
+     AppInfoResponseSchema.parse(await ipcRenderer.invoke('app:info')),
+   openExternal: (url: string) => ipcRenderer.invoke('external:open', url),
+diff --git a/apps/desktop-electron/src/renderer/command-palette.tsx b/apps/desktop-electron/src/renderer/command-palette.tsx
+index 2d2d24c..378eac8 100644
+--- a/apps/desktop-electron/src/renderer/command-palette.tsx
++++ b/apps/desktop-electron/src/renderer/command-palette.tsx
+@@ -1,6 +1,7 @@
+ import React, { useEffect, useMemo, useRef, useState } from 'react';
+ import type { DesktopCommand } from '@research-observatory/platform-contracts';
+ import { filterDesktopCommands } from './desktop-commands';
++import { usePreferences } from './preferences-context';
+ 
+ interface CommandPaletteProps {
+   open: boolean;
+@@ -9,12 +10,13 @@ interface CommandPaletteProps {
+ }
+ 
+ export function CommandPalette({ open, onClose, onExecute }: CommandPaletteProps) {
++  const { locale, t } = usePreferences();
+   const [query, setQuery] = useState('');
+   const [activeIndex, setActiveIndex] = useState(0);
+   const inputRef = useRef<HTMLInputElement>(null);
+   const dialogRef = useRef<HTMLElement>(null);
+   const returnFocusRef = useRef<HTMLElement | null>(null);
+-  const results = useMemo(() => filterDesktopCommands(query), [query]);
++  const results = useMemo(() => filterDesktopCommands(query, locale), [locale, query]);
+ 
+   useEffect(() => {
+     if (!open) return;
+@@ -39,7 +41,7 @@ export function CommandPalette({ open, onClose, onExecute }: CommandPaletteProps
+     if (command !== 'search.focus') return;
+     requestAnimationFrame(() => {
+       requestAnimationFrame(() => {
+-        const search = document.querySelector<HTMLInputElement>('input[aria-label="搜尋文章"]');
++        const search = document.querySelector<HTMLInputElement>('input[data-search-input]');
+         search?.focus();
+         search?.select();
+       });
+@@ -87,19 +89,19 @@ export function CommandPalette({ open, onClose, onExecute }: CommandPaletteProps
+           }
+         }}
+       >
+-        <h2 id="command-palette-title">指令面板</h2>
++        <h2 id="command-palette-title">{t('palette.title')}</h2>
+         <input
+           ref={inputRef}
+           type="search"
+-          aria-label="搜尋指令"
+-          placeholder="輸入指令名稱…"
++          aria-label={t('palette.searchLabel')}
++          placeholder={t('palette.placeholder')}
+           value={query}
+           onChange={(event) => {
+             setQuery(event.target.value);
+             setActiveIndex(0);
+           }}
+         />
+-        <div className="command-results" role="listbox" aria-label="可用指令">
++        <div className="command-results" role="listbox" aria-label={t('palette.available')}>
+           {results.map((command, index) => (
+             <button
+               key={command.id}
+@@ -113,7 +115,7 @@ export function CommandPalette({ open, onClose, onExecute }: CommandPaletteProps
+               {command.shortcut && <kbd>{command.shortcut}</kbd>}
+             </button>
+           ))}
+-          {!results.length && <p>沒有符合的指令</p>}
++          {!results.length && <p>{t('palette.empty')}</p>}
+         </div>
+       </section>
+     </div>

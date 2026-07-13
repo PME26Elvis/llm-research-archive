@@ -1,0 +1,182 @@
++                        <p role="status">{t('workspace.startupRegression')}</p>
+                       )}
+-                      <h3>本機事件</h3>
++                      <h3>{t('workspace.localEvents')}</h3>
+                       {diagnostics.events.length ? (
+                         <ol className="diagnostic-events" data-testid="diagnostic-events">
+                           {diagnostics.events.map((event) => (
+                             <li key={`${event.timestamp}-${event.code}`}>
+                               <time dateTime={event.timestamp}>
+-                                {new Date(event.timestamp).toLocaleString('zh-TW')}
++                                {formatDateTime(event.timestamp)}
+                               </time>{' '}
+                               <strong>{event.code}</strong>：{event.message}
+                             </li>
+                           ))}
+                         </ol>
+                       ) : (
+-                        <p>尚無本機診斷事件。</p>
++                        <p>{t('workspace.noEvents')}</p>
+                       )}
+                       <button type="button" onClick={() => void clearDiagnostics()}>
+-                        清除本機診斷
++                        {t('workspace.clearDiagnostics')}
+                       </button>
+                     </>
+                   )}
+@@ -825,10 +851,11 @@ function App() {
+               </section>
+             )}
+             <label>
+-              搜尋文章
++              {t('search.label')}
+               <input
+                 ref={searchInputRef}
+-                aria-label="搜尋文章"
++                aria-label={t('search.label')}
++                data-search-input
+                 value={query}
+                 onChange={(event) => {
+                   setQuery(event.target.value);
+@@ -836,7 +863,7 @@ function App() {
+                 }}
+               />
+             </label>
+-            <nav className="browse-tabs" aria-label="瀏覽文章">
++            <nav className="browse-tabs" aria-label={t('search.browse')}>
+               {browseModes.map(({ mode, label }) => (
+                 <button
+                   key={mode}
+@@ -852,17 +879,21 @@ function App() {
+             {browseMode !== 'all' && (
+               <section
+                 className="facet-panel"
+-                aria-label={`${browseModes.find((x) => x.mode === browseMode)?.label}篩選`}
++                aria-label={t('search.filterAria', {
++                  label: browseModes.find((x) => x.mode === browseMode)?.label || '',
++                })}
+               >
+                 <div className="facet-heading">
+                   <strong>
+                     {selectedFacet
+-                      ? `已篩選 ${shown.length} 篇`
+-                      : `選擇${browseModes.find((x) => x.mode === browseMode)?.label}`}
++                      ? t('search.filtered', { count: formatNumber(shown.length) })
++                      : t('search.selectFacet', {
++                          label: browseModes.find((x) => x.mode === browseMode)?.label || '',
++                        })}
+                   </strong>
+                   {selectedFacet && (
+                     <button type="button" className="clear-filter" onClick={clearFacet}>
+-                      清除
++                      {t('common.clear')}
+                     </button>
+                   )}
+                 </div>
+@@ -871,7 +902,10 @@ function App() {
+                     <button
+                       key={facet.key}
+                       type="button"
+-                      aria-label={`${facet.label}（${facet.count} 篇）`}
++                      aria-label={t('search.facetCount', {
++                        label: facet.label,
++                        count: formatNumber(facet.count),
++                      })}
+                       aria-pressed={selectedFacet === facet.key}
+                       onClick={() => selectFacet(facet.key)}
+                     >
+@@ -883,10 +917,12 @@ function App() {
+               </section>
+             )}
+             <p className="sr-only" role="status" aria-live="polite">
+-              {loading ? '正在載入文章' : `目前顯示 ${shown.length} 篇文章`}
++              {loading
++                ? t('search.loadingStatus')
++                : t('search.shownStatus', { count: formatNumber(shown.length) })}
+             </p>
+-            {loading && <p>載入中…</p>}
+-            {!loading && !shown.length && <p data-testid="empty-results">沒有符合的文章</p>}
++            {loading && <p>{t('common.loading')}</p>}
++            {!loading && !shown.length && <p data-testid="empty-results">{t('search.empty')}</p>}
+             <ul className="article-list" data-testid="article-list">
+               {shown.map((a) => (
+                 <li key={a.id}>
+@@ -897,7 +933,11 @@ function App() {
+                   >
+                     {a.title}
+                     <small>
+-                      {a.category} · {a.date} · 約 {a.readingStats.estimatedMinutes} 分鐘
++                      {t('search.articleMeta', {
++                        category: a.category,
++                        date: a.date,
++                        minutes: a.readingStats.estimatedMinutes,
++                      })}
+                     </small>
+                   </button>
+                 </li>
+@@ -912,25 +952,25 @@ function App() {
+           onClick={onArticleClick}
+           onKeyDown={onArticleKeyDown}
+         >
+-          <nav className="navigation-toolbar" aria-label="閱讀歷史">
++          <nav className="navigation-toolbar" aria-label={t('reader.history')}>
+             <button
+               type="button"
+-              aria-label="上一個位置"
++              aria-label={t('reader.previousLocation')}
+               disabled={!canNavigateBack(navigationHistory)}
+               onClick={() => travelHistory(-1)}
+             >
+-              ← 上一頁
++              {t('reader.previousPage')}
+             </button>
+             <span aria-live="polite" data-testid="history-position">
+               {navigationHistory.index + 1} / {navigationHistory.entries.length}
+             </span>
+             <button
+               type="button"
+-              aria-label="下一個位置"
++              aria-label={t('reader.nextLocation')}
+               disabled={!canNavigateForward(navigationHistory)}
+               onClick={() => travelHistory(1)}
+             >
+-              下一頁 →
++              {t('reader.nextPage')}
+             </button>
+           </nav>
+           {error && <p role="alert">{error}</p>}
+@@ -939,9 +979,12 @@ function App() {
+               <header>
+                 <h2>{selected.title}</h2>
+                 <p data-testid="article-meta">
+-                  發布 {selected.date}
+-                  {selected.updatedAt ? ` · 修訂 ${selected.updatedAt}` : ''} · 約{' '}
+-                  {selected.readingStats.estimatedMinutes} 分鐘 · {selected.tags.join('、')}
++                  {t('reader.published', { date: selected.date })}
++                  {selected.updatedAt
++                    ? ` · ${t('reader.updated', { date: selected.updatedAt })}`
++                    : ''} · {t('reader.approxMinutes', {
++                    count: selected.readingStats.estimatedMinutes,
++                  })} · {selected.tags.join(locale === 'zh-TW' ? '、' : ', ')}
+                 </p>
+               </header>
+               <section
+@@ -953,7 +996,7 @@ function App() {
+               />
+             </>
+           ) : (
+-            <p>請選擇文章</p>
++            <p>{t('reader.selectArticle')}</p>
+           )}
+         </article>
+       </ResizableLayout>
+@@ -976,4 +1019,8 @@ function App() {
+   );
+ }
+ 
+-createRoot(document.getElementById('root')!).render(<App />);
++createRoot(document.getElementById('root')!).render(
++  <PreferencesProvider>
++    <App />
++  </PreferencesProvider>,
++);

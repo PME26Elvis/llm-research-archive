@@ -1,0 +1,215 @@
+       setPendingFragment('');
+     });
+   }, [selected, pendingFragment]);
+@@ -528,15 +541,24 @@ function App() {
+     const reader = readerRef.current;
+     if (!reader) return;
+     for (const image of reader.querySelectorAll<HTMLImageElement>('img')) {
+-      const description = image.alt.trim() || '文章圖片';
++      const description = image.alt.trim() || t('reader.image');
+       image.tabIndex = 0;
+       image.setAttribute('role', 'button');
+-      image.setAttribute('aria-label', `放大圖片：${description}`);
++      image.setAttribute('aria-label', t('reader.enlargeImage', { alt: description }));
+       image.loading = 'lazy';
+       image.decoding = 'async';
+     }
+-    const cleanupMermaid = mountMermaidBlocks(reader);
+-    decorateCodeBlocks(reader);
++    const cleanupMermaid = mountMermaidBlocks(reader, {
++      labels: {
++        diagram: t('mermaid.diagram'),
++        pending: t('mermaid.pending'),
++        source: t('mermaid.source'),
++        rendering: t('mermaid.rendering'),
++        done: t('mermaid.done'),
++        failed: t('mermaid.failed'),
++      },
++    });
++    decorateCodeBlocks(reader, t);
+     const cleanupHighlighting = mountSyntaxHighlighting(reader);
+     const cleanupFootnotes = mountFootnoteNavigation(reader);
+     return () => {
+@@ -544,7 +566,7 @@ function App() {
+       cleanupHighlighting();
+       cleanupMermaid();
+     };
+-  }, [selected]);
++  }, [selected, t]);
+ 
+   async function open(id: string, fragment = '') {
+     setError('');
+@@ -556,7 +578,7 @@ function App() {
+       setPendingFragment(fragment);
+       pushNavigation({ articleId: id, fragment });
+     } catch (error) {
+-      setError('文章載入失敗；請查看工作區診斷。');
++      setError(t('error.articleLoad'));
+       reportDiagnostic('renderer', 'article-load-failed', String(error));
+     }
+   }
+@@ -571,7 +593,7 @@ function App() {
+       setPendingFragment(fragment);
+       pushNavigation({ articleId: id, fragment });
+     } catch {
+-      setError(`找不到內部文章連結：${href}`);
++      setError(t('error.internalLink', { href }));
+     }
+   }
+ 
+@@ -583,7 +605,7 @@ function App() {
+       if (target) {
+         target.scrollIntoView();
+         pushNavigation({ articleId: selected?.id ?? '', fragment });
+-      } else setError(`找不到標題片段：${fragment}`);
++      } else setError(t('error.fragment', { fragment }));
+     });
+   }
+ 
+@@ -596,7 +618,7 @@ function App() {
+     try {
+       setDiagnostics(await window.observatory.clearDiagnostics());
+     } catch (error) {
+-      setError('無法清除本機診斷紀錄。');
++      setError(t('error.clearDiagnostics'));
+       reportDiagnostic('renderer', 'diagnostics-clear-failed', String(error));
+     }
+   }
+@@ -611,7 +633,7 @@ function App() {
+     try {
+       setAbout(await window.observatory.appInfo());
+     } catch (e) {
+-      setError(`About 資訊載入失敗：${String(e)}`);
++      setError(t('error.about', { message: String(e) }));
+     }
+   }
+ 
+@@ -635,7 +657,7 @@ function App() {
+     const src = image.currentSrc || image.src;
+     if (!src) return;
+     lightboxTriggerRef.current = image;
+-    setLightbox({ src, alt: image.alt.trim() || '文章圖片' });
++    setLightbox({ src, alt: image.alt.trim() || t('reader.image') });
+   }
+ 
+   function closeImageLightbox() {
+@@ -654,16 +676,18 @@ function App() {
+     button.dataset.copyPending = 'true';
+     button.setAttribute('aria-busy', 'true');
+     const copied = await copyText(code.textContent || '');
+-    button.textContent = copied ? '已複製' : '複製失敗';
++    button.textContent = copied ? t('reader.copied') : t('reader.copyFailed');
+     button.dataset.copyState = copied ? 'success' : 'error';
+-    status.textContent = copied ? '程式碼已複製到剪貼簿' : '無法存取剪貼簿，請手動選取程式碼';
++    status.textContent = copied
++      ? t('reader.copySuccessStatus')
++      : t('reader.copyFailureStatus');
+ 
+     window.setTimeout(() => {
+       if (!button.isConnected) return;
+       delete button.dataset.copyPending;
+       delete button.dataset.copyState;
+       button.removeAttribute('aria-busy');
+-      button.textContent = '複製';
++      button.textContent = t('reader.copy');
+       status.textContent = '';
+     }, 1800);
+   }
+@@ -694,7 +718,7 @@ function App() {
+     }
+     if (/^(http:|javascript:|data:|file:)/i.test(href)) {
+       e.preventDefault();
+-      setError('已阻擋不安全連結');
++      setError(t('error.unsafeLink'));
+       return;
+     }
+     const { path, fragment } = hrefParts(href);
+@@ -713,7 +737,7 @@ function App() {
+     }
+     if (href) {
+       e.preventDefault();
+-      setError(`找不到內部文章連結：${href}`);
++      setError(t('error.internalLink', { href }));
+     }
+   }
+ 
+@@ -730,7 +754,7 @@ function App() {
+   return (
+     <>
+       <a className="skip-link" href="#main-reader">
+-        跳至文章內容
++        {t('reader.skip')}
+       </a>
+       <ResizableLayout
+         articleCount={articles.length}
+@@ -745,38 +769,40 @@ function App() {
+                   type="button"
+                   onClick={() => setObservatoryOpen(true)}
+                 >
+-                  Observatory
++                  {t('observatory.button')}
+                 </button>
+                 <button ref={aboutButtonRef} type="button" onClick={openAbout}>
+-                  關於
++                  {t('about.button')}
+                 </button>
+               </div>
+             </div>
+             {workspace && (
+-              <section className="workspace-panel" aria-label="目前工作區">
++              <section className="workspace-panel" aria-label={t('workspace.current')}>
+                 <div>
+                   <strong data-testid="workspace-kind">
+-                    {workspace.kind === 'local' ? '本機工作區' : '內建封存'}
++                    {workspace.kind === 'local' ? t('workspace.local') : t('workspace.bundled')}
+                   </strong>
+                   <small data-testid="workspace-path" title={workspace.rootPath}>
+-                    {workspace.displayName}
++                    {workspace.kind === 'local' ? workspace.displayName : t('workspace.bundled')}
+                   </small>
+                 </div>
+                 <div className="workspace-actions">
+                   <button type="button" onClick={() => void chooseWorkspace()}>
+-                    開啟資料夾
++                    {t('workspace.openFolder')}
+                   </button>
+                   <button
+                     ref={importButtonRef}
+                     type="button"
+                     onClick={() => setImportWizardOpen(true)}
+                   >
+-                    匯入文章
++                    {t('workspace.import')}
+                   </button>
+                 </div>
+                 <details data-testid="workspace-diagnostics">
+                   <summary>
+-                    工作區診斷（{workspace.warnings.length + workspace.invalidFiles.length}）
++                    {t('workspace.diagnostics', {
++                      count: workspace.warnings.length + workspace.invalidFiles.length,
++                    })}
+                   </summary>
+                   {[...workspace.warnings, ...workspace.invalidFiles].length ? (
+                     <ul>
+@@ -785,39 +811,39 @@ function App() {
+                       ))}
+                     </ul>
+                   ) : (
+-                    <p>內容掃描沒有發現問題。</p>
++                    <p>{t('workspace.noIssues')}</p>
+                   )}
+                   {diagnostics && (
+                     <>
+-                      <h3>啟動效能</h3>
++                      <h3>{t('workspace.startup')}</h3>
+                       <dl className="startup-telemetry" data-testid="startup-telemetry">
+                         {Object.entries(diagnostics.startup.milestones).map(([name, value]) => (
+                           <React.Fragment key={name}>
+                             <dt>{name}</dt>
+-                            <dd>{Math.round(Number(value))} ms</dd>
++                            <dd>{t('common.ms', { count: Math.round(Number(value)) })}</dd>
+                           </React.Fragment>
+                         ))}
+                       </dl>
+                       {diagnostics.startup.materialRegression && (
+-                        <p role="status">本次啟動時間明顯高於近期中位數。</p>

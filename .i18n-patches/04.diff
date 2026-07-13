@@ -1,0 +1,417 @@
+diff --git a/apps/desktop-electron/src/renderer/mermaid-dom.ts b/apps/desktop-electron/src/renderer/mermaid-dom.ts
+index 45e70b3..0b00cdc 100644
+--- a/apps/desktop-electron/src/renderer/mermaid-dom.ts
++++ b/apps/desktop-electron/src/renderer/mermaid-dom.ts
+@@ -1,17 +1,40 @@
+ import './mermaid.css';
+ import { renderMermaidSvg, type MermaidTheme } from './mermaid-renderer';
+ 
++export interface MermaidLabels {
++  diagram: string;
++  pending: string;
++  source: string;
++  rendering: string;
++  done: string;
++  failed: string;
++}
++
+ interface MermaidMountOptions {
+   render?: typeof renderMermaidSvg;
++  labels?: MermaidLabels;
+ }
+ 
++const defaultLabels: MermaidLabels = {
++  diagram: 'Mermaid 圖表',
++  pending: '圖表將在接近閱讀區域時載入',
++  source: '查看 Mermaid 原始碼',
++  rendering: '正在渲染 Mermaid 圖表…',
++  done: 'Mermaid 圖表已完成',
++  failed: 'Mermaid 圖表無法渲染，已保留原始碼',
++};
++
+ let diagramSequence = 0;
+ 
+ function resolvedTheme(): MermaidTheme {
+   return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+ }
+ 
+-function createMermaidFigure(pre: HTMLPreElement, source: string): HTMLElement {
++function createMermaidFigure(
++  pre: HTMLPreElement,
++  source: string,
++  labels: MermaidLabels,
++): HTMLElement {
+   const figure = document.createElement('figure');
+   figure.className = 'mermaid-diagram';
+   figure.dataset.mermaidState = 'pending';
+@@ -19,7 +42,7 @@ function createMermaidFigure(pre: HTMLPreElement, source: string): HTMLElement {
+   figure.dataset.mermaidRenderVersion = '0';
+ 
+   const caption = document.createElement('figcaption');
+-  caption.textContent = 'Mermaid 圖表';
++  caption.textContent = labels.diagram;
+ 
+   const canvas = document.createElement('div');
+   canvas.className = 'mermaid-canvas';
+@@ -30,12 +53,12 @@ function createMermaidFigure(pre: HTMLPreElement, source: string): HTMLElement {
+   status.dataset.mermaidStatus = '';
+   status.setAttribute('role', 'status');
+   status.setAttribute('aria-live', 'polite');
+-  status.textContent = '圖表將在接近閱讀區域時載入';
++  status.textContent = labels.pending;
+ 
+   const sourceDetails = document.createElement('details');
+   sourceDetails.className = 'mermaid-source';
+   const summary = document.createElement('summary');
+-  summary.textContent = '查看 Mermaid 原始碼';
++  summary.textContent = labels.source;
+ 
+   pre.replaceWith(figure);
+   sourceDetails.append(summary, pre);
+@@ -43,7 +66,11 @@ function createMermaidFigure(pre: HTMLPreElement, source: string): HTMLElement {
+   return figure;
+ }
+ 
+-async function renderFigure(figure: HTMLElement, render: typeof renderMermaidSvg): Promise<void> {
++async function renderFigure(
++  figure: HTMLElement,
++  render: typeof renderMermaidSvg,
++  labels: MermaidLabels,
++): Promise<void> {
+   if (figure.dataset.mermaidState !== 'pending') return;
+   const source = figure.dataset.mermaidSource || '';
+   const canvas = figure.querySelector<HTMLElement>('[data-mermaid-canvas]');
+@@ -55,23 +82,23 @@ async function renderFigure(figure: HTMLElement, render: typeof renderMermaidSvg
+   figure.dataset.mermaidRenderVersion = String(version);
+   figure.dataset.mermaidState = 'rendering';
+   status.setAttribute('role', 'status');
+-  status.textContent = '正在渲染 Mermaid 圖表…';
++  status.textContent = labels.rendering;
+   const id = `research-observatory-mermaid-${++diagramSequence}`;
+ 
+   try {
+-    const svg = await render(id, source, 'Mermaid 圖表', undefined, resolvedTheme());
++    const svg = await render(id, source, labels.diagram, undefined, resolvedTheme());
+     if (!figure.isConnected || Number(figure.dataset.mermaidRenderVersion) !== version) return;
+     canvas.innerHTML = svg;
+     figure.dataset.mermaidState = 'rendered';
+     figure.dataset.mermaidTheme = resolvedTheme();
+-    status.textContent = 'Mermaid 圖表已完成';
++    status.textContent = labels.done;
+     sourceDetails.open = false;
+   } catch {
+     if (!figure.isConnected || Number(figure.dataset.mermaidRenderVersion) !== version) return;
+     canvas.replaceChildren();
+     figure.dataset.mermaidState = 'error';
+     status.setAttribute('role', 'alert');
+-    status.textContent = 'Mermaid 圖表無法渲染，已保留原始碼';
++    status.textContent = labels.failed;
+     sourceDetails.open = true;
+   }
+ }
+@@ -81,26 +108,46 @@ export function mountMermaidBlocks(
+   options: MermaidMountOptions = {},
+ ): () => void {
+   const render = options.render ?? renderMermaidSvg;
++  const labels = options.labels ?? defaultLabels;
+   const figures: HTMLElement[] = [];
+ 
++  for (const figure of reader.querySelectorAll<HTMLElement>('figure.mermaid-diagram')) {
++    figure.querySelector('figcaption')?.replaceChildren(labels.diagram);
++    figure.querySelector('details.mermaid-source > summary')?.replaceChildren(labels.source);
++    figure.querySelector('svg')?.setAttribute('aria-label', labels.diagram);
++    const status = figure.querySelector<HTMLElement>('[data-mermaid-status]');
++    if (status) {
++      const state = figure.dataset.mermaidState;
++      status.textContent =
++        state === 'rendered'
++          ? labels.done
++          : state === 'error'
++            ? labels.failed
++            : state === 'rendering'
++              ? labels.rendering
++              : labels.pending;
++    }
++    figures.push(figure);
++  }
++
+   for (const code of reader.querySelectorAll<HTMLElement>('pre > code.language-mermaid')) {
+     const pre = code.parentElement;
+     if (!(pre instanceof HTMLPreElement) || pre.closest('.mermaid-diagram')) continue;
+-    figures.push(createMermaidFigure(pre, code.textContent || ''));
++    figures.push(createMermaidFigure(pre, code.textContent || '', labels));
+   }
+ 
+   if (!figures.length) return () => undefined;
+ 
+   let observer: IntersectionObserver | undefined;
+   if (typeof IntersectionObserver === 'undefined') {
+-    for (const figure of figures) void renderFigure(figure, render);
++    for (const figure of figures) void renderFigure(figure, render, labels);
+   } else {
+     observer = new IntersectionObserver(
+       (entries) => {
+         for (const entry of entries) {
+           if (!entry.isIntersecting) continue;
+           observer?.unobserve(entry.target);
+-          void renderFigure(entry.target as HTMLElement, render);
++          void renderFigure(entry.target as HTMLElement, render, labels);
+         }
+       },
+       { rootMargin: '320px 0px' },
+@@ -115,7 +162,7 @@ export function mountMermaidBlocks(
+       if (figure.dataset.mermaidTheme === resolvedTheme()) continue;
+       figure.dataset.mermaidState = 'pending';
+       figure.querySelector<HTMLElement>('[data-mermaid-canvas]')?.replaceChildren();
+-      void renderFigure(figure, render);
++      void renderFigure(figure, render, labels);
+     }
+   };
+   document.addEventListener('observatory-theme-change', onThemeChange);
+diff --git a/apps/desktop-electron/src/renderer/observatory-modal.tsx b/apps/desktop-electron/src/renderer/observatory-modal.tsx
+index e403f14..dc3fbef 100644
+--- a/apps/desktop-electron/src/renderer/observatory-modal.tsx
++++ b/apps/desktop-electron/src/renderer/observatory-modal.tsx
+@@ -1,6 +1,7 @@
+ import React, { useEffect, useMemo, useRef } from 'react';
+ import { buildArchiveBrowseModel } from '@research-observatory/renderer-ui';
+ import type { ArticleSummaryDto } from '@research-observatory/platform-contracts';
++import { usePreferences } from './preferences-context';
+ 
+ interface ObservatoryModalProps {
+   articles: readonly ArticleSummaryDto[];
+@@ -16,6 +17,7 @@ function focusableElements(root: HTMLElement): HTMLElement[] {
+ }
+ 
+ export function ObservatoryModal({ articles, onClose }: ObservatoryModalProps) {
++  const { t, formatNumber } = usePreferences();
+   const dialogRef = useRef<HTMLElement>(null);
+   const closeRef = useRef<HTMLButtonElement>(null);
+   const model = useMemo(() => buildArchiveBrowseModel([...articles]), [articles]);
+@@ -73,43 +75,43 @@ export function ObservatoryModal({ articles, onClose }: ObservatoryModalProps) {
+       >
+         <header>
+           <div>
+-            <h2 id="observatory-title">Observatory 封存摘要</h2>
++            <h2 id="observatory-title">{t('observatory.title')}</h2>
+             <p id="observatory-description">
+-              以表格與文字呈現封存規模、分類、標籤、時間軸、修訂日期與閱讀量；此視圖也是所有視覺化的無障礙替代內容。
++              {t('observatory.description')}
+             </p>
+           </div>
+           <button ref={closeRef} type="button" onClick={onClose}>
+-            關閉
++            {t('common.close')}
+           </button>
+         </header>
+ 
+         <dl className="observatory-stats" data-testid="observatory-stats">
+           <div>
+-            <dt>文章數</dt>
++            <dt>{t('observatory.articleCount')}</dt>
+             <dd>{articles.length}</dd>
+           </div>
+           <div>
+-            <dt>顯示字數</dt>
+-            <dd>{totals.displayCount.toLocaleString('zh-TW')}</dd>
++            <dt>{t('observatory.wordCount')}</dt>
++            <dd>{formatNumber(totals.displayCount)}</dd>
+           </div>
+           <div>
+-            <dt>估計閱讀時間</dt>
+-            <dd>{totals.estimatedMinutes.toLocaleString('zh-TW')} 分鐘</dd>
++            <dt>{t('observatory.readingTime')}</dt>
++            <dd>{t('common.minutes', { count: formatNumber(totals.estimatedMinutes) })}</dd>
+           </div>
+           <div>
+-            <dt>含修訂日期文章</dt>
++            <dt>{t('observatory.revisedCount')}</dt>
+             <dd>{revised.length}</dd>
+           </div>
+         </dl>
+ 
+         <div className="observatory-grid">
+           <section aria-labelledby="observatory-categories">
+-            <h3 id="observatory-categories">分類</h3>
++            <h3 id="observatory-categories">{t('observatory.categories')}</h3>
+             <table>
+               <thead>
+                 <tr>
+-                  <th scope="col">分類</th>
+-                  <th scope="col">文章</th>
++                  <th scope="col">{t('observatory.categories')}</th>
++                  <th scope="col">{t('observatory.articles')}</th>
+                 </tr>
+               </thead>
+               <tbody>
+@@ -123,12 +125,12 @@ export function ObservatoryModal({ articles, onClose }: ObservatoryModalProps) {
+             </table>
+           </section>
+           <section aria-labelledby="observatory-timeline">
+-            <h3 id="observatory-timeline">時間軸</h3>
++            <h3 id="observatory-timeline">{t('observatory.timeline')}</h3>
+             <table>
+               <thead>
+                 <tr>
+-                  <th scope="col">月份</th>
+-                  <th scope="col">文章</th>
++                  <th scope="col">{t('observatory.month')}</th>
++                  <th scope="col">{t('observatory.articles')}</th>
+                 </tr>
+               </thead>
+               <tbody>
+@@ -142,7 +144,7 @@ export function ObservatoryModal({ articles, onClose }: ObservatoryModalProps) {
+             </table>
+           </section>
+           <section aria-labelledby="observatory-tags">
+-            <h3 id="observatory-tags">熱門標籤</h3>
++            <h3 id="observatory-tags">{t('observatory.popularTags')}</h3>
+             <ol>
+               {model.tags.slice(0, 20).map((item) => (
+                 <li key={item.key}>
+@@ -153,7 +155,7 @@ export function ObservatoryModal({ articles, onClose }: ObservatoryModalProps) {
+             </ol>
+           </section>
+           <section aria-labelledby="observatory-revisions">
+-            <h3 id="observatory-revisions">最近修訂</h3>
++            <h3 id="observatory-revisions">{t('observatory.recentRevisions')}</h3>
+             {revised.length ? (
+               <ol>
+                 {[...revised]
+@@ -167,7 +169,7 @@ export function ObservatoryModal({ articles, onClose }: ObservatoryModalProps) {
+                   ))}
+               </ol>
+             ) : (
+-              <p>目前文章尚未提供獨立修訂日期。</p>
++              <p>{t('observatory.noRevisions')}</p>
+             )}
+           </section>
+         </div>
+diff --git a/apps/desktop-electron/src/renderer/preferences.test.ts b/apps/desktop-electron/src/renderer/preferences.test.ts
+index 1b927a7..db535b2 100644
+--- a/apps/desktop-electron/src/renderer/preferences.test.ts
++++ b/apps/desktop-electron/src/renderer/preferences.test.ts
+@@ -40,20 +40,35 @@ class MemoryStorage implements Storage {
+ }
+ 
+ describe('reader preferences', () => {
+-  it('returns defaults for an empty store', () => {
++  it('returns backwards-compatible Traditional Chinese defaults for an empty store', () => {
+     expect(parseReaderPreferences(null)).toEqual(DEFAULT_READER_PREFERENCES);
++    expect(DEFAULT_READER_PREFERENCES.language).toBe('zh-TW');
+   });
+ 
+-  it('migrates the legacy fontScale shape and clamps values', () => {
++  it('migrates v1 and legacy fontScale shapes while preserving the previous locale', () => {
++    expect(parseReaderPreferences('{"schemaVersion":1,"theme":"dark","textScale":1.28}')).toEqual({
++      schemaVersion: 2,
++      theme: 'dark',
++      textScale: 1.3,
++      language: 'zh-TW',
++    });
+     expect(parseReaderPreferences('{"theme":"dark","fontScale":1.28}')).toEqual({
+-      schemaVersion: 1,
++      schemaVersion: 2,
+       theme: 'dark',
+       textScale: 1.3,
++      language: 'zh-TW',
+     });
+     expect(normalizeTextScale(4)).toBe(1.4);
+     expect(normalizeTextScale(0)).toBe(0.8);
+   });
+ 
++  it('accepts system, Traditional Chinese, and English language preferences', () => {
++    for (const language of ['system', 'zh-TW', 'en'] as const) {
++      expect(parseReaderPreferences(JSON.stringify({ language }))).toMatchObject({ language });
++    }
++    expect(parseReaderPreferences('{"language":"unsupported"}').language).toBe('zh-TW');
++  });
++
+   it('backs up corrupt data and resets safely', () => {
+     const storage = new MemoryStorage();
+     storage.setItem(PREFERENCES_STORAGE_KEY, '{broken');
+@@ -65,7 +80,12 @@ describe('reader preferences', () => {
+ 
+   it('persists a normalized versioned payload', () => {
+     const storage = new MemoryStorage();
+-    const preferences = { schemaVersion: 1 as const, theme: 'light' as const, textScale: 1.2 };
++    const preferences = {
++      schemaVersion: 2 as const,
++      theme: 'light' as const,
++      textScale: 1.2,
++      language: 'en' as const,
++    };
+ 
+     saveReaderPreferences(storage, preferences);
+     expect(loadReaderPreferences(storage)).toEqual(preferences);
+diff --git a/apps/desktop-electron/src/renderer/preferences.ts b/apps/desktop-electron/src/renderer/preferences.ts
+index e07c471..6875bdc 100644
+--- a/apps/desktop-electron/src/renderer/preferences.ts
++++ b/apps/desktop-electron/src/renderer/preferences.ts
+@@ -1,16 +1,21 @@
++import type { LanguagePreference } from './i18n';
++
+ export type ThemePreference = 'system' | 'light' | 'dark';
+ export type ResolvedTheme = 'light' | 'dark';
+ 
+ export interface ReaderPreferences {
+-  schemaVersion: 1;
++  schemaVersion: 2;
+   theme: ThemePreference;
+   textScale: number;
++  language: LanguagePreference;
+ }
+ 
+ interface LegacyPreferences {
++  schemaVersion?: unknown;
+   theme?: unknown;
+   fontScale?: unknown;
+   textScale?: unknown;
++  language?: unknown;
+ }
+ 
+ export const PREFERENCES_STORAGE_KEY = 'research-observatory.preferences';
+@@ -20,15 +25,20 @@ export const MAX_TEXT_SCALE = 1.4;
+ export const TEXT_SCALE_STEP = 0.1;
+ 
+ export const DEFAULT_READER_PREFERENCES: ReaderPreferences = {
+-  schemaVersion: 1,
++  schemaVersion: 2,
+   theme: 'system',
+   textScale: 1,
++  language: 'zh-TW',
+ };
+ 
+ function validTheme(value: unknown): value is ThemePreference {
+   return value === 'system' || value === 'light' || value === 'dark';
+ }
+ 
++function validLanguage(value: unknown): value is LanguagePreference {
++  return value === 'system' || value === 'zh-TW' || value === 'en';
++}
++
+ export function normalizeTextScale(value: unknown): number {
+   if (typeof value !== 'number' || !Number.isFinite(value)) return 1;
+   const clamped = Math.min(MAX_TEXT_SCALE, Math.max(MIN_TEXT_SCALE, value));
+@@ -38,15 +48,17 @@ export function normalizeTextScale(value: unknown): number {
+ export function parseReaderPreferences(raw: string | null): ReaderPreferences {
+   if (!raw) return { ...DEFAULT_READER_PREFERENCES };
+ 
+-  const parsed = JSON.parse(raw) as LegacyPreferences & { schemaVersion?: unknown };
++  const parsed = JSON.parse(raw) as LegacyPreferences;
+   const theme = validTheme(parsed.theme) ? parsed.theme : DEFAULT_READER_PREFERENCES.theme;
+-  const sourceScale =
+-    parsed.schemaVersion === 1 ? parsed.textScale : (parsed.textScale ?? parsed.fontScale);
++  const sourceScale = parsed.textScale ?? parsed.fontScale;
+ 
+   return {
+-    schemaVersion: 1,
++    schemaVersion: 2,
+     theme,
+     textScale: normalizeTextScale(sourceScale),
++    language: validLanguage(parsed.language)
++      ? parsed.language
++      : DEFAULT_READER_PREFERENCES.language,
+   };
+ }
+ 

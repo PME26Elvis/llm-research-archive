@@ -1,0 +1,203 @@
+diff --git a/apps/desktop-electron/src/renderer/renderer.tsx b/apps/desktop-electron/src/renderer/renderer.tsx
+index fe94e55..60dfe2d 100644
+--- a/apps/desktop-electron/src/renderer/renderer.tsx
++++ b/apps/desktop-electron/src/renderer/renderer.tsx
+@@ -42,6 +42,8 @@ import {
+   type NavigationLocation,
+ } from './navigation-history';
+ import { ReaderSettings } from './reader-settings';
++import { PreferencesProvider, usePreferences } from './preferences-context';
++import type { Translator } from './i18n';
+ import { ResizableLayout } from './resizable-layout';
+ import { mountSyntaxHighlighting } from './syntax-highlight';
+ 
+@@ -64,6 +66,7 @@ declare global {
+       clearDiagnostics(): Promise<ArchiveDiagnosticsDto>;
+       reportDiagnostic(request: RendererDiagnosticRequest): Promise<void>;
+       markStartup(milestone: StartupMilestone): Promise<StartupTelemetryDto>;
++      setLocale(locale: 'zh-TW' | 'en'): Promise<void>;
+     };
+   }
+ }
+@@ -73,13 +76,6 @@ interface LightboxImage {
+   alt: string;
+ }
+ 
+-const browseModes: { mode: BrowseMode; label: string }[] = [
+-  { mode: 'all', label: '全部' },
+-  { mode: 'category', label: '分類' },
+-  { mode: 'tag', label: '標籤' },
+-  { mode: 'timeline', label: '時間軸' },
+-];
+-
+ function rewriteAssetLinks(markdown: string, assetRoot: string): string {
+   return markdown.replace(
+     /!\[([^\]]*)\]\((?!https?:|data:)([^)]+)\)/g,
+@@ -103,6 +99,7 @@ function hrefParts(href: string) {
+ }
+ 
+ function AboutModal({ info, onClose }: { info: AppInfoDto; onClose: () => void }) {
++  const { t } = usePreferences();
+   const dialogRef = useRef<HTMLElement>(null);
+   const closeRef = useRef<HTMLButtonElement>(null);
+   useEffect(() => {
+@@ -138,31 +135,31 @@ function AboutModal({ info, onClose }: { info: AppInfoDto; onClose: () => void })
+         aria-modal="true"
+         aria-labelledby="about-title"
+       >
+-        <h2 id="about-title">關於 Research Observatory</h2>
++        <h2 id="about-title">{t('about.title')}</h2>
+         <dl>
+-          <dt>Product name</dt>
++          <dt>{t('about.productName')}</dt>
+           <dd>{info.productName}</dd>
+-          <dt>Version</dt>
++          <dt>{t('about.version')}</dt>
+           <dd data-testid="about-version">{info.version}</dd>
+-          <dt>Commit SHA</dt>
++          <dt>{t('about.commit')}</dt>
+           <dd data-testid="about-commit">{info.commit}</dd>
+-          <dt>Platform</dt>
++          <dt>{t('about.platform')}</dt>
+           <dd data-testid="about-platform">{info.platform}</dd>
+-          <dt>Mode</dt>
+-          <dd>{info.packaged ? 'Packaged' : 'Development'}</dd>
+-          <dt>Electron</dt>
++          <dt>{t('about.mode')}</dt>
++          <dd>{info.packaged ? t('about.packaged') : t('about.development')}</dd>
++          <dt>{t('about.electron')}</dt>
+           <dd>{info.electronVersion}</dd>
+-          <dt>Chromium</dt>
++          <dt>{t('about.chromium')}</dt>
+           <dd>{info.chromiumVersion}</dd>
+-          <dt>Node</dt>
++          <dt>{t('about.node')}</dt>
+           <dd>{info.nodeVersion}</dd>
+-          <dt>Content article count</dt>
++          <dt>{t('about.contentCount')}</dt>
+           <dd>{info.contentArticleCount}</dd>
+-          <dt>Content manifest hash</dt>
+-          <dd>{info.contentManifestHash || 'Unavailable'}</dd>
++          <dt>{t('about.manifestHash')}</dt>
++          <dd>{info.contentManifestHash || t('common.unavailable')}</dd>
+         </dl>
+         <button ref={closeRef} type="button" onClick={onClose}>
+-          關閉
++          {t('common.close')}
+         </button>
+       </section>
+     </div>
+@@ -170,6 +167,7 @@ function AboutModal({ info, onClose }: { info: AppInfoDto; onClose: () => void })
+ }
+ 
+ function ImageLightbox({ image, onClose }: { image: LightboxImage; onClose: () => void }) {
++  const { t } = usePreferences();
+   const dialogRef = useRef<HTMLElement>(null);
+   const closeRef = useRef<HTMLButtonElement>(null);
+ 
+@@ -215,20 +213,20 @@ function ImageLightbox({ image, onClose }: { image: LightboxImage; onClose: () =
+         className="modal lightbox-modal"
+         role="dialog"
+         aria-modal="true"
+-        aria-label={`圖片預覽：${image.alt}`}
++        aria-label={t('lightbox.title', { alt: image.alt })}
+         data-testid="image-lightbox"
+       >
+         <img src={image.src} alt={image.alt} data-testid="lightbox-image" />
+         <p>{image.alt}</p>
+         <button ref={closeRef} type="button" onClick={onClose}>
+-          關閉圖片
++          {t('lightbox.close')}
+         </button>
+       </section>
+     </div>
+   );
+ }
+ 
+-function decorateCodeBlocks(reader: HTMLElement): void {
++function decorateCodeBlocks(reader: HTMLElement, t: Translator): void {
+   for (const pre of reader.querySelectorAll<HTMLPreElement>('pre')) {
+     if (pre.parentElement?.classList.contains('code-block')) continue;
+     const code = pre.querySelector<HTMLElement>('code');
+@@ -242,7 +240,7 @@ function decorateCodeBlocks(reader: HTMLElement): void {
+     toolbar.className = 'code-toolbar';
+     const label = document.createElement('span');
+     label.className = 'code-language';
+-    label.textContent = language || '程式碼';
++    label.textContent = language || t('reader.code');
+     const status = document.createElement('span');
+     status.className = 'copy-code-status';
+     status.dataset.copyCodeStatus = '';
+@@ -252,8 +250,13 @@ function decorateCodeBlocks(reader: HTMLElement): void {
+     button.type = 'button';
+     button.className = 'copy-code';
+     button.dataset.copyCode = '';
+-    button.setAttribute('aria-label', language ? `複製 ${language} 程式碼` : '複製程式碼');
+-    button.textContent = '複製';
++    button.setAttribute(
++      'aria-label',
++      language
++        ? t('reader.copyLanguageCode', { language })
++        : t('reader.copyCode'),
++    );
++    button.textContent = t('reader.copy');
+ 
+     toolbar.append(label, status, button);
+     pre.replaceWith(wrapper);
+@@ -262,6 +265,7 @@ function decorateCodeBlocks(reader: HTMLElement): void {
+ }
+ 
+ function App() {
++  const { t, locale, formatNumber, formatDateTime } = usePreferences();
+   const [articles, setArticles] = useState<ArticleSummaryDto[]>([]);
+   const [shown, setShown] = useState<(ArticleSummaryDto | SearchResultDto)[]>([]);
+   const [query, setQuery] = useState('');
+@@ -286,6 +290,15 @@ function App() {
+   const interactiveMarkedRef = useRef(false);
+   const readerRef = useRef<HTMLElement>(null);
+   const lightboxTriggerRef = useRef<HTMLImageElement | null>(null);
++  const browseModes = useMemo(
++    () => [
++      { mode: 'all' as const, label: t('browse.all') },
++      { mode: 'category' as const, label: t('browse.category') },
++      { mode: 'tag' as const, label: t('browse.tag') },
++      { mode: 'timeline' as const, label: t('browse.timeline') },
++    ],
++    [t],
++  );
+   const browseModel = useMemo(() => buildArchiveBrowseModel(articles), [articles]);
+   const filteredArticles = useMemo(
+     () => filterArticlesByBrowse(articles, browseMode, selectedFacet),
+@@ -354,7 +367,7 @@ function App() {
+       setSelected(article);
+       setPendingFragment(location.fragment);
+     } catch (error) {
+-      setError('文章載入失敗；請查看工作區診斷。');
++      setError(t('error.articleLoad'));
+       reportDiagnostic('renderer', 'article-load-failed', String(error));
+     }
+   }
+@@ -385,7 +398,7 @@ function App() {
+       setSelectedFacet('');
+       setNavigationHistory(createNavigationHistory());
+     } catch (error) {
+-      setError('工作區重新載入失敗；請查看工作區診斷。');
++      setError(t('error.workspaceRefresh'));
+       reportDiagnostic('renderer', 'workspace-refresh-failed', String(error));
+     } finally {
+       setLoading(false);
+@@ -507,7 +520,7 @@ function App() {
+         .search(q)
+         .then((results) => setShown(filterArticlesByBrowse(results, browseMode, selectedFacet)))
+         .catch((error) => {
+-          setError('搜尋暫時無法使用；請重試。');
++          setError(t('error.search'));
+           reportDiagnostic('search-index', 'search-query-failed', String(error));
+         });
+     }, 150);
+@@ -519,7 +532,7 @@ function App() {
+     requestAnimationFrame(() => {
+       const target = document.getElementById(pendingFragment);
+       if (target) target.scrollIntoView();
+-      else setError(`找不到標題片段：${pendingFragment}`);
++      else setError(t('error.fragment', { fragment: pendingFragment }));

@@ -1,0 +1,227 @@
+diff --git a/apps/desktop-electron/src/renderer/reader-settings.tsx b/apps/desktop-electron/src/renderer/reader-settings.tsx
+index 16e3716..caba60e 100644
+--- a/apps/desktop-electron/src/renderer/reader-settings.tsx
++++ b/apps/desktop-electron/src/renderer/reader-settings.tsx
+@@ -1,26 +1,21 @@
+ import React, { useEffect, useRef, useState } from 'react';
+-import {
+-  DEFAULT_READER_PREFERENCES,
+-  adjustTextScale,
+-  applyReaderPreferences,
+-  loadReaderPreferences,
+-  resolveTheme,
+-  saveReaderPreferences,
+-  type ReaderPreferences,
+-  type ThemePreference,
+-} from './preferences';
+-
+-const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
+-const initialPreferences = loadReaderPreferences(window.localStorage);
+-applyReaderPreferences(document, initialPreferences, systemTheme.matches);
++import type { LanguagePreference } from './i18n';
++import { usePreferences } from './preferences-context';
++import type { ThemePreference } from './preferences';
+ 
+ interface SettingsDialogProps {
+-  preferences: ReaderPreferences;
+-  onChange(preferences: ReaderPreferences): void;
+   onClose(): void;
+ }
+ 
+-function SettingsDialog({ preferences, onChange, onClose }: SettingsDialogProps) {
++function SettingsDialog({ onClose }: SettingsDialogProps) {
++  const {
++    preferences,
++    t,
++    setTheme,
++    setLanguage,
++    setTextScale,
++    adjustTextScale,
++  } = usePreferences();
+   const dialogRef = useRef<HTMLElement>(null);
+   const closeRef = useRef<HTMLButtonElement>(null);
+ 
+@@ -37,7 +32,7 @@ function SettingsDialog({ preferences, onChange, onClose }: SettingsDialogProps)
+         dialogRef.current.querySelectorAll<HTMLElement>(
+           'button, input, select, textarea, [href], [tabindex]:not([tabindex="-1"])',
+         ),
+-      );
++      ).filter((element) => !element.hasAttribute('disabled'));
+       if (!focusable.length) return;
+       const first = focusable[0];
+       const last = focusable[focusable.length - 1];
+@@ -53,13 +48,16 @@ function SettingsDialog({ preferences, onChange, onClose }: SettingsDialogProps)
+     return () => document.removeEventListener('keydown', onKey);
+   }, [onClose]);
+ 
+-  function setTheme(theme: ThemePreference) {
+-    onChange({ ...preferences, theme });
+-  }
+-
+-  function setTextScale(textScale: number) {
+-    onChange({ ...preferences, textScale });
+-  }
++  const themes: readonly [ThemePreference, string][] = [
++    ['system', t('settings.theme.system')],
++    ['light', t('settings.theme.light')],
++    ['dark', t('settings.theme.dark')],
++  ];
++  const languages: readonly [LanguagePreference, string][] = [
++    ['system', t('settings.language.system')],
++    ['zh-TW', t('settings.language.zhTW')],
++    ['en', t('settings.language.en')],
++  ];
+ 
+   return (
+     <div className="modal-backdrop" role="presentation">
+@@ -70,16 +68,10 @@ function SettingsDialog({ preferences, onChange, onClose }: SettingsDialogProps)
+         aria-modal="true"
+         aria-labelledby="settings-title"
+       >
+-        <h2 id="settings-title">閱讀設定</h2>
++        <h2 id="settings-title">{t('settings.title')}</h2>
+         <fieldset className="settings-theme">
+-          <legend>外觀</legend>
+-          {(
+-            [
+-              ['system', '跟隨系統'],
+-              ['light', '淺色'],
+-              ['dark', '深色'],
+-            ] as const
+-          ).map(([value, label]) => (
++          <legend>{t('settings.appearance')}</legend>
++          {themes.map(([value, label]) => (
+             <label key={value}>
+               <input
+                 type="radio"
+@@ -92,33 +84,53 @@ function SettingsDialog({ preferences, onChange, onClose }: SettingsDialogProps)
+             </label>
+           ))}
+         </fieldset>
++        <fieldset className="settings-language">
++          <legend>{t('settings.language')}</legend>
++          {languages.map(([value, label]) => (
++            <label key={value}>
++              <input
++                type="radio"
++                name="language"
++                value={value}
++                checked={preferences.language === value}
++                onChange={() => setLanguage(value)}
++              />
++              {label}
++            </label>
++          ))}
++          <p className="settings-hint">{t('settings.language.hint')}</p>
++        </fieldset>
+         <section className="settings-text" aria-labelledby="text-size-title">
+-          <h3 id="text-size-title">文章文字大小</h3>
++          <h3 id="text-size-title">{t('settings.textSize')}</h3>
+           <div className="text-scale-controls">
+             <button
+               type="button"
+-              aria-label="縮小文章文字"
+-              onClick={() => setTextScale(adjustTextScale(preferences.textScale, -1))}
++              aria-label={t('settings.textSmaller')}
++              onClick={() => adjustTextScale(-1)}
+             >
+               A−
+             </button>
+-            <button type="button" aria-label="重設文章文字大小" onClick={() => setTextScale(1)}>
++            <button
++              type="button"
++              aria-label={t('settings.textReset')}
++              onClick={() => setTextScale(1)}
++            >
+               <output data-testid="settings-text-scale">
+                 {Math.round(preferences.textScale * 100)}%
+               </output>
+             </button>
+             <button
+               type="button"
+-              aria-label="放大文章文字"
+-              onClick={() => setTextScale(adjustTextScale(preferences.textScale, 1))}
++              aria-label={t('settings.textLarger')}
++              onClick={() => adjustTextScale(1)}
+             >
+               A+
+             </button>
+           </div>
+-          <p className="settings-hint">快捷鍵：Ctrl++、Ctrl+-、Ctrl+0</p>
++          <p className="settings-hint">{t('settings.shortcuts')}</p>
+         </section>
+         <button ref={closeRef} type="button" onClick={onClose}>
+-          關閉設定
++          {t('settings.close')}
+         </button>
+       </section>
+     </div>
+@@ -126,51 +138,9 @@ function SettingsDialog({ preferences, onChange, onClose }: SettingsDialogProps)
+ }
+ 
+ export function ReaderSettings() {
+-  const [preferences, setPreferences] = useState<ReaderPreferences>(initialPreferences);
+-  const [systemPrefersDark, setSystemPrefersDark] = useState(systemTheme.matches);
++  const { t } = usePreferences();
+   const [open, setOpen] = useState(false);
+   const buttonRef = useRef<HTMLButtonElement>(null);
+-  const resolvedThemeRef = useRef(resolveTheme(initialPreferences.theme, systemTheme.matches));
+-
+-  useEffect(() => {
+-    const onChange = (event: MediaQueryListEvent) => setSystemPrefersDark(event.matches);
+-    systemTheme.addEventListener('change', onChange);
+-    return () => systemTheme.removeEventListener('change', onChange);
+-  }, []);
+-
+-  useEffect(() => {
+-    applyReaderPreferences(document, preferences, systemPrefersDark);
+-    saveReaderPreferences(window.localStorage, preferences);
+-    const resolved = resolveTheme(preferences.theme, systemPrefersDark);
+-    if (resolved !== resolvedThemeRef.current) {
+-      resolvedThemeRef.current = resolved;
+-      document.dispatchEvent(new Event('observatory-theme-change'));
+-    }
+-  }, [preferences, systemPrefersDark]);
+-
+-  useEffect(() => {
+-    const onKey = (event: KeyboardEvent) => {
+-      if (!event.ctrlKey || event.altKey || event.metaKey) return;
+-      if (event.key === '+' || event.key === '=' || event.code === 'NumpadAdd') {
+-        event.preventDefault();
+-        setPreferences((current) => ({
+-          ...current,
+-          textScale: adjustTextScale(current.textScale, 1),
+-        }));
+-      } else if (event.key === '-' || event.code === 'NumpadSubtract') {
+-        event.preventDefault();
+-        setPreferences((current) => ({
+-          ...current,
+-          textScale: adjustTextScale(current.textScale, -1),
+-        }));
+-      } else if (event.key === '0' || event.code === 'Numpad0') {
+-        event.preventDefault();
+-        setPreferences((current) => ({ ...current, textScale: 1 }));
+-      }
+-    };
+-    document.addEventListener('keydown', onKey);
+-    return () => document.removeEventListener('keydown', onKey);
+-  }, []);
+ 
+   function close() {
+     setOpen(false);
+@@ -180,13 +150,9 @@ export function ReaderSettings() {
+   return (
+     <>
+       <button ref={buttonRef} type="button" onClick={() => setOpen(true)}>
+-        設定
++        {t('settings.button')}
+       </button>
+-      {open && (
+-        <SettingsDialog preferences={preferences} onChange={setPreferences} onClose={close} />
+-      )}
++      {open && <SettingsDialog onClose={close} />}
+     </>
+   );
+ }
+-
+-export const __test__ = { initialPreferences, defaults: DEFAULT_READER_PREFERENCES };
