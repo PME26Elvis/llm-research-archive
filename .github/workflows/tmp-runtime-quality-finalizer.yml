@@ -1,5 +1,5 @@
-name: Temporary Enforced Quality Finalizer
-run-name: Run enforced quality gates
+name: Temporary Quality Patch Inspector
+run-name: Inspect enforced quality patch
 
 on:
   push:
@@ -9,94 +9,33 @@ on:
       - .github/workflows/tmp-runtime-quality-finalizer.yml
 
 permissions:
+  actions: read
   contents: write
 
 jobs:
-  finalize:
-    if: startsWith(github.event.head_commit.message, 'Run enforced quality gates')
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout target branch
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
-        with:
-          ref: agent/enforced-quality-gates
-          fetch-depth: 0
-      - name: Checkout staged patch
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
-        with:
-          ref: ops/planned-audit-receipt
-          path: payload
-          fetch-depth: 1
-      - name: Apply transparent quality patch
-        shell: bash
-        run: |
-          set -euo pipefail
-          git apply --check payload/.quality-gate-patches/01.diff
-          git apply payload/.quality-gate-patches/01.diff
-          rm -rf payload
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with:
-          node-version: '24'
-          cache: npm
-      - name: Refresh lockfile for governed dependencies
-        run: npm install --package-lock-only --ignore-scripts
-      - run: npm ci
-      - run: npm run format:write
-      - name: Execute complete quality gate
-        shell: bash
-        run: |
-          set -o pipefail
-          npm run verify 2>&1 | tee enforced-quality-verify.log
-      - name: Upload quality evidence
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: enforced-quality-evidence-${{ github.run_attempt }}
-          path: |
-            enforced-quality-verify.log
-            coverage/
-            dist/quality/
-            dist/performance/
-          if-no-files-found: warn
-          retention-days: 14
-      - name: Publish verified quality gates
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add apps forge.config.ts package.json package-lock.json packages project-docs/quality scripts vite.*.config.ts vitest.config.ts
-          git commit -m "Enforce desktop quality gates"
-          git push origin HEAD:agent/enforced-quality-gates
-
-  receipt:
-    if: always() && startsWith(github.event.head_commit.message, 'Run enforced quality gates')
-    needs: finalize
+  inspect:
+    if: startsWith(github.event.head_commit.message, 'Inspect enforced quality patch')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
           ref: ops/planned-audit-receipt
           fetch-depth: 0
-      - name: Record finalizer result
+      - name: Capture patch failure
         env:
-          FINALIZER_RUN_ID: ${{ github.run_id }}
-          FINALIZER_RESULT: ${{ needs.finalize.result }}
-          FINALIZER_TRIGGER_SHA: ${{ github.sha }}
+          GH_TOKEN: ${{ github.token }}
+          JOB_ID: '86737803183'
         run: |
-          node - <<'NODE'
-          const fs = require('node:fs');
-          const receipt = {
-            runId: Number(process.env.FINALIZER_RUN_ID),
-            result: process.env.FINALIZER_RESULT,
-            triggerSha: process.env.FINALIZER_TRIGGER_SHA,
-            recordedAt: new Date().toISOString(),
-          };
-          fs.writeFileSync('.enforced-quality-finalizer.json', `${JSON.stringify(receipt, null, 2)}\n`);
-          NODE
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/actions/jobs/${JOB_ID}/logs" > /tmp/job.log
+          grep -E 'error:|corrupt patch|patch failed|does not apply|No such file' /tmp/job.log \
+            > .quality-patch-error.log || true
+          tail -n 80 /tmp/job.log > .quality-patch-tail.log
+      - name: Publish diagnostics
+        run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add .enforced-quality-finalizer.json
-          git commit -m "Record enforced quality finalizer ${FINALIZER_RUN_ID}"
+          git add .quality-patch-error.log .quality-patch-tail.log
+          git commit -m "Record enforced quality patch diagnostics"
           git pull --rebase origin ops/planned-audit-receipt
           git push origin HEAD:ops/planned-audit-receipt
