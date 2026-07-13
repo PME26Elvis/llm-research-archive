@@ -10,6 +10,8 @@ const config: ForgeConfig = {
       "apps/desktop-electron/resources/archive-manifest.json",
       "docs",
     ],
+    ignore:
+      /^\/(?:\.github|\.vscode|\.devcontainer|apps|project-docs|scripts|packages|tools|hooks|_incoming|docs|coverage|test-results|playwright-report)(?:\/|$)|^\/(?:README\.md|AGENTS\.md|mkdocs\.yml|requirements\.txt|package-lock\.json|tsconfig(?:\.base)?\.json|vitest\.config\.ts|playwright\.config\.ts|vite\..*\.config\.ts|forge\.config\.ts)$/i,
     osxSign: { identity: "-" },
   },
   rebuildConfig: {},

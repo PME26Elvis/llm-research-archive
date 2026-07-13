@@ -21,5 +21,5 @@ function resolveCommit() {
 export default defineConfig({
   resolve: { alias },
   define: { __OBSERVATORY_BUILD_COMMIT__: JSON.stringify(resolveCommit()) },
-  build: { sourcemap: true, rollupOptions: { external: ['electron'] } },
+  build: { sourcemap: false, rollupOptions: { external: ['electron'] } },
 });

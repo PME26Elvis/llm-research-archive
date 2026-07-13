@@ -6,5 +6,5 @@ const alias = {
 };
 export default defineConfig({
   resolve: { alias },
-  build: { sourcemap: true, rollupOptions: { external: ['electron'] } },
+  build: { sourcemap: false, rollupOptions: { external: ['electron'] } },
 });

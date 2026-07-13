@@ -143,8 +143,14 @@ jobs:
         run: xvfb-run -a npm run smoke:packaged
       - if: runner.os != 'Linux'
         run: npm run smoke:packaged
+      - name: Installed package footprint
+        run: npm run validate:footprint:package
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with: { name: '${{ matrix.artifact }}', path: dist/release-assets/* }
+        with:
+          name: '${{ matrix.artifact }}'
+          path: |
+            dist/release-assets/*
+            dist/quality/footprint-package-*.json
   aggregate:
     needs: [preflight, build]
     runs-on: ubuntu-latest

@@ -32,6 +32,13 @@ if (applyVersionStepCount !== 4) {
 if (releaseWorkflow.includes('npm version "$RELEASE_VERSION"')) {
   throw new Error('release workflow must not use shell-specific RELEASE_VERSION expansion');
 }
+const packageFootprintCommand = 'run: npm run validate:footprint:package';
+const packageFootprintStepCount = releaseWorkflow.split(packageFootprintCommand).length - 1;
+if (packageFootprintStepCount !== 1) {
+  throw new Error(
+    `release build matrix must enforce installed package footprint exactly once; found ${packageFootprintStepCount}`,
+  );
+}
 const preflightStart = releaseWorkflow.indexOf('  preflight:\n');
 const buildStart = releaseWorkflow.indexOf('  build:\n');
 if (preflightStart < 0 || buildStart <= preflightStart) {

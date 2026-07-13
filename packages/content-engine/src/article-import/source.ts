@@ -293,7 +293,7 @@ export function resolveImportWorkspaceRoot(
   workspaceRoot: string,
 ): { ok: true; root: string } | { ok: false; issues: ImportIssue[] } {
   const absolute = path.resolve(workspaceRoot);
-  if (!fs.existsSync(absolute) || !fs.lstatSync(absolute).isDirectory()) {
+  if (!fs.existsSync(absolute)) {
     return {
       ok: false,
       issues: [
@@ -306,7 +306,8 @@ export function resolveImportWorkspaceRoot(
       ],
     };
   }
-  if (fs.lstatSync(absolute).isSymbolicLink()) {
+  const stat = fs.lstatSync(absolute);
+  if (stat.isSymbolicLink()) {
     return {
       ok: false,
       issues: [
@@ -314,6 +315,19 @@ export function resolveImportWorkspaceRoot(
           'error',
           'source-symlink',
           'Workspace root must not be a symbolic link.',
+          absolute,
+        ),
+      ],
+    };
+  }
+  if (!stat.isDirectory()) {
+    return {
+      ok: false,
+      issues: [
+        importIssue(
+          'error',
+          'source-not-found',
+          'Workspace root must be an existing directory for conflict detection.',
           absolute,
         ),
       ],

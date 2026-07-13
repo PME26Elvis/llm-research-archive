@@ -1,0 +1,278 @@
+{
+  "schemaVersion": 1,
+  "generatedFrom": "package.json",
+  "entries": [
+    {
+      "name": "electron-squirrel-startup",
+      "section": "dependencies",
+      "range": "^1.0.1",
+      "purpose": "Windows Squirrel lifecycle handling",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "gray-matter",
+      "section": "dependencies",
+      "range": "^4.0.3",
+      "purpose": "Markdown frontmatter parsing",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "highlight.js",
+      "section": "dependencies",
+      "range": "11.11.1",
+      "purpose": "Lazy syntax highlighting",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "markdown-it",
+      "section": "dependencies",
+      "range": "^14.3.0",
+      "purpose": "Markdown rendering",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "markdown-it-footnote",
+      "section": "dependencies",
+      "range": "4.0.0",
+      "purpose": "Markdown footnote rendering",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "mermaid",
+      "section": "dependencies",
+      "range": "11.16.0",
+      "purpose": "Lazy diagram rendering",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "react",
+      "section": "dependencies",
+      "range": "^18.3.1",
+      "purpose": "Desktop renderer UI",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "react-dom",
+      "section": "dependencies",
+      "range": "^18.3.1",
+      "purpose": "Desktop renderer mounting",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "sanitize-html",
+      "section": "dependencies",
+      "range": "^2.17.5",
+      "purpose": "Rendered Markdown sanitization",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "zod",
+      "section": "dependencies",
+      "range": "^3.23.8",
+      "purpose": "Runtime IPC and DTO validation",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "@electron-forge/cli",
+      "section": "devDependencies",
+      "range": "^7.11.2",
+      "purpose": "Electron packaging orchestration",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "@electron-forge/maker-deb",
+      "section": "devDependencies",
+      "range": "^7.11.2",
+      "purpose": "Linux DEB maker",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "@electron-forge/maker-rpm",
+      "section": "devDependencies",
+      "range": "^7.11.2",
+      "purpose": "Linux RPM maker",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "@electron-forge/maker-squirrel",
+      "section": "devDependencies",
+      "range": "^7.11.2",
+      "purpose": "Windows installer maker",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "@electron-forge/maker-zip",
+      "section": "devDependencies",
+      "range": "^7.11.2",
+      "purpose": "Portable ZIP maker",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "@electron-forge/plugin-vite",
+      "section": "devDependencies",
+      "range": "^7.11.2",
+      "purpose": "Vite integration for Electron Forge",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "@electron/asar",
+      "section": "devDependencies",
+      "range": "3.4.1",
+      "purpose": "Inspect packaged ASAR contents for footprint policy",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "@playwright/test",
+      "section": "devDependencies",
+      "range": "^1.61.1",
+      "purpose": "Electron end-to-end testing",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "@types/markdown-it",
+      "section": "devDependencies",
+      "range": "^14.1.2",
+      "purpose": "Markdown-It TypeScript declarations",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "@types/node",
+      "section": "devDependencies",
+      "range": "^24.0.0",
+      "purpose": "Node.js TypeScript declarations",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "@types/react",
+      "section": "devDependencies",
+      "range": "^18.3.3",
+      "purpose": "React TypeScript declarations",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "@types/react-dom",
+      "section": "devDependencies",
+      "range": "^18.3.0",
+      "purpose": "React DOM TypeScript declarations",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "@types/sanitize-html",
+      "section": "devDependencies",
+      "range": "^2.16.1",
+      "purpose": "sanitize-html TypeScript declarations",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "@types/semver",
+      "section": "devDependencies",
+      "range": "^7.7.1",
+      "purpose": "semver TypeScript declarations",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "@vitejs/plugin-react",
+      "section": "devDependencies",
+      "range": "^4.3.1",
+      "purpose": "React transform for Vite",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "@vitest/coverage-v8",
+      "section": "devDependencies",
+      "range": "1.6.0",
+      "purpose": "V8 coverage provider and reports",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "electron",
+      "section": "devDependencies",
+      "range": "43.1.0",
+      "purpose": "Desktop runtime and package target",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "js-yaml",
+      "section": "devDependencies",
+      "range": "^4.1.0",
+      "purpose": "YAML parsing for traceability tooling",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "prettier",
+      "section": "devDependencies",
+      "range": "^3.3.2",
+      "purpose": "Deterministic source formatting",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "semver",
+      "section": "devDependencies",
+      "range": "^7.8.5",
+      "purpose": "Release version policy",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "tsx",
+      "section": "devDependencies",
+      "range": "^4.16.2",
+      "purpose": "TypeScript execution for repository scripts",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "typescript",
+      "section": "devDependencies",
+      "range": "^5.5.3",
+      "purpose": "Static type checking",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "vite",
+      "section": "devDependencies",
+      "range": "^5.3.3",
+      "purpose": "Desktop process and renderer bundling",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "vitest",
+      "section": "devDependencies",
+      "range": "^1.6.0",
+      "purpose": "Unit, contract, security, and compatibility tests",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    }
+  ]
+}
