@@ -12,11 +12,11 @@ Research Observatory Desktop 的程式碼與 reusable release pipeline 位於 [`
 4. 保留預設值：
    - `target_ref`: `app-main`
    - `requested_version`: 留白
+   - `release_notes`: 可留白，或填入這次的變更項目
    - `channel`: `prerelease`
    - `publish`: `false`
-   - `release_notes`: 可留白，或填入本次重點
 
-這組設定會建立經完整驗證的 **新 draft release**，不會立刻公開發布。
+這組設定會建立經完整驗證的 **新 draft release**，不會立刻公開發布。要在同一次執行完成 prerelease，可將 `publish` 設為 `true`。
 
 ## 版本與 tag 不需要手動填寫
 
@@ -45,31 +45,45 @@ Workflow 沒有獨立的 tag 欄位。Tag 由最終版本自動產生，格式�
 | 已發布 `v0.1.0` | `0.1.1` → tag `v0.1.1` |
 | 最高既有版本為 `v0.3.7` | `0.3.8` → tag `v0.3.8` |
 
-## Release highlights 與 Markdown 描述
+## 變更摘要與 Markdown Release 描述
 
-`release_notes` 是可選的 feature／fix 摘要欄位。可使用：
-
-- 英文逗號或全形逗號
-- 分號
-- 換行
-- 已有的 Markdown `-`、`*`、`+` bullets
-
-例如輸入：
+`release_notes` 是可選的結構化變更摘要。以下輸入方式都支援：
 
 ```text
-add language, fix something, fix another
+Add language switching, localize native menus, improve release descriptions
 ```
 
-Release body 會產生：
+```text
+Add language switching
+Localize native menus
+Improve release descriptions
+```
+
+```markdown
+- Add language switching
+- Localize native menus
+- Improve release descriptions
+```
+
+Workflow 會：
+
+1. 以逗號、分號或換行切分項目。
+2. 移除貼上時既有的 `-`、`*`、`+` bullet 前綴。
+3. 清除空項目並移除重複項目。
+4. 限制最多 20 項、每項 200 字元、總輸入 2400 字元。
+5. 在跨平台 build 前完成驗證。
+6. 產生：
 
 ```markdown
 ## What's changed
-- add language
-- fix something
-- fix another
+
+- Add language switching
+- Localize native menus
+- Improve release descriptions
 ```
 
-Pipeline 會移除空白項目與重複項目，限制單項長度與總項目數，並在同一份描述下補上已驗證平台與資產資訊。建立新 draft 或刷新既有 draft 時都會重寫描述，因此可以在發布前修正 highlights。
+7. 在建立新 draft 或刷新同 target 的既有 draft 時，均使用同一份 Markdown notes file。
+8. 在後方附上標準 Verification 清單，說明四平台 packaged smoke 與資產驗證已完成。
 
 ## 檢查 draft 後發布同一版本
 
@@ -79,10 +93,10 @@ Pipeline 會移除空白項目與重複項目，限制單項長度與總項目�
 2. 再次執行 **Desktop Release**。
 3. `target_ref` 保持和建立 draft 時相同。
 4. `requested_version` 明確填入 `0.3.8`，不要加前綴 `v`。
-5. 設定 `publish=true`，並選擇 `prerelease` 或 `stable` channel。
-6. `release_notes` 可沿用或更新；workflow 會刷新同一 draft 的 Markdown 描述。
+5. 可再次填入或更新 `release_notes`；workflow 會刷新 release body。
+6. 設定 `publish=true`，並選擇 `prerelease` 或 `stable` channel。
 
-Workflow 會辨識這是既有 draft，先確認 draft 的 target commit 解析後與目前 `target_ref` 的 SHA 完全相同，才重新驗證、刷新 assets 並發布。若 draft 指向不同 commit，會在昂貴的跨平台封裝前停止。
+Workflow 會辨識這是既有 draft，先確認 draft 的 target commit 解析後與目前 `target_ref` 的 SHA 完全相同，才重新驗證、刷新 assets、更新 Markdown 描述並發布。若 draft 指向不同 commit，會在昂貴的跨平台封裝前停止。
 
 明確輸入版本時的規則：
 
@@ -101,7 +115,7 @@ Reusable workflow 會先執行完整的 `npm run verify`，再分別在原生 ru
 | macOS Apple Silicon | arm64 ZIP |
 | macOS Intel | x64 ZIP |
 
-每個平台都必須通過 packaged smoke。之後 aggregate job 才會建立：
+每個平台都必須通過 packaged smoke 與 2 GiB installed-package hard ceiling。之後 aggregate job 才會建立：
 
 - `SHA256SUMS.txt`
 - `release-manifest.json`
@@ -113,7 +127,7 @@ GitHub Release 上傳後還會驗證資產數量、檔名、大小、重複檔�
 
 ## Draft 與正式發布
 
-- `publish=false`：建立 draft，適合先檢查描述、檔名、manifest、checksums 與各平台資產。
+- `publish=false`：建立 draft，適合先檢查檔名、manifest、checksums、各平台資產與 Markdown 描述。
 - `publish=true`：所有驗證通過後才把指定 release 轉為公開狀態。
 - `channel=prerelease`：公開時標記為 prerelease。
 - `channel=stable`：公開時作為正式穩定版；不接受帶 prerelease suffix 的版本。
@@ -121,7 +135,7 @@ GitHub Release 上傳後還會驗證資產數量、檔名、大小、重複檔�
 因此有兩種合理用法：
 
 - 每次都把 `requested_version` 留白：每次建立一個新的、避開碰撞的 draft version。
-- 先留白建立 draft，再明確填入該 draft version 並設 `publish=true`：發布同一版本。
+- 先留白建立 draft，再明確填入該 draft version並設 `publish=true`：發布同一版本。
 
 Reusable implementation：[`app-main/.github/workflows/desktop-release-reusable.yml`](https://github.com/PME26Elvis/llm-research-archive/blob/app-main/.github/workflows/desktop-release-reusable.yml)。
 
