@@ -1,0 +1,36 @@
+diff --git a/.github/workflows/desktop-release-reusable.yml b/.github/workflows/desktop-release-reusable.yml
+--- a/.github/workflows/desktop-release-reusable.yml
++++ b/.github/workflows/desktop-release-reusable.yml
+@@ -144,9 +144,15 @@ jobs:
+       - if: runner.os == 'Linux'
+         run: xvfb-run -a npm run smoke:packaged
+       - if: runner.os != 'Linux'
+         run: npm run smoke:packaged
++      - name: Installed package footprint
++        run: npm run validate:footprint:package
+       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+-        with: { name: '${{ matrix.artifact }}', path: dist/release-assets/* }
++        with:
++          name: '${{ matrix.artifact }}'
++          path: |
++            dist/release-assets/*
++            dist/quality/footprint-package-*.json
+   aggregate:
+     needs: [preflight, build]
+     runs-on: ubuntu-latest
+diff --git a/scripts/validate-release-assets.mjs b/scripts/validate-release-assets.mjs
+--- a/scripts/validate-release-assets.mjs
++++ b/scripts/validate-release-assets.mjs
+@@ -34,6 +34,13 @@ if (releaseWorkflow.includes('npm version "$RELEASE_VERSION"')) {
+   throw new Error('release workflow must not use shell-specific RELEASE_VERSION expansion');
+ }
++const packageFootprintCommand = 'run: npm run validate:footprint:package';
++const packageFootprintStepCount = releaseWorkflow.split(packageFootprintCommand).length - 1;
++if (packageFootprintStepCount !== 1) {
++  throw new Error(
++    `release build matrix must enforce installed package footprint exactly once; found ${packageFootprintStepCount}`,
++  );
++}
+ const preflightStart = releaseWorkflow.indexOf('  preflight:\n');
+ const buildStart = releaseWorkflow.indexOf('  build:\n');
+ if (preflightStart < 0 || buildStart <= preflightStart) {
