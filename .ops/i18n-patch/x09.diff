@@ -1,0 +1,239 @@
+   const interactiveMarkedRef = useRef(false);
+   const readerRef = useRef<HTMLElement>(null);
+   const lightboxTriggerRef = useRef<HTMLImageElement | null>(null);
+-  const browseModel = useMemo(() => buildArchiveBrowseModel(articles), [articles]);
++  const browseModel = useMemo(() => buildArchiveBrowseModel(articles, locale), [articles, locale]);
+   const filteredArticles = useMemo(
+     () => filterArticlesByBrowse(articles, browseMode, selectedFacet),
+     [articles, browseMode, selectedFacet],
+@@ -300,6 +331,45 @@ function App() {
+           ? browseModel.timeline
+           : [];
+ 
++  useEffect(() => {
++    const onChange = (event: MediaQueryListEvent) => setSystemPrefersDark(event.matches);
++    systemTheme.addEventListener('change', onChange);
++    return () => systemTheme.removeEventListener('change', onChange);
++  }, []);
++
++  useEffect(() => {
++    applyReaderPreferences(document, preferences, systemPrefersDark);
++    saveReaderPreferences(window.localStorage, preferences);
++    void window.observatory
++      .setLocale(preferences.locale)
++      .then(() => window.observatory.workspaceInfo())
++      .then((nextWorkspace) => setWorkspace(nextWorkspace))
++      .catch((error) => reportDiagnostic('preferences', 'locale-sync-failed', String(error)));
++    const resolved = resolveTheme(preferences.theme, systemPrefersDark);
++    if (resolved !== resolvedThemeRef.current) {
++      resolvedThemeRef.current = resolved;
++      document.dispatchEvent(new Event('observatory-theme-change'));
++    }
++  }, [preferences, systemPrefersDark]);
++
++  useEffect(() => {
++    const onKey = (event: KeyboardEvent) => {
++      if (!event.ctrlKey || event.altKey || event.metaKey) return;
++      if (event.key === '+' || event.key === '=' || event.code === 'NumpadAdd') {
++        event.preventDefault();
++        setPreferences((current) => ({ ...current, textScale: adjustTextScale(current.textScale, 1) }));
++      } else if (event.key === '-' || event.code === 'NumpadSubtract') {
++        event.preventDefault();
++        setPreferences((current) => ({ ...current, textScale: adjustTextScale(current.textScale, -1) }));
++      } else if (event.key === '0' || event.code === 'Numpad0') {
++        event.preventDefault();
++        setPreferences((current) => ({ ...current, textScale: 1 }));
++      }
++    };
++    document.addEventListener('keydown', onKey);
++    return () => document.removeEventListener('keydown', onKey);
++  }, []);
++
+   function reportDiagnostic(
+     area: RendererDiagnosticRequest['area'],
+     code: string,
+@@ -354,7 +424,7 @@ function App() {
+       setSelected(article);
+       setPendingFragment(location.fragment);
+     } catch (error) {
+-      setError('文章載入失敗；請查看工作區診斷。');
++      setError(t('error.articleLoad'));
+       reportDiagnostic('renderer', 'article-load-failed', String(error));
+     }
+   }
+@@ -385,7 +455,7 @@ function App() {
+       setSelectedFacet('');
+       setNavigationHistory(createNavigationHistory());
+     } catch (error) {
+-      setError('工作區重新載入失敗；請查看工作區診斷。');
++      setError(t('error.workspaceReload'));
+       reportDiagnostic('renderer', 'workspace-refresh-failed', String(error));
+     } finally {
+       setLoading(false);
+@@ -507,7 +577,7 @@ function App() {
+         .search(q)
+         .then((results) => setShown(filterArticlesByBrowse(results, browseMode, selectedFacet)))
+         .catch((error) => {
+-          setError('搜尋暫時無法使用；請重試。');
++          setError(t('error.search'));
+           reportDiagnostic('search-index', 'search-query-failed', String(error));
+         });
+     }, 150);
+@@ -519,7 +589,7 @@ function App() {
+     requestAnimationFrame(() => {
+       const target = document.getElementById(pendingFragment);
+       if (target) target.scrollIntoView();
+-      else setError(`找不到標題片段：${pendingFragment}`);
++      else setError(t('error.fragmentMissing', { fragment: pendingFragment }));
+       setPendingFragment('');
+     });
+   }, [selected, pendingFragment]);
+@@ -528,15 +598,15 @@ function App() {
+     const reader = readerRef.current;
+     if (!reader) return;
+     for (const image of reader.querySelectorAll<HTMLImageElement>('img')) {
+-      const description = image.alt.trim() || '文章圖片';
++      const description = image.alt.trim() || t('article.image');
+       image.tabIndex = 0;
+       image.setAttribute('role', 'button');
+-      image.setAttribute('aria-label', `放大圖片：${description}`);
++      image.setAttribute('aria-label', t('article.enlargeImage', { alt: description }));
+       image.loading = 'lazy';
+       image.decoding = 'async';
+     }
+-    const cleanupMermaid = mountMermaidBlocks(reader);
+-    decorateCodeBlocks(reader);
++    const cleanupMermaid = mountMermaidBlocks(reader, { locale });
++    decorateCodeBlocks(reader, locale);
+     const cleanupHighlighting = mountSyntaxHighlighting(reader);
+     const cleanupFootnotes = mountFootnoteNavigation(reader);
+     return () => {
+@@ -556,7 +626,7 @@ function App() {
+       setPendingFragment(fragment);
+       pushNavigation({ articleId: id, fragment });
+     } catch (error) {
+-      setError('文章載入失敗；請查看工作區診斷。');
++      setError(t('error.articleLoad'));
+       reportDiagnostic('renderer', 'article-load-failed', String(error));
+     }
+   }
+@@ -571,7 +641,7 @@ function App() {
+       setPendingFragment(fragment);
+       pushNavigation({ articleId: id, fragment });
+     } catch {
+-      setError(`找不到內部文章連結：${href}`);
++      setError(t('error.internalLinkMissing', { href }));
+     }
+   }
+ 
+@@ -583,7 +653,7 @@ function App() {
+       if (target) {
+         target.scrollIntoView();
+         pushNavigation({ articleId: selected?.id ?? '', fragment });
+-      } else setError(`找不到標題片段：${fragment}`);
++      } else setError(t('error.fragmentMissing', { fragment }));
+     });
+   }
+ 
+@@ -596,7 +666,7 @@ function App() {
+     try {
+       setDiagnostics(await window.observatory.clearDiagnostics());
+     } catch (error) {
+-      setError('無法清除本機診斷紀錄。');
++      setError(t('error.diagnosticsClear'));
+       reportDiagnostic('renderer', 'diagnostics-clear-failed', String(error));
+     }
+   }
+@@ -611,7 +681,7 @@ function App() {
+     try {
+       setAbout(await window.observatory.appInfo());
+     } catch (e) {
+-      setError(`About 資訊載入失敗：${String(e)}`);
++      setError(t('error.aboutLoad', { error: String(e) }));
+     }
+   }
+ 
+@@ -635,7 +705,7 @@ function App() {
+     const src = image.currentSrc || image.src;
+     if (!src) return;
+     lightboxTriggerRef.current = image;
+-    setLightbox({ src, alt: image.alt.trim() || '文章圖片' });
++    setLightbox({ src, alt: image.alt.trim() || t('article.image') });
+   }
+ 
+   function closeImageLightbox() {
+@@ -654,16 +724,16 @@ function App() {
+     button.dataset.copyPending = 'true';
+     button.setAttribute('aria-busy', 'true');
+     const copied = await copyText(code.textContent || '');
+-    button.textContent = copied ? '已複製' : '複製失敗';
++    button.textContent = copied ? t('code.copied') : t('code.copyFailed');
+     button.dataset.copyState = copied ? 'success' : 'error';
+-    status.textContent = copied ? '程式碼已複製到剪貼簿' : '無法存取剪貼簿，請手動選取程式碼';
++    status.textContent = copied ? t('code.statusCopied') : t('code.statusFailed');
+ 
+     window.setTimeout(() => {
+       if (!button.isConnected) return;
+       delete button.dataset.copyPending;
+       delete button.dataset.copyState;
+       button.removeAttribute('aria-busy');
+-      button.textContent = '複製';
++      button.textContent = t('code.copy');
+       status.textContent = '';
+     }, 1800);
+   }
+@@ -694,7 +764,7 @@ function App() {
+     }
+     if (/^(http:|javascript:|data:|file:)/i.test(href)) {
+       e.preventDefault();
+-      setError('已阻擋不安全連結');
++      setError(t('error.unsafeLink'));
+       return;
+     }
+     const { path, fragment } = hrefParts(href);
+@@ -713,7 +783,7 @@ function App() {
+     }
+     if (href) {
+       e.preventDefault();
+-      setError(`找不到內部文章連結：${href}`);
++      setError(t('error.internalLinkMissing', { href }));
+     }
+   }
+ 
+@@ -730,16 +800,17 @@ function App() {
+   return (
+     <>
+       <a className="skip-link" href="#main-reader">
+-        跳至文章內容
++        {t('skip.reader')}
+       </a>
+       <ResizableLayout
+         articleCount={articles.length}
++        locale={locale}
+         sidebar={
+           <>
+             <div className="app-header">
+               <h1>Research Observatory</h1>
+               <div className="app-header-actions">
+-                <ReaderSettings />
++                <ReaderSettings preferences={preferences} onChange={setPreferences} />
+                 <button
+                   ref={observatoryButtonRef}
+                   type="button"
+@@ -748,15 +819,15 @@ function App() {
+                   Observatory
+                 </button>
+                 <button ref={aboutButtonRef} type="button" onClick={openAbout}>
+-                  關於
++                  {t('header.about')}
+                 </button>
+               </div>
+             </div>
+             {workspace && (
+-              <section className="workspace-panel" aria-label="目前工作區">
++              <section className="workspace-panel" aria-label={t('workspace.current')}>
+                 <div>
+                   <strong data-testid="workspace-kind">
+-                    {workspace.kind === 'local' ? '本機工作區' : '內建封存'}
++                    {workspace.kind === 'local' ? t('workspace.local') : t('workspace.bundled')}
+                   </strong>
