@@ -67,3 +67,48 @@ test('persists theme and text size across an Electron restart', async ({ launchE
   await expect(second.page.getByLabel('淺色')).toBeChecked();
   await expect(second.page.getByTestId('settings-text-scale')).toHaveText('120%');
 });
+
+test('switches the interface and native menu to English and persists the language', async ({
+  launchElectron,
+}) => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'observatory-language-content-'));
+  const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'observatory-language-profile-'));
+  writeArticle(root);
+
+  const first = await launchElectron({
+    args: [`--user-data-dir=${profile}`],
+    env: { ARCHIVE_CONTENT_ROOT: root },
+  });
+  await expect(first.page.getByTestId('app-ready')).toBeVisible({ timeout: 30000 });
+  await first.page.getByRole('button', { name: '設定' }).click();
+  await first.page.getByLabel('English').check();
+  await expect(first.page.locator('html')).toHaveAttribute('lang', 'en');
+  await expect(
+    first.page.getByRole('heading', { name: 'Reading & language settings' }),
+  ).toBeVisible();
+  await expect(first.page.getByRole('button', { name: 'Close settings' })).toBeVisible();
+  await first.page.getByRole('button', { name: 'Close settings' }).click();
+  await expect(first.page.getByRole('button', { name: 'Settings' })).toBeFocused();
+  await expect(first.page.getByLabel('Search articles')).toBeVisible();
+
+  await expect
+    .poll(() =>
+      first.app.evaluate(({ Menu }) => Menu.getApplicationMenu()?.items.map((item) => item.label)),
+    )
+    .toEqual(expect.arrayContaining(['Navigation', 'View', 'Help']));
+  await first.app.close();
+
+  const second = await launchElectron({
+    args: [`--user-data-dir=${profile}`],
+    env: { ARCHIVE_CONTENT_ROOT: root },
+    cleanupPaths: [root, profile],
+  });
+  await expect(second.page.getByTestId('app-ready')).toBeVisible({ timeout: 30000 });
+  await expect(second.page.locator('html')).toHaveAttribute('lang', 'en');
+  await expect(second.page.getByRole('button', { name: 'Settings' })).toBeVisible();
+  await second.page.getByRole('button', { name: 'Settings' }).click();
+  await expect(second.page.getByLabel('English')).toBeChecked();
+  await second.page.getByLabel('繁體中文').check();
+  await expect(second.page.locator('html')).toHaveAttribute('lang', 'zh-TW');
+  await expect(second.page.getByRole('heading', { name: '閱讀與語言設定' })).toBeVisible();
+});

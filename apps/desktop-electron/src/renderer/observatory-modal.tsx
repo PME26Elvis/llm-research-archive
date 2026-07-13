@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { buildArchiveBrowseModel } from '@research-observatory/renderer-ui';
 import type { ArticleSummaryDto } from '@research-observatory/platform-contracts';
+import { usePreferences } from './preferences-context';
 
 interface ObservatoryModalProps {
   articles: readonly ArticleSummaryDto[];
@@ -16,6 +17,7 @@ function focusableElements(root: HTMLElement): HTMLElement[] {
 }
 
 export function ObservatoryModal({ articles, onClose }: ObservatoryModalProps) {
+  const { t, formatNumber } = usePreferences();
   const dialogRef = useRef<HTMLElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const model = useMemo(() => buildArchiveBrowseModel([...articles]), [articles]);
@@ -73,43 +75,41 @@ export function ObservatoryModal({ articles, onClose }: ObservatoryModalProps) {
       >
         <header>
           <div>
-            <h2 id="observatory-title">Observatory 封存摘要</h2>
-            <p id="observatory-description">
-              以表格與文字呈現封存規模、分類、標籤、時間軸、修訂日期與閱讀量；此視圖也是所有視覺化的無障礙替代內容。
-            </p>
+            <h2 id="observatory-title">{t('observatory.title')}</h2>
+            <p id="observatory-description">{t('observatory.description')}</p>
           </div>
           <button ref={closeRef} type="button" onClick={onClose}>
-            關閉
+            {t('common.close')}
           </button>
         </header>
 
         <dl className="observatory-stats" data-testid="observatory-stats">
           <div>
-            <dt>文章數</dt>
+            <dt>{t('observatory.articleCount')}</dt>
             <dd>{articles.length}</dd>
           </div>
           <div>
-            <dt>顯示字數</dt>
-            <dd>{totals.displayCount.toLocaleString('zh-TW')}</dd>
+            <dt>{t('observatory.wordCount')}</dt>
+            <dd>{formatNumber(totals.displayCount)}</dd>
           </div>
           <div>
-            <dt>估計閱讀時間</dt>
-            <dd>{totals.estimatedMinutes.toLocaleString('zh-TW')} 分鐘</dd>
+            <dt>{t('observatory.readingTime')}</dt>
+            <dd>{t('common.minutes', { count: formatNumber(totals.estimatedMinutes) })}</dd>
           </div>
           <div>
-            <dt>含修訂日期文章</dt>
+            <dt>{t('observatory.revisedCount')}</dt>
             <dd>{revised.length}</dd>
           </div>
         </dl>
 
         <div className="observatory-grid">
           <section aria-labelledby="observatory-categories">
-            <h3 id="observatory-categories">分類</h3>
+            <h3 id="observatory-categories">{t('observatory.categories')}</h3>
             <table>
               <thead>
                 <tr>
-                  <th scope="col">分類</th>
-                  <th scope="col">文章</th>
+                  <th scope="col">{t('observatory.categories')}</th>
+                  <th scope="col">{t('observatory.articles')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -123,12 +123,12 @@ export function ObservatoryModal({ articles, onClose }: ObservatoryModalProps) {
             </table>
           </section>
           <section aria-labelledby="observatory-timeline">
-            <h3 id="observatory-timeline">時間軸</h3>
+            <h3 id="observatory-timeline">{t('observatory.timeline')}</h3>
             <table>
               <thead>
                 <tr>
-                  <th scope="col">月份</th>
-                  <th scope="col">文章</th>
+                  <th scope="col">{t('observatory.month')}</th>
+                  <th scope="col">{t('observatory.articles')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -142,7 +142,7 @@ export function ObservatoryModal({ articles, onClose }: ObservatoryModalProps) {
             </table>
           </section>
           <section aria-labelledby="observatory-tags">
-            <h3 id="observatory-tags">熱門標籤</h3>
+            <h3 id="observatory-tags">{t('observatory.popularTags')}</h3>
             <ol>
               {model.tags.slice(0, 20).map((item) => (
                 <li key={item.key}>
@@ -153,7 +153,7 @@ export function ObservatoryModal({ articles, onClose }: ObservatoryModalProps) {
             </ol>
           </section>
           <section aria-labelledby="observatory-revisions">
-            <h3 id="observatory-revisions">最近修訂</h3>
+            <h3 id="observatory-revisions">{t('observatory.recentRevisions')}</h3>
             {revised.length ? (
               <ol>
                 {[...revised]
@@ -167,7 +167,7 @@ export function ObservatoryModal({ articles, onClose }: ObservatoryModalProps) {
                   ))}
               </ol>
             ) : (
-              <p>目前文章尚未提供獨立修訂日期。</p>
+              <p>{t('observatory.noRevisions')}</p>
             )}
           </section>
         </div>

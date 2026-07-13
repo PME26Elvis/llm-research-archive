@@ -18,6 +18,22 @@ describe('Electron security configuration', () => {
     expect(preload).not.toContain("exposeInMainWorld('electron'");
   });
 
+  it('keeps locale persistence in the renderer and native-menu authority in the main process', () => {
+    const main = fs.readFileSync('apps/desktop-electron/src/main/main.ts', 'utf8');
+    const preload = fs.readFileSync('apps/desktop-electron/src/preload/preload.ts', 'utf8');
+    const preferences = fs.readFileSync(
+      'apps/desktop-electron/src/renderer/preferences-context.tsx',
+      'utf8',
+    );
+
+    expect(main).toContain("ipcMain.handle('preferences:set-locale'");
+    expect(main).toContain('LocaleUpdateRequestSchema.parse');
+    expect(main).toContain('installApplicationMenu(owner, currentLocale)');
+    expect(preload).toContain('LocaleUpdateRequestSchema.parse({ locale })');
+    expect(preferences).toContain('window.localStorage');
+    expect(preferences).not.toContain('ipcRenderer');
+  });
+
   it('keeps import filesystem authority and plans in the main process', () => {
     const main = fs.readFileSync('apps/desktop-electron/src/main/main.ts', 'utf8');
     const preload = fs.readFileSync('apps/desktop-electron/src/preload/preload.ts', 'utf8');

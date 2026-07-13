@@ -113,6 +113,8 @@ export const ExternalUrlSchema = z
   .string()
   .url()
   .refine((v) => ['https:', 'mailto:'].includes(new URL(v).protocol));
+export const UiLocaleSchema = z.enum(['zh-TW', 'en']);
+export const LocaleUpdateRequestSchema = z.object({ locale: UiLocaleSchema });
 export const DesktopCommandSchema = z.enum([
   'palette.open',
   'search.focus',
@@ -263,6 +265,8 @@ export const ImportCommitResultSchema = z.discriminatedUnion('status', [
 ]);
 export const ArticleListResponseSchema = z.array(ArticleSummaryDtoSchema);
 export const SearchResponseSchema = z.array(SearchResultDtoSchema);
+export type UiLocale = z.infer<typeof UiLocaleSchema>;
+export type LocaleUpdateRequest = z.infer<typeof LocaleUpdateRequestSchema>;
 export type DesktopCommand = z.infer<typeof DesktopCommandSchema>;
 
 export type StartupMilestone = z.infer<typeof StartupMilestoneSchema>;

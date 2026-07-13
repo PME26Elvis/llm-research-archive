@@ -45,6 +45,15 @@ describe('desktop release workflow safety', () => {
     expect(refresh).toContain('if [[ "$resolved_target" != "$TARGET_SHA" ]]');
   });
 
+
+  it('accepts structured change items and renders them into the GitHub release body', () => {
+    expect(workflow).toContain("release_notes: { type: string, required: false, default: '' }");
+    expect(workflow.match(/node scripts\/release-notes\.mjs \/tmp\/release-notes\.md/g)).toHaveLength(2);
+    const refresh = namedStep('Create or refresh draft release assets');
+    expect(refresh).toContain('--notes-file /tmp/release-notes.md');
+    expect(refresh).toContain('gh release edit "$TAG" --notes-file /tmp/release-notes.md');
+  });
+
   it('verifies the release after upload and before optional publication', () => {
     const verifyIndex = workflow.indexOf('- name: Verify GitHub release assets');
     const publishIndex = workflow.indexOf('- if: inputs.publish');

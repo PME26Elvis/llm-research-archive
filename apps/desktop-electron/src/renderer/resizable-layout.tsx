@@ -7,6 +7,7 @@ import {
   saveLayoutPreferences,
   type LayoutPreferences,
 } from './layout-preferences';
+import { usePreferences } from './preferences-context';
 
 const initialPreferences = loadLayoutPreferences(window.localStorage);
 
@@ -17,6 +18,7 @@ interface ResizableLayoutProps {
 }
 
 export function ResizableLayout({ articleCount, sidebar, children }: ResizableLayoutProps) {
+  const { t } = usePreferences();
   const [preferences, setPreferences] = useState<LayoutPreferences>(initialPreferences);
   const dragStartRef = useRef<{ x: number; width: number } | null>(null);
 
@@ -72,7 +74,7 @@ export function ResizableLayout({ articleCount, sidebar, children }: ResizableLa
         <div
           className="pane-separator"
           role="separator"
-          aria-label="調整導覽欄寬度"
+          aria-label={t('layout.resizeSidebar')}
           aria-orientation="vertical"
           aria-valuemin={MIN_SIDEBAR_WIDTH}
           aria-valuemax={MAX_SIDEBAR_WIDTH}
@@ -104,11 +106,13 @@ export function ResizableLayout({ articleCount, sidebar, children }: ResizableLa
         <button
           type="button"
           className="sidebar-toggle"
-          aria-label={preferences.sidebarCollapsed ? '顯示導覽欄' : '隱藏導覽欄'}
+          aria-label={
+            preferences.sidebarCollapsed ? t('layout.showSidebar') : t('layout.hideSidebar')
+          }
           aria-expanded={!preferences.sidebarCollapsed}
           onClick={toggleSidebar}
         >
-          {preferences.sidebarCollapsed ? '顯示導覽欄' : '隱藏導覽欄'}
+          {preferences.sidebarCollapsed ? t('layout.showSidebar') : t('layout.hideSidebar')}
         </button>
         {children}
       </section>

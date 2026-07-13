@@ -1,24 +1,33 @@
 import { describe, expect, it } from 'vitest';
-import { DESKTOP_COMMANDS, filterDesktopCommands } from './desktop-commands';
+import { filterDesktopCommands, getDesktopCommands } from './desktop-commands';
 
 describe('desktop command catalog', () => {
-  it('returns the full deterministic catalog for an empty query', () => {
-    expect(filterDesktopCommands('')).toEqual(DESKTOP_COMMANDS);
+  it('returns a deterministic localized catalog for an empty query', () => {
+    expect(filterDesktopCommands('', 'zh-TW')).toEqual(getDesktopCommands('zh-TW'));
+    expect(getDesktopCommands('en').find((command) => command.id === 'search.focus')?.label).toBe(
+      'Focus search',
+    );
   });
 
-  it('matches Traditional Chinese labels and English aliases', () => {
-    expect(filterDesktopCommands('搜尋').map((command) => command.id)).toEqual(['search.focus']);
-    expect(filterDesktopCommands('previous').map((command) => command.id)).toEqual([
+  it('matches Traditional Chinese labels and English aliases in either locale', () => {
+    expect(filterDesktopCommands('搜尋', 'zh-TW').map((command) => command.id)).toEqual([
+      'search.focus',
+    ]);
+    expect(filterDesktopCommands('previous', 'en').map((command) => command.id)).toEqual([
       'navigation.back',
     ]);
-    expect(filterDesktopCommands('version').map((command) => command.id)).toEqual(['about.open']);
-    expect(filterDesktopCommands('匯入').map((command) => command.id)).toEqual(['import.open']);
-    expect(filterDesktopCommands('字數').map((command) => command.id)).toEqual([
+    expect(filterDesktopCommands('version', 'en').map((command) => command.id)).toEqual([
+      'about.open',
+    ]);
+    expect(filterDesktopCommands('匯入', 'en').map((command) => command.id)).toEqual([
+      'import.open',
+    ]);
+    expect(filterDesktopCommands('字數', 'en').map((command) => command.id)).toEqual([
       'observatory.open',
     ]);
   });
 
   it('returns no arbitrary action for an unknown query', () => {
-    expect(filterDesktopCommands('delete everything')).toEqual([]);
+    expect(filterDesktopCommands('delete everything', 'en')).toEqual([]);
   });
 });
