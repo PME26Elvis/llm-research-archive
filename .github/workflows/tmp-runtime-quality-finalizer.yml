@@ -1,0 +1,89 @@
+name: Temporary Runtime Quality Finalizer
+run-name: Finalize runtime quality foundations
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/tmp-runtime-quality-finalizer.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    if: startsWith(github.event.head_commit.message, 'Finalize runtime quality foundations')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: agent/runtime-quality-foundations
+          fetch-depth: 0
+      - name: Checkout staged patches
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: ops/planned-audit-receipt
+          path: payload
+          fetch-depth: 1
+      - name: Apply transparent runtime patches
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat payload/.runtime-patches/01.diff \
+              payload/.runtime-patches/02.diff \
+              payload/.runtime-patches/03.diff \
+              payload/.runtime-patches/04.diff \
+              payload/.runtime-patches/05.diff > /tmp/runtime-quality.patch
+          git apply --check /tmp/runtime-quality.patch
+          git apply /tmp/runtime-quality.patch
+          rm -rf payload
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run format:write
+      - run: npm run verify
+      - name: Publish verified runtime foundations
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add apps packages scripts/search-benchmark.mjs
+          git commit -m "Add runtime quality foundations"
+          git push origin HEAD:agent/runtime-quality-foundations
+
+  receipt:
+    if: always() && startsWith(github.event.head_commit.message, 'Finalize runtime quality foundations')
+    needs: finalize
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: ops/planned-audit-receipt
+          fetch-depth: 0
+      - name: Record finalizer result
+        env:
+          FINALIZER_RUN_ID: ${{ github.run_id }}
+          FINALIZER_RESULT: ${{ needs.finalize.result }}
+          FINALIZER_TRIGGER_SHA: ${{ github.sha }}
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const receipt = {
+            runId: Number(process.env.FINALIZER_RUN_ID),
+            result: process.env.FINALIZER_RESULT,
+            triggerSha: process.env.FINALIZER_TRIGGER_SHA,
+            recordedAt: new Date().toISOString(),
+          };
+          fs.writeFileSync('.runtime-quality-finalizer.json', `${JSON.stringify(receipt, null, 2)}\n`);
+          NODE
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .runtime-quality-finalizer.json
+          git commit -m "Record runtime quality finalizer ${FINALIZER_RUN_ID}"
+          git pull --rebase origin ops/planned-audit-receipt
+          git push origin HEAD:ops/planned-audit-receipt
