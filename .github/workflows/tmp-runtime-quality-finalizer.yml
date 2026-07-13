@@ -1,5 +1,5 @@
 name: Temporary Completed Quality Docs Finalizer
-run-name: Run three-way completed quality documentation
+run-name: Run adaptive completed quality documentation
 
 on:
   push:
@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   finalize:
-    if: startsWith(github.event.head_commit.message, 'Run three-way completed quality documentation')
+    if: startsWith(github.event.head_commit.message, 'Run adaptive completed quality documentation')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout documentation branch
@@ -36,18 +36,42 @@ jobs:
           from pathlib import Path
 
           root = Path('payload/.docs-sync-patch')
-          parts = [bytearray((root / f'part-{index:02d}.diff').read_bytes()) for index in range(4)]
-          for index in range(3):
-              if not parts[index].endswith(b'\n'):
-                  raise SystemExit(f'part-{index:02d} is missing the expected API-added LF')
-              del parts[index][-1:]
-          combined = b''.join(parts)
+          expected_parts = [
+              (16000, 'd182356afcf5c67937cd3ce09673c08d6de594ca35ac50b53b27270a5831a00d'),
+              (16000, 'c0f87d57cc7e82cfd641f07ef72cf592d311cdbd5b37a9a5623ca955c6d7f561'),
+              (16000, '160992af5282472a275313644ce6a6799960c8aa9a202f20c16cd83363996807'),
+              (14801, '1fe8d88f2a07970022e217a14862fdb02830a24ad246411a3e15df98caf80115'),
+          ]
+          verified = []
+          diagnostics = []
+          for index, (expected_size, expected_digest) in enumerate(expected_parts):
+              path = root / f'part-{index:02d}.diff'
+              data = path.read_bytes()
+              actual_digest = sha256(data).hexdigest()
+              if len(data) == expected_size and actual_digest == expected_digest:
+                  verified.append(data)
+                  diagnostics.append(f'{path.name}: exact {len(data)} {actual_digest}')
+                  continue
+              if (
+                  len(data) == expected_size + 1
+                  and data.endswith(b'\n')
+                  and sha256(data[:-1]).hexdigest() == expected_digest
+              ):
+                  verified.append(data[:-1])
+                  diagnostics.append(f'{path.name}: removed API LF {len(data)} -> {expected_size}')
+                  continue
+              raise SystemExit(
+                  f'{path.name} mismatch: size={len(data)} sha256={actual_digest}; '
+                  f'expected size={expected_size} sha256={expected_digest}'
+              )
+          combined = b''.join(verified)
           digest = sha256(combined).hexdigest()
           expected = '74d3fb4d1c8a0e1fc02cde6030c3788ebfe1983674d620f8ee2ecad693f418b3'
-          Path('docs-patch-digest.txt').write_text(f'{digest}  docs-sync.patch\n')
+          Path('docs-patch-digest.txt').write_text('\n'.join(diagnostics + [f'combined: {len(combined)} {digest}']) + '\n')
           if digest != expected:
               raise SystemExit(f'documentation patch digest mismatch: {digest} != {expected}')
           Path('/tmp/docs-sync.patch').write_bytes(combined)
+          print('\n'.join(diagnostics))
           print(f'documentation patch verified: {digest}')
           PY
           if git apply --check /tmp/docs-sync.patch 2>docs-apply.log; then
@@ -101,7 +125,7 @@ jobs:
           retention-days: 14
 
   receipt:
-    if: always() && startsWith(github.event.head_commit.message, 'Run three-way completed quality documentation')
+    if: always() && startsWith(github.event.head_commit.message, 'Run adaptive completed quality documentation')
     needs: finalize
     runs-on: ubuntu-latest
     steps:
