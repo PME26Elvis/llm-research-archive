@@ -1,5 +1,5 @@
-name: Temporary Release Footprint Finalizer
-run-name: Finalize release footprint enforcement line edit
+name: Temporary Package Footprint Inspector
+run-name: Inspect macOS package footprint failure
 
 on:
   push:
@@ -9,161 +9,33 @@ on:
       - .github/workflows/tmp-runtime-quality-finalizer.yml
 
 permissions:
+  actions: read
   contents: write
 
 jobs:
-  finalize:
-    if: startsWith(github.event.head_commit.message, 'Finalize release footprint enforcement line edit')
-    runs-on: ubuntu-latest
-    outputs:
-      commit_sha: ${{ steps.commit.outputs.commit_sha }}
-      push_result: ${{ steps.commit.outputs.push_result }}
-    steps:
-      - name: Checkout feature branch
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
-        with:
-          ref: agent/enforced-quality-gates
-          fetch-depth: 0
-      - name: Apply structure-aware release workflow edits
-        shell: bash
-        run: |
-          set -euo pipefail
-          python - <<'PY'
-          from pathlib import Path
-
-          artifact_expression = '$' + '{{ matrix.artifact }}'
-          workflow = Path('.github/workflows/desktop-release-reusable.yml')
-          lines = workflow.read_text().splitlines()
-          candidates = [index for index, line in enumerate(lines) if line == "      - if: runner.os != 'Linux'"]
-          if len(candidates) != 1:
-              raise SystemExit(f'expected one non-Linux smoke step, found {len(candidates)}')
-          index = candidates[0]
-          expected = [
-              "      - if: runner.os != 'Linux'",
-              '        run: npm run smoke:packaged',
-              '      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02',
-          ]
-          if lines[index:index + 3] != expected:
-              raise SystemExit(f'unexpected release build sequence: {lines[index:index + 4]}')
-          with_line = lines[index + 3]
-          if not (
-              with_line.startswith('        with: { name: ') and
-              'path: dist/release-assets/*' in with_line
-          ):
-              raise SystemExit(f'unexpected release artifact configuration: {with_line}')
-          replacement = [
-              "      - if: runner.os != 'Linux'",
-              '        run: npm run smoke:packaged',
-              '      - name: Installed package footprint',
-              '        run: npm run validate:footprint:package',
-              '      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02',
-              '        with:',
-              f"          name: '{artifact_expression}'",
-              '          path: |',
-              '            dist/release-assets/*',
-              '            dist/quality/footprint-package-*.json',
-          ]
-          lines[index:index + 4] = replacement
-          if lines.count('        run: npm run validate:footprint:package') != 1:
-              raise SystemExit('release footprint command must appear exactly once')
-          workflow.write_text('\n'.join(lines) + '\n')
-
-          validation = Path('scripts/validate-release-assets.mjs')
-          lines = validation.read_text().splitlines()
-          insertion_points = [
-              index for index, line in enumerate(lines) if line.startswith('const preflightStart = ')
-          ]
-          if len(insertion_points) != 1:
-              raise SystemExit(f'expected one preflight validation marker, found {len(insertion_points)}')
-          addition = [
-              "const packageFootprintCommand = 'run: npm run validate:footprint:package';",
-              'const packageFootprintStepCount = releaseWorkflow.split(packageFootprintCommand).length - 1;',
-              'if (packageFootprintStepCount !== 1) {',
-              '  throw new Error(',
-              '    `release build matrix must enforce installed package footprint exactly once; found ${packageFootprintStepCount}`,',
-              '  );',
-              '}',
-          ]
-          if addition[0] not in lines:
-              lines[insertion_points[0]:insertion_points[0]] = addition
-          validation.write_text('\n'.join(lines) + '\n')
-          PY
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with:
-          node-version: '24'
-          cache: npm
-      - run: npm ci
-      - run: npm run format:write
-      - name: Execute complete quality gate
-        shell: bash
-        run: |
-          set -o pipefail
-          npm run verify 2>&1 | tee release-footprint-verify.log
-      - name: Upload verification evidence
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: release-footprint-verification-${{ github.run_attempt }}
-          path: |
-            release-footprint-verify.log
-            coverage/
-            dist/quality/
-            dist/performance/
-          if-no-files-found: warn
-          retention-days: 14
-      - name: Create verified commit
-        id: commit
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add .github/workflows/desktop-release-reusable.yml scripts/validate-release-assets.mjs
-          git commit -m "Enforce installed footprint in Desktop Release"
-          commit_sha=$(git rev-parse HEAD)
-          echo "commit_sha=$commit_sha" >> "$GITHUB_OUTPUT"
-          set +e
-          git push origin HEAD:agent/enforced-quality-gates
-          push_status=$?
-          set -e
-          if [[ $push_status -eq 0 ]]; then
-            echo 'push_result=success' >> "$GITHUB_OUTPUT"
-          else
-            echo 'push_result=workflow-permission-rejected' >> "$GITHUB_OUTPUT"
-          fi
-
-  receipt:
-    if: always() && startsWith(github.event.head_commit.message, 'Finalize release footprint enforcement line edit')
-    needs: finalize
+  inspect:
+    if: startsWith(github.event.head_commit.message, 'Inspect macOS package footprint failure')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
           ref: ops/planned-audit-receipt
           fetch-depth: 0
-      - name: Record finalizer result
+      - name: Capture macOS footprint diagnostics
         env:
-          FINALIZER_RUN_ID: ${{ github.run_id }}
-          FINALIZER_RESULT: ${{ needs.finalize.result }}
-          VERIFIED_COMMIT_SHA: ${{ needs.finalize.outputs.commit_sha }}
-          PUSH_RESULT: ${{ needs.finalize.outputs.push_result }}
-          FINALIZER_TRIGGER_SHA: ${{ github.sha }}
+          GH_TOKEN: ${{ github.token }}
+          JOB_ID: '86743430252'
         run: |
-          node - <<'NODE'
-          const fs = require('node:fs');
-          const receipt = {
-            runId: Number(process.env.FINALIZER_RUN_ID),
-            result: process.env.FINALIZER_RESULT,
-            verifiedCommitSha: process.env.VERIFIED_COMMIT_SHA || null,
-            pushResult: process.env.PUSH_RESULT || null,
-            triggerSha: process.env.FINALIZER_TRIGGER_SHA,
-            recordedAt: new Date().toISOString(),
-          };
-          fs.writeFileSync('.release-footprint-finalizer.json', `${JSON.stringify(receipt, null, 2)}\n`);
-          NODE
+          set -euo pipefail
+          gh api "repos/${GITHUB_REPOSITORY}/actions/jobs/${JOB_ID}/logs" > /tmp/macos-footprint.log
+          grep -iE 'footprint|forbidden|budget|asar|error|failed|bytes|packageRoot|totalBytes' /tmp/macos-footprint.log \
+            > .macos-footprint-errors.log || true
+          tail -n 180 /tmp/macos-footprint.log > .macos-footprint-tail.log
+      - name: Publish diagnostics
+        run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add .release-footprint-finalizer.json
-          git commit -m "Record release footprint finalizer ${FINALIZER_RUN_ID}"
+          git add .macos-footprint-errors.log .macos-footprint-tail.log
+          git commit -m "Record macOS package footprint diagnostics"
           git pull --rebase origin ops/planned-audit-receipt
           git push origin HEAD:ops/planned-audit-receipt
