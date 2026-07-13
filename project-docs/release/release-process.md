@@ -1,32 +1,27 @@
 ---
 status: accepted
 owner: repository-maintainer
-last-verified: 2026-07-10
+last-verified: 2026-07-13
 related-adrs:
-  - ADR-0001
+  - ADR-0007
+  - ADR-0018
 ---
 
 # Release Process
 
-The manual desktop release entry point lives on the default branch as `.github/workflows/desktop-release.yml`. It calls the reusable implementation from `app-main` and exposes:
+The default branch exposes `.github/workflows/desktop-release.yml`; it calls the reusable implementation from `app-main`. Inputs are `target_ref` (default `app-main`), optional exact `requested_version`, `channel` (`prerelease` or `stable`), and `publish` (default `false`).
 
-- `target_ref`: branch, tag, or commit to release; defaults to `app-main`.
-- `requested_version`: optional exact SemVer; blank reads `package.json`.
-- `channel`: `prerelease` or `stable`.
-- `publish`: defaults to `false`.
+## Verified sequence
 
-## Safe operating sequence
+1. Preflight resolves the requested ref to an immutable SHA, selects a collision-free version, applies it to the temporary build workspace, and runs `npm run verify`.
+2. Native Windows x64, Linux x64, macOS arm64, and macOS x64 jobs build without release-write permission.
+3. Every native job starts the packaged executable and enforces the 2 GiB package hard ceiling plus sensitive-file policy.
+4. Aggregate creates the exact binary set, `SHA256SUMS.txt`, `release-manifest.json`, and CycloneDX `sbom.cdx.json`.
+5. The single release-authority job creates or refreshes only a same-target draft, uploads the exact assets, reads them back, and verifies names, sizes, hashes, target SHA, and draft state.
+6. `publish=true` is the only path that converts the verified draft into a public prerelease or stable release.
 
-1. Run the workflow from the default branch.
-2. Start with `target_ref=app-main`, blank `requested_version`, `channel=prerelease`, and `publish=false`.
-3. Preflight resolves the target to an immutable commit SHA and runs `npm run verify`.
-4. Native Windows and Linux jobs build and smoke-test their packages without release-write permissions.
-5. A single aggregate job creates checksums, the release manifest, and CycloneDX SBOM.
-6. The release job creates or refreshes a draft, uploads the exact asset set, then reads it back and verifies names, sizes, target SHA, and draft state.
-7. Only a separate run with `publish=true` may publish after all verification succeeds.
+Published versions are immutable. Blank `requested_version` chooses the package version when free, otherwise advances from the highest occupied tag or release. An explicit version may reuse only a draft that resolves to the same target SHA.
 
-Published releases are never silently overwritten. An existing tag may only be refreshed when its release is still a draft and targets the same resolved commit.
+GitHub permits each release asset to be under 2 GiB. The repository's installed-package ceiling is also 2 GiB, while release-asset validation independently rejects zero-byte, missing, extra, duplicate, or mismatched artifacts.
 
-## Verified dry run
-
-Workflow run `29113199684` completed successfully with `publish=false` against commit `0da85343629b0add40a61be05ee9432d6786cb0e`. See `project-docs/release/verification-run-29113199684.md`.
+The earlier dry run `29113199684` proved draft-first Windows/Linux release behavior. Current Desktop CI and reusable release jobs additionally cover macOS arm64/x64, enforced coverage, accessibility, dependency audit, search benchmarks, renderer footprint, and native installed footprint.

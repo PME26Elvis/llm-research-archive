@@ -1,9 +1,10 @@
 ---
 status: accepted
 owner: repository-maintainer
-last-verified: 2026-07-12
+last-verified: 2026-07-13
 related-adrs:
   - ADR-0001
+  - ADR-0018
 ---
 
 # Acceptance Matrix
@@ -49,19 +50,19 @@ related-adrs:
 | NFR-007 | Permission denial | implemented | apps/desktop-electron/tests/security.spec.ts |
 | NFR-008 | Local asset confinement | implemented | apps/desktop-electron/tests/asset-path.spec.ts |
 | NFR-009 | Fault-isolated content scanning | implemented | packages/content-engine/src/index.test.ts |
-| NFR-010 | Enforced coverage thresholds | planned | PR #34 evidence defined in project-docs/product/desktop-requirement-catalog.md |
-| NFR-011 | Search and index performance | planned | PR #31 evidence defined in project-docs/product/desktop-requirement-catalog.md |
-| NFR-012 | Startup performance telemetry | planned | PR #34 evidence defined in project-docs/product/desktop-requirement-catalog.md |
-| NFR-013 | Bundle and footprint budgets | planned | PR #34 evidence defined in project-docs/product/desktop-requirement-catalog.md |
-| NFR-014 | WCAG 2.2 AA desktop accessibility | planned | PR #33 evidence defined in project-docs/product/desktop-requirement-catalog.md |
+| NFR-010 | Enforced coverage thresholds | implemented | .github/workflows/desktop-ci.yml, packages/content-engine/src/article-import/edge-cases.test.ts, packages/application/src/index.test.ts |
+| NFR-011 | Search and index performance | implemented | .github/workflows/desktop-ci.yml, packages/search-engine/src/index.test.ts |
+| NFR-012 | Startup performance telemetry | implemented | apps/desktop-electron/src/main/startup-telemetry.test.ts, apps/desktop-electron/e2e/accessibility.spec.ts |
+| NFR-013 | Bundle and footprint budgets | implemented | .github/workflows/desktop-ci.yml, .github/workflows/desktop-release-reusable.yml |
+| NFR-014 | WCAG 2.2 AA desktop accessibility | implemented | scripts/validate-accessibility.mjs, apps/desktop-electron/e2e/accessibility.spec.ts |
 | NFR-015 | Cross-platform package smoke | implemented | .github/workflows/desktop-ci.yml, scripts/packaged-smoke.mjs, project-docs/release/verification-run-29113199684.md |
 | NFR-016 | Immutable and least-privilege CI | implemented | .github/workflows/desktop-ci.yml, .github/workflows/desktop-release-reusable.yml, scripts/workflow-release.test.ts |
 | NFR-017 | Release concurrency and authority | implemented | .github/workflows/desktop-ci.yml, .github/workflows/desktop-release-reusable.yml, scripts/workflow-release.test.ts |
 | NFR-018 | Reproducible release evidence | implemented | .github/workflows/desktop-release-reusable.yml, scripts/release-scripts.test.ts, scripts/workflow-release.test.ts, project-docs/release/verification-run-29113199684.md |
-| NFR-019 | Dependency governance | planned | PR #34 evidence defined in project-docs/product/desktop-requirement-catalog.md |
+| NFR-019 | Dependency governance | implemented | scripts/validate-dependencies.mjs, scripts/dependency-policy.test.ts, .github/workflows/desktop-ci.yml |
 | NFR-020 | Architecture boundaries | implemented | scripts/validate-architecture.mjs |
 | NFR-021 | Traceability gate | implemented | scripts/validate-traceability.mjs |
 | NFR-022 | Traditional Chinese primary experience | implemented | apps/desktop-electron/e2e/source.spec.ts |
 | NFR-023 | Focus-safe modal interaction | implemented | apps/desktop-electron/e2e/source.spec.ts |
 | NFR-024 | Explicit product scope | implemented | project-docs/product/desktop-product-spec.md |
-| NFR-025 | Local recovery and privacy-safe logging | planned | PR #34 evidence defined in project-docs/product/desktop-requirement-catalog.md |
+| NFR-025 | Local recovery and privacy-safe logging | implemented | apps/desktop-electron/src/main/local-diagnostics.test.ts, apps/desktop-electron/e2e/accessibility.spec.ts, packages/platform-contracts/src/quality-contract.test.ts |

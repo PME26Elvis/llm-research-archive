@@ -1,10 +1,11 @@
 ---
 status: accepted
 owner: repository-maintainer
-last-verified: 2026-07-12
+last-verified: 2026-07-13
 related-adrs:
   - ADR-0008
   - ADR-0009
+  - ADR-0018
 ---
 
 # MkDocs Feature Parity Matrix
@@ -25,16 +26,16 @@ related-adrs:
 | Footnotes | Markdown | renderer | implemented | packages/renderer-ui/src/index.test.ts; apps/desktop-electron/e2e/footnotes.spec.ts | Named, inline, multi-block, and repeated footnotes use deterministic accessible in-app navigation. |
 | Internal links | Markdown | application/renderer | implemented | packages/content-engine/src/index.test.ts; apps/desktop-electron/e2e/source.spec.ts | Same-page and cross-article Unicode fragments remain inside the app shell. |
 | Reader navigation history | browser navigation | renderer | implemented | apps/desktop-electron/src/renderer/navigation-history.test.ts; apps/desktop-electron/e2e/navigation-history.spec.ts | Semantic Back/Forward restores article, fragment, search, and facet state without changing the trusted renderer URL. |
-| Git revision date | plugin | manifest | planned | planned | Not in current reader UI. |
+| Git revision date | plugin | content-engine/renderer | implemented | packages/content-engine/src/index.test.ts; apps/desktop-electron/e2e/accessibility.spec.ts | Front-matter `updated` dates flow through DTOs, reader metadata, and Observatory recent revisions. |
 | Blog ordering | MkDocs | content-engine | implemented | packages/content-engine/src/index.test.ts | Date sorting for formal articles. |
-| Observatory | docs page | renderer | planned | planned | Not in P1 reader slice. |
+| Observatory | docs page | renderer | implemented | apps/desktop-electron/e2e/accessibility.spec.ts | Accessible archive summary exposes article, category, tag, timeline, word-count, and recent-revision views. |
 | Article import | publish_article.py | content-engine/main/renderer | implemented | packages/content-engine/src/article-import/index.test.ts; packages/content-engine/src/article-import/commit.test.ts; apps/desktop-electron/e2e/import-wizard.spec.ts | Native selection, deterministic preview, metadata correction, atomic commit, rollback, navigation, and restart persistence are available offline. |
 | Citation cleanup | tools | content-engine/import | implemented | packages/content-engine/src/article-import/index.test.ts; apps/desktop-electron/e2e/import-wizard.spec.ts | Cleanup is previewed before write and shared by file and folder imports. |
 | Category inference | tools | content-engine | implemented | packages/content-engine/src/index.test.ts | Canonical path category. |
 | Slug generation | tools | content-engine | implemented | packages/content-engine/src/index.test.ts | Canonical path slug. |
 | Assets copying | tools | content-engine/import | implemented | packages/content-engine/src/article-import/commit.test.ts; apps/desktop-electron/e2e/import-wizard.spec.ts | Assets are fingerprinted, staged, validated, and atomically published. |
 | Research appendix | tools | content-engine/import | implemented | packages/content-engine/src/article-import/index.test.ts; packages/content-engine/src/article-import/commit.test.ts | Optional research activity is cleaned and embedded in the canonical article. |
-| Generated word-count index | hook | manifest | planned | planned | Manifest exists; page generation not replaced. |
+| Generated word-count index | hook | content-engine/renderer | implemented | packages/content-engine/src/index.test.ts; apps/desktop-electron/e2e/accessibility.spec.ts | Canonical reading statistics drive reader metadata and the Observatory aggregate without a generated desktop page. |
 | GitHub Pages deployment | workflow | deploy.yml | preserved | .github/workflows/deploy.yml | Web deployment remains separate. |
 
 | Persistent desktop layout | fixed browser viewport | main/renderer | implemented | apps/desktop-electron/src/main/window-state.test.ts; apps/desktop-electron/e2e/resizable-layout.spec.ts | Accessible pane resizing/collapse and validated native window bounds survive restart. |

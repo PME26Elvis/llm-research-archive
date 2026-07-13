@@ -1406,7 +1406,7 @@ UI snapshot coverage 不得拿來取代行為測試。
 
 初始 budget：
 
-* packaged installed footprint 目標 ≤ 250 MB。
+* packaged installed footprint 使用寬鬆的 2 GiB hard ceiling；小專案不以積極瘦身為目標，但不得夾帶 repository 私有內容或 secrets/private keys。
 * Renderer initial JS 目標 ≤ 2 MB gzip，不含 lazy chunks。
 * 不得將整個原始 repository、Python venv、MkDocs dependencies 或測試 fixtures 打入 production package。
 

@@ -1,11 +1,14 @@
 ---
 status: accepted
 owner: repository-maintainer
-last-verified: 2026-07-10
+last-verified: 2026-07-13
 related-adrs:
   - ADR-0008
+  - ADR-0018
 ---
 
 # Current System Inventory
 
-MkDocs owns web presentation through `mkdocs.yml`, `docs/stylesheets/extra.css` and `docs/javascripts/extra.js`. Python tools own legacy domain behavior: `hooks/word_counts.py` computes CJK/Latin reading counts, `tools/publish_article.py` imports articles from `_incoming/articles`, `tools/new_note.py` scaffolds notes, and `tools/remove_citations.py` removes citation/entity noise. Canonical data remains `docs/<category>/<slug>/index.md` with YAML front matter and `.meta.yml` navigation. Domain logic retained: article parsing, category inference, tags, word counts, reading time, import cleanup, asset copying and search. MkDocs-only adapters are retired for desktop runtime but kept for the web site.
+Canonical content remains `docs/<category>/<slug>/index.md` with YAML front matter and local assets. MkDocs still owns the web presentation through `mkdocs.yml`, CSS, JavaScript, hooks, and the public Observatory/word-count pages. The desktop runtime does not wrap MkDocs: TypeScript Content Engine owns article parsing, category/tag/timeline data, revision dates, reading statistics, diagnostics, manifests, safe import cleanup/assets, and canonical metadata; Search Engine owns the serialized incremental index; Electron owns native workspace, import, diagnostics, telemetry, packaging, and release boundaries.
+
+Desktop parity is complete for reading, search, category/tag/timeline browsing, revision dates, word counts, Observatory summaries, internal links, images, diagrams, syntax highlighting, footnotes, preferences, navigation history, local workspaces, and article import. GitHub Pages deployment remains a separate preserved adapter.

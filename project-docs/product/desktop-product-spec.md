@@ -1,7 +1,7 @@
 ---
 status: accepted
 owner: repository-maintainer
-last-verified: 2026-07-11
+last-verified: 2026-07-13
 related-adrs:
   - ADR-0001
   - ADR-0009
@@ -9,13 +9,14 @@ related-adrs:
   - ADR-0011
   - ADR-0012
   - ADR-0016
+  - ADR-0018
 ---
 
 # Desktop Product Spec
 
 ## Current P1 Offline Reader Scope
 
-The current implementation provides the offline bundled reader, secure Electron shell, content parsing, full-text search, category/tag/timeline browsing, sanitized reading with local image lightbox, fenced-code copy, strict lazy Mermaid rendering, lazy syntax highlighting, accessible footnotes, persistent theme and text preferences, semantic Back/Forward navigation, persistent resizable desktop layout, typed native commands and command palette, persistent validated local workspaces, native packaging, and a verified draft-release pipeline. Requirements without concrete code and verification artifacts remain planned.
+The current implementation provides the offline bundled reader, safe article import and publishing, secure Electron shell, canonical content parsing, serialized incremental full-text search, category/tag/timeline browsing, sanitized reading with local image lightbox, fenced-code copy, strict lazy Mermaid rendering, lazy syntax highlighting, accessible footnotes, persistent reader and layout preferences, semantic Back/Forward navigation, typed native commands and command palette, validated local workspaces, Observatory archive summaries, revision dates and word-count statistics, startup telemetry, privacy-safe local diagnostics, native four-platform packaging, enforced quality budgets, and a verified draft-first release pipeline. Every requirement in this specification has concrete production code and verification evidence.
 
 The stable requirement names, acceptance rules for all remaining work, and sequenced delivery boundaries are defined in `project-docs/product/desktop-requirement-catalog.md`. Requirement IDs remain the traceability keys.
 
@@ -257,31 +258,31 @@ Status: `implemented`. Verification: packages/content-engine/src/index.test.ts.
 
 **Name:** Enforced coverage thresholds.
 
-Status: `planned`. Verification: planned for PR #34; exact package and overall thresholds are defined in the requirement catalog.
+Status: `implemented`. Verification: `.github/workflows/desktop-ci.yml`, `packages/content-engine/src/article-import/edge-cases.test.ts`, and `packages/application/src/index.test.ts`. CI enforces overall 80/75 statements/branches, Domain 95/90, Content Engine 90/85, and Application 90/85.
 
 ## NFR-011
 
 **Name:** Search and index performance.
 
-Status: `planned`. Verification: planned for PR #31 using deterministic 1,000- and 10,000-article benchmarks.
+Status: `implemented`. Verification: `.github/workflows/desktop-ci.yml` and `packages/search-engine/src/index.test.ts`. The serialized incremental index is benchmarked at 1,000 and 10,000 articles with 100 ms query/filter p95 and 50 ms synchronous-renderer ceilings.
 
 ## NFR-012
 
 **Name:** Startup performance telemetry.
 
-Status: `planned`. Verification: planned for PR #34 with milestone timing and regression reporting.
+Status: `implemented`. Verification: `apps/desktop-electron/src/main/startup-telemetry.test.ts` and `apps/desktop-electron/e2e/accessibility.spec.ts`. Main and renderer record process, app, archive, window, renderer, and interactive milestones; E2E enforces the three-second development target.
 
 ## NFR-013
 
 **Name:** Bundle and footprint budgets.
 
-Status: `planned`. Verification: planned for PR #34 with renderer and packaged-output reports.
+Status: `implemented`. Verification: `.github/workflows/desktop-ci.yml` and `.github/workflows/desktop-release-reusable.yml`. Initial renderer JavaScript is capped at 2 MiB gzip. Installed packages use a deliberately permissive 2 GiB hard ceiling while still rejecting repository-only roots and obvious secrets or private keys.
 
 ## NFR-014
 
 **Name:** WCAG 2.2 AA desktop accessibility.
 
-Status: `planned`. Verification: planned for PR #33 after Import Wizard and Observatory journeys exist.
+Status: `implemented`. Verification: `scripts/validate-accessibility.mjs` and `apps/desktop-electron/e2e/accessibility.spec.ts`. Static contrast/source policy and real Electron journeys cover keyboard focus, skip navigation, live regions, dialogs, Observatory tables, 200 percent zoom, and reduced motion.
 
 ## NFR-015
 
@@ -311,7 +312,7 @@ Status: `implemented`. Verification: .github/workflows/desktop-release-reusable.
 
 **Name:** Dependency governance.
 
-Status: `planned`. Verification: planned for PR #34 with inventory, audit policy, and reviewed exception semantics.
+Status: `implemented`. Verification: `scripts/validate-dependencies.mjs`, `scripts/dependency-policy.test.ts`, and `.github/workflows/desktop-ci.yml`. Runtime dependencies have a machine-owned inventory, production-only audit, owner/purpose/update cadence, and bounded expiring exception semantics.
 
 ## NFR-020
 
@@ -347,4 +348,4 @@ Status: `implemented`. Verification: project-docs/product/desktop-product-spec.m
 
 **Name:** Local recovery and privacy-safe logging.
 
-Status: `planned`. Verification: planned for PR #34 with typed recovery journeys and redacted bounded local diagnostics.
+Status: `implemented`. Verification: `apps/desktop-electron/src/main/local-diagnostics.test.ts`, `apps/desktop-electron/e2e/accessibility.spec.ts`, and `packages/platform-contracts/src/quality-contract.test.ts`. Diagnostics are main-owned, bounded, atomically persisted, path/secret redacted, typed across IPC, and user-viewable/clearable.
