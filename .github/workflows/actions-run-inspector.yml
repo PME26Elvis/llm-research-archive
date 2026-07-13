@@ -1,5 +1,5 @@
 name: Release Run Inspector
-run-name: Inspect all recent workflow runs
+run-name: Capture failing Desktop Release job diagnostics
 
 on:
   push:
@@ -14,28 +14,27 @@ permissions:
 
 jobs:
   inspect:
-    if: github.event.head_commit.message == 'Inspect all recent workflow runs'
+    if: github.event.head_commit.message == 'Capture failing Desktop Release diagnostics'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
           ref: fix/fresh-release-recovery
           fetch-depth: 0
-      - name: Capture registered workflows and recent runs
+      - name: Capture release job diagnostics
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_JOB_ID: '86721755305'
         run: |
-          gh api "repos/${GITHUB_REPOSITORY}/actions/workflows?per_page=100" \
-            --jq '[.workflows[] | {id, name, path, state, html_url}]' \
-            > .actions-workflows.json
-          gh api "repos/${GITHUB_REPOSITORY}/actions/runs?per_page=100" \
-            --jq '[.workflow_runs[] | {id, name, display_title, run_number, event, status, conclusion, head_branch, head_sha, path, created_at, updated_at, html_url}]' \
-            > .all-workflow-runs.json
+          gh api "repos/${GITHUB_REPOSITORY}/actions/jobs/${RELEASE_JOB_ID}/logs" > /tmp/release-job.log
+          tail -n 160 /tmp/release-job.log > .release-job-tail.log
+          grep -iE 'error|failed|failure|HTTP|validation|gh release|release create|release upload' /tmp/release-job.log \
+            > .release-job-errors.log || true
       - name: Publish inspector result
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add .actions-workflows.json .all-workflow-runs.json
-          git commit -m "Record all recent workflow runs"
+          git add .release-job-tail.log .release-job-errors.log
+          git commit -m "Record failing Desktop Release diagnostics"
           git pull --rebase origin fix/fresh-release-recovery
           git push origin HEAD:fix/fresh-release-recovery
