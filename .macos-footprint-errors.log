@@ -1,0 +1,16 @@
+2026-07-13T05:46:44.9569920Z ##[group]Run npm run validate:footprint:package
+2026-07-13T05:46:44.9570340Z [36;1mnpm run validate:footprint:package[0m
+2026-07-13T05:46:45.1058920Z > llm-research-archive-desktop@0.1.0 validate:footprint:package
+2026-07-13T05:46:45.1060050Z > node scripts/verify-footprint.mjs package
+2026-07-13T05:46:45.2183790Z   "budgetBytes": 262144000,
+2026-07-13T05:46:45.2184990Z       "packageRoot": "Research Observatory-darwin-arm64",
+2026-07-13T05:46:45.2185540Z       "totalBytes": 465907337,
+2026-07-13T05:46:45.2186710Z file:///Users/runner/work/llm-research-archive/llm-research-archive/scripts/verify-footprint.mjs:99
+2026-07-13T05:46:45.2187640Z       "asarPath": "Research Observatory-darwin-arm64/Research Observatory.app/Contents/Resources/app.asar",
+2026-07-13T05:46:45.2188420Z       throw new Error(
+2026-07-13T05:46:45.2188760Z       "asarEntries": 12887
+2026-07-13T05:46:45.2189600Z   "forbidden": [
+2026-07-13T05:46:45.2295930Z Error: Research Observatory-darwin-arm64 installed footprint 465907337 > 262144000
+2026-07-13T05:46:45.2296530Z     at file:///Users/runner/work/llm-research-archive/llm-research-archive/scripts/verify-footprint.mjs:99:13
+2026-07-13T05:46:45.2438450Z     "Research Observatory-darwin-arm64:/node_modules/import-meta-resolve/lib/errors.d.ts.map",
+2026-07-13T05:46:45.2651830Z ##[error]Process completed with exit code 1.
