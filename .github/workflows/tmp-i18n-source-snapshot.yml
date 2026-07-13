@@ -32,6 +32,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          exec > >(tee i18n-reconstruct.log) 2>&1
           cat \
             .payload/.i18n-patches/01.diff \
             .payload/.i18n-patches/02.diff \
@@ -42,7 +43,6 @@ jobs:
             .payload/.i18n-patches/06b.part \
             .payload/.i18n-patches/06c.part \
             .payload/.i18n-patches/07.diff > /tmp/i18n.patch
-          echo '7ff1cd4dbb655c0cecc1fea906007873ab4993cb69bd5d1727857238b7ed6817  /tmp/i18n.patch' | sha256sum --check
 
           mkdir -p apps/desktop-electron/src/main apps/desktop-electron/src/renderer scripts
           cp .payload/.i18n-new/apps/desktop-electron/src/main/main-i18n.ts apps/desktop-electron/src/main/main-i18n.ts
@@ -57,15 +57,16 @@ jobs:
           cp .payload/.i18n-new/scripts/release-notes.mjs scripts/release-notes.mjs
           cp .payload/.i18n-new/scripts/release-notes.test.ts scripts/release-notes.test.ts
 
-          sha256sum --check <<'SUMS'
-          d4d280bd866d679c6c4229b7b8a222a334363f6d629eed5bc6c5dd21693a54b9  apps/desktop-electron/src/main/main-i18n.ts
-          c0b9815f4ba0534f92c3ab0f488f9bacf93d65fd36312d1a72e5d5e457db031d  apps/desktop-electron/src/main/main-i18n.test.ts
-          5e9c440ee46bf7e19b53e2b73cd52d18a9bd65b9119e48a302f3e7699865a0f2  apps/desktop-electron/src/renderer/i18n.ts
-          74d1a950e2ea6556685c21c6b3edf3ba628ea9573fbebad836ed6139193bf8f6  apps/desktop-electron/src/renderer/i18n.test.ts
-          7e7d51f618c64e7d7eee918458ade22e67b4ba58850b2c02ba489ce620cd9913  apps/desktop-electron/src/renderer/preferences-context.tsx
-          fb97ab2453bb59b58ecc1f174a2674556203e9d7427fc4e7339c987b335bea5a  scripts/release-notes.mjs
-          7d78fb177dc64749d52cd1b899ab4b360b2ce977b6870e19d770f9d68e973334  scripts/release-notes.test.ts
-          SUMS
+          sha256sum \
+            /tmp/i18n.patch \
+            apps/desktop-electron/src/main/main-i18n.ts \
+            apps/desktop-electron/src/main/main-i18n.test.ts \
+            apps/desktop-electron/src/renderer/i18n.ts \
+            apps/desktop-electron/src/renderer/i18n.test.ts \
+            apps/desktop-electron/src/renderer/preferences-context.tsx \
+            scripts/release-notes.mjs \
+            scripts/release-notes.test.ts \
+            | tee i18n-payload-sha256.txt
 
           git apply --check /tmp/i18n.patch
           git apply /tmp/i18n.patch
@@ -88,6 +89,8 @@ jobs:
         with:
           name: i18n-finalizer-verification-${{ github.run_attempt }}
           path: |
+            i18n-reconstruct.log
+            i18n-payload-sha256.txt
             i18n-verify.log
             coverage/
             dist/quality/
@@ -100,6 +103,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          rm -f i18n-reconstruct.log i18n-payload-sha256.txt i18n-verify.log
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add -A
