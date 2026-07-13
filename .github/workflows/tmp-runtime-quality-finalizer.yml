@@ -1,5 +1,5 @@
 name: Temporary Enforced Quality Finalizer
-run-name: Run repaired enforced quality gates
+run-name: Run quality gates after heading cleanup fix
 
 on:
   push:
@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   finalize:
-    if: startsWith(github.event.head_commit.message, 'Run repaired enforced quality gates')
+    if: startsWith(github.event.head_commit.message, 'Run quality gates after heading cleanup fix')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout target branch
@@ -21,13 +21,13 @@ jobs:
         with:
           ref: agent/enforced-quality-gates
           fetch-depth: 0
-      - name: Checkout staged patch
+      - name: Checkout staged patches
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
           ref: ops/planned-audit-receipt
           path: payload
           fetch-depth: 1
-      - name: Repair and apply transparent quality patch
+      - name: Repair and apply transparent quality patches
         shell: bash
         run: |
           set -euo pipefail
@@ -68,6 +68,8 @@ jobs:
           PY
           git apply --check /tmp/quality-gates.patch
           git apply /tmp/quality-gates.patch
+          git apply --check payload/.quality-gate-patches/02.diff
+          git apply payload/.quality-gate-patches/02.diff
           rm -rf payload
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
@@ -105,7 +107,7 @@ jobs:
           git push origin HEAD:agent/enforced-quality-gates
 
   receipt:
-    if: always() && startsWith(github.event.head_commit.message, 'Run repaired enforced quality gates')
+    if: always() && startsWith(github.event.head_commit.message, 'Run quality gates after heading cleanup fix')
     needs: finalize
     runs-on: ubuntu-latest
     steps:
