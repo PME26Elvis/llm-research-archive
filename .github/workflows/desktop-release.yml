@@ -24,6 +24,10 @@ on:
         required: true
         type: boolean
         default: false
+      release_notes:
+        description: Optional highlights separated by commas, semicolons, new lines, or Markdown bullets
+        required: false
+        default: ''
 
 permissions:
   contents: read
@@ -38,3 +42,4 @@ jobs:
       requested_version: ${{ inputs.requested_version }}
       channel: ${{ inputs.channel }}
       publish: ${{ inputs.publish }}
+      release_notes: ${{ inputs.release_notes }}
