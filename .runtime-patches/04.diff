@@ -1,0 +1,472 @@
+--- a/packages/platform-contracts/src/index.ts
++++ b/packages/platform-contracts/src/index.ts
+@@ -11,6 +11,7 @@
+   slug: z.string().min(1),
+   title: z.string().min(1),
+   date: z.string().min(1),
++  updatedAt: z.string().min(1).optional(),
+   category: z.string().min(1),
+   tags: z.array(z.string()),
+   excerpt: z.string(),
+@@ -46,6 +47,58 @@
+ export const SearchResultDtoSchema = ArticleSummaryDtoSchema.extend({
+   score: z.number().nonnegative(),
+ });
++
++export const StartupMilestoneSchema = z.enum([
++  'process-start',
++  'app-ready',
++  'archive-ready',
++  'window-created',
++  'renderer-ready',
++  'interactive',
++]);
++export const StartupTelemetrySchema = z.object({
++  milestones: z.object({
++    'process-start': z.number().nonnegative().optional(),
++    'app-ready': z.number().nonnegative().optional(),
++    'archive-ready': z.number().nonnegative().optional(),
++    'window-created': z.number().nonnegative().optional(),
++    'renderer-ready': z.number().nonnegative().optional(),
++    interactive: z.number().nonnegative().optional(),
++  }),
++  interactiveMs: z.number().nonnegative().optional(),
++  previousMedianMs: z.number().nonnegative().optional(),
++  materialRegression: z.boolean(),
++});
++export const DiagnosticLevelSchema = z.enum(['info', 'warning', 'error']);
++export const DiagnosticAreaSchema = z.enum([
++  'main',
++  'renderer',
++  'preferences',
++  'search-index',
++  'workspace',
++  'import',
++]);
++export const LocalDiagnosticEventSchema = z.object({
++  timestamp: z.string().datetime(),
++  level: DiagnosticLevelSchema,
++  area: DiagnosticAreaSchema,
++  code: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80),
++  message: z.string().min(1).max(500),
++});
++export const RendererDiagnosticRequestSchema = z.object({
++  area: z.enum(['renderer', 'preferences', 'search-index']),
++  code: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80),
++  message: z.string().min(1).max(500),
++});
++export const ArchiveDiagnosticsSchema = z.object({
++  validArticles: z.number().int().nonnegative(),
++  warnings: z.array(z.string()),
++  invalidFiles: z.array(z.string()),
++  brokenLinks: z.array(z.string()),
++  missingAssets: z.array(z.string()),
++  startup: StartupTelemetrySchema,
++  events: z.array(LocalDiagnosticEventSchema),
++});
+ export const SearchRequestSchema = z.object({ query: z.string().max(200) });
+ export const ArticleRequestSchema = z.object({
+   id: z.string().min(1).max(300),
+@@ -62,6 +115,7 @@
+   'about.open',
+   'workspace.open',
+   'import.open',
++  'observatory.open',
+ ]);
+ export const WorkspaceInfoSchema = z.object({
+   kind: z.enum(['bundled', 'local']),
+@@ -204,6 +258,14 @@
+ export const ArticleListResponseSchema = z.array(ArticleSummaryDtoSchema);
+ export const SearchResponseSchema = z.array(SearchResultDtoSchema);
+ export type DesktopCommand = z.infer<typeof DesktopCommandSchema>;
++
++export type StartupMilestone = z.infer<typeof StartupMilestoneSchema>;
++export type StartupTelemetryDto = z.infer<typeof StartupTelemetrySchema>;
++export type DiagnosticLevel = z.infer<typeof DiagnosticLevelSchema>;
++export type DiagnosticArea = z.infer<typeof DiagnosticAreaSchema>;
++export type LocalDiagnosticEventDto = z.infer<typeof LocalDiagnosticEventSchema>;
++export type RendererDiagnosticRequest = z.infer<typeof RendererDiagnosticRequestSchema>;
++export type ArchiveDiagnosticsDto = z.infer<typeof ArchiveDiagnosticsSchema>;
+ export type WorkspaceInfoDto = z.infer<typeof WorkspaceInfoSchema>;
+ export type WorkspaceSelectionResult = z.infer<typeof WorkspaceSelectionResultSchema>;
+ export type ImportSourceKind = z.infer<typeof ImportSourceKindSchema>;
+--- a/packages/platform-contracts/src/quality-contract.test.ts
++++ b/packages/platform-contracts/src/quality-contract.test.ts
+@@ -0,0 +1,60 @@
++import { describe, expect, it } from 'vitest';
++import {
++  ArchiveDiagnosticsSchema,
++  DesktopCommandSchema,
++  RendererDiagnosticRequestSchema,
++  StartupTelemetrySchema,
++} from './index';
++
++describe('quality and diagnostics contracts', () => {
++  it('accepts bounded startup telemetry and local diagnostic events', () => {
++    const result = ArchiveDiagnosticsSchema.parse({
++      validArticles: 4,
++      warnings: [],
++      invalidFiles: [],
++      brokenLinks: [],
++      missingAssets: [],
++      startup: {
++        milestones: { 'process-start': 0, 'app-ready': 22, interactive: 130 },
++        interactiveMs: 130,
++        previousMedianMs: 120,
++        materialRegression: false,
++      },
++      events: [
++        {
++          timestamp: '2026-07-13T00:00:00.000Z',
++          level: 'warning',
++          area: 'workspace',
++          code: 'workspace-recovered',
++          message: '先前工作區無法使用，已回復內建封存',
++        },
++      ],
++    });
++    expect(result.startup.interactiveMs).toBe(130);
++    expect(result.events).toHaveLength(1);
++  });
++
++  it('rejects raw payload-shaped diagnostic data', () => {
++    expect(() =>
++      RendererDiagnosticRequestSchema.parse({
++        area: 'renderer',
++        code: 'render-failed',
++        message: 'x'.repeat(501),
++        rawPayload: { markdown: 'secret body' },
++      }),
++    ).toThrow();
++  });
++
++  it('exposes the Observatory native command', () => {
++    expect(DesktopCommandSchema.parse('observatory.open')).toBe('observatory.open');
++  });
++
++  it('requires nonnegative startup measurements', () => {
++    expect(() =>
++      StartupTelemetrySchema.parse({
++        milestones: { 'process-start': -1 },
++        materialRegression: false,
++      }),
++    ).toThrow();
++  });
++});
+--- a/packages/search-engine/src/index.test.ts
++++ b/packages/search-engine/src/index.test.ts
+@@ -1,26 +1,91 @@
+-import { expect, it } from 'vitest';
+-import { searchArticles } from './index';
+-const article: any = {
+-  id: 'llm/compute',
+-  slug: 'compute',
+-  title: '算力遠遠不夠 compute',
+-  date: '2026-03-20',
+-  category: 'llm',
+-  tags: ['AI'],
+-  markdown: '中文算力 and compute body',
+-  excerpt: 'excerpt',
+-  sourcePath: 'llm/compute/index.md',
+-  assetRoot: 'llm/compute',
+-  readingStats: { displayCount: 10, cjkCharacters: 4, latinNumberTokens: 6, estimatedMinutes: 1 },
+-};
+-it('returns complete renderer-safe metadata for English query', () => {
+-  const r = searchArticles([article], 'compute');
+-  expect(r[0].readingStats.estimatedMinutes).toBe(1);
+-  expect(r[0].date).toBe('2026-03-20');
+-  expect(r[0].tags).toEqual(['AI']);
++import { describe, expect, it } from 'vitest';
++import { asArticleId, asCategoryId, type Article } from '@research-observatory/domain';
++import { SearchIndex, searchArticles } from './index';
++
++function article(overrides: Partial<Article> = {}): Article {
++  return {
++    id: asArticleId('llm/compute'),
++    slug: 'compute',
++    title: '算力遠遠不夠 compute',
++    date: '2026-03-20',
++    category: asCategoryId('llm'),
++    tags: ['AI'],
++    markdown: '中文算力 and compute body',
++    excerpt: 'excerpt',
++    sourcePath: 'llm/compute/index.md',
++    assetRoot: 'llm/compute',
++    readingStats: {
++      displayCount: 10,
++      cjkCharacters: 4,
++      latinNumberTokens: 6,
++      estimatedMinutes: 1,
++    },
++    links: [],
++    headings: [],
++    ...overrides,
++  };
++}
++
++describe('SearchIndex', () => {
++  it('returns complete renderer-safe metadata for English, CJK, and facet queries', () => {
++    const index = new SearchIndex([
++      article(),
++      article({
++        id: asArticleId('carbon/grid'),
++        slug: 'grid',
++        title: 'Grid report',
++        category: asCategoryId('carbon'),
++        tags: ['energy'],
++        markdown: 'compute grid',
++        date: '2026-02-10',
++      }),
++    ]);
++    const result = index.search('compute');
++    expect(result[0].readingStats.estimatedMinutes).toBe(1);
++    expect(result[0].date).toBe('2026-03-20');
++    expect(result[0].tags).toEqual(['AI']);
++    expect(index.search('算力')[0].id).toBe('llm/compute');
++    expect(index.search('compute', { mode: 'category', facet: 'carbon' })).toHaveLength(1);
++    expect(index.filter({ mode: 'timeline', facet: '2026-03' })[0].id).toBe('llm/compute');
++  });
++
++  it('supports deterministic incremental updates and removal', () => {
++    const index = new SearchIndex([article()]);
++    index.upsert(article({ title: 'Updated compute', markdown: 'updated needle' }));
++    expect(index.size()).toBe(1);
++    expect(index.search('needle')[0].title).toBe('Updated compute');
++    expect(index.remove('llm/compute')).toBe(true);
++    expect(index.search('needle')).toEqual([]);
++  });
++
++  it('round-trips a versioned serialized index without changing order or results', () => {
++    const index = new SearchIndex([
++      article(),
++      article({
++        id: asArticleId('llm/second'),
++        slug: 'second',
++        title: 'Second compute',
++        sourcePath: 'llm/second/index.md',
++        assetRoot: 'llm/second',
++      }),
++    ]);
++    const restored = SearchIndex.deserialize(index.serialize());
++    expect(restored.filter().map((item) => item.id)).toEqual(['llm/compute', 'llm/second']);
++    expect(restored.search('compute')).toEqual(index.search('compute'));
++  });
++
++  it('rejects corrupt serialized payloads', () => {
++    expect(() => SearchIndex.deserialize('{"schemaVersion":2,"documents":[]}')).toThrow(
++      'unsupported-search-index-version',
++    );
++    expect(() =>
++      SearchIndex.deserialize('{"schemaVersion":1,"documents":[{"ordinal":0}]}'),
++    ).toThrow();
++  });
+ });
+-it('handles empty, no-result and CJK query', () => {
+-  expect(searchArticles([article], '')).toEqual([]);
+-  expect(searchArticles([article], 'missing')).toEqual([]);
+-  expect(searchArticles([article], '算力')[0].id).toBe('llm/compute');
++
++it('keeps the searchArticles compatibility helper behavior', () => {
++  expect(searchArticles([article()], '')).toEqual([]);
++  expect(searchArticles([article()], 'missing')).toEqual([]);
++  expect(searchArticles([article()], '算力')[0].id).toBe('llm/compute');
+ });
+--- a/packages/search-engine/src/index.ts
++++ b/packages/search-engine/src/index.ts
+@@ -1,29 +1,180 @@
+-import { Article } from '@research-observatory/domain';
+-import { SearchResultDto } from '@research-observatory/platform-contracts';
++import type { Article } from '@research-observatory/domain';
++import {
++  ArticleSummaryDtoSchema,
++  type ArticleSummaryDto,
++  type SearchResultDto,
++} from '@research-observatory/platform-contracts';
++
++export type SearchFilterMode = 'all' | 'category' | 'tag' | 'timeline';
++
++export interface SearchFilter {
++  mode: SearchFilterMode;
++  facet: string;
++}
++
++interface IndexedDocument {
++  summary: ArticleSummaryDto;
++  searchText: string;
++  ordinal: number;
++}
++
++interface SerializedSearchIndexV1 {
++  schemaVersion: 1;
++  documents: IndexedDocument[];
++}
++
++function normalizedSearchText(article: Pick<Article, 'title' | 'tags' | 'markdown'>): string {
++  return `${article.title} ${article.tags.join(' ')} ${article.markdown}`
++    .normalize('NFKC')
++    .toLocaleLowerCase();
++}
++
++function articleMonthKey(date: string): string {
++  const match = /^(\d{4})-(\d{2})/.exec(date);
++  return match ? `${match[1]}-${match[2]}` : 'unknown';
++}
++
++function matchesFilter(summary: ArticleSummaryDto, filter?: SearchFilter): boolean {
++  if (!filter || filter.mode === 'all' || !filter.facet) return true;
++  if (filter.mode === 'category') return summary.category === filter.facet;
++  if (filter.mode === 'tag') return summary.tags.includes(filter.facet);
++  return articleMonthKey(summary.date) === filter.facet;
++}
++
++function countOccurrences(text: string, query: string): number {
++  let count = 0;
++  let offset = 0;
++  while (offset <= text.length - query.length) {
++    const found = text.indexOf(query, offset);
++    if (found < 0) break;
++    count += 1;
++    offset = found + Math.max(1, query.length);
++  }
++  return count;
++}
++
++function validateSerializedDocument(value: unknown): IndexedDocument {
++  if (!value || typeof value !== 'object') throw new Error('invalid-search-index-document');
++  const candidate = value as Partial<IndexedDocument>;
++  const summary = ArticleSummaryDtoSchema.parse(candidate.summary);
++  if (typeof candidate.searchText !== 'string') throw new Error('invalid-search-index-text');
++  if (!Number.isInteger(candidate.ordinal) || (candidate.ordinal ?? -1) < 0) {
++    throw new Error('invalid-search-index-ordinal');
++  }
++  return { summary, searchText: candidate.searchText, ordinal: candidate.ordinal as number };
++}
++
++export class SearchIndex {
++  private readonly documents = new Map<string, IndexedDocument>();
++  private nextOrdinal = 0;
++
++  constructor(articles: readonly Article[] = []) {
++    this.replaceAll(articles);
++  }
++
++  replaceAll(articles: readonly Article[]): void {
++    this.documents.clear();
++    this.nextOrdinal = 0;
++    for (const article of articles) this.upsert(article);
++  }
++
++  upsert(article: Article): void {
++    const existing = this.documents.get(article.id);
++    const ordinal = existing?.ordinal ?? this.nextOrdinal++;
++    this.documents.set(article.id, {
++      summary: summarizeArticle(article),
++      searchText: normalizedSearchText(article),
++      ordinal,
++    });
++  }
++
++  remove(articleId: string): boolean {
++    return this.documents.delete(articleId);
++  }
++
++  size(): number {
++    return this.documents.size;
++  }
++
++  search(query: string, filter?: SearchFilter): SearchResultDto[] {
++    const normalized = query.trim().normalize('NFKC').toLocaleLowerCase();
++    if (!normalized) return [];
++    return [...this.documents.values()]
++      .filter((document) => matchesFilter(document.summary, filter))
++      .map((document) => ({
++        ...document.summary,
++        score: countOccurrences(document.searchText, normalized),
++      }))
++      .filter((result) => result.score > 0)
++      .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title));
++  }
++
++  filter(filter?: SearchFilter): ArticleSummaryDto[] {
++    return [...this.documents.values()]
++      .filter((document) => matchesFilter(document.summary, filter))
++      .sort((a, b) => a.ordinal - b.ordinal)
++      .map((document) => ({ ...document.summary, tags: [...document.summary.tags] }));
++  }
++
++  serialize(): string {
++    const payload: SerializedSearchIndexV1 = {
++      schemaVersion: 1,
++      documents: [...this.documents.values()]
++        .sort((a, b) => a.ordinal - b.ordinal)
++        .map((document) => ({
++          summary: { ...document.summary, tags: [...document.summary.tags] },
++          searchText: document.searchText,
++          ordinal: document.ordinal,
++        })),
++    };
++    return JSON.stringify(payload);
++  }
++
++  static deserialize(serialized: string): SearchIndex {
++    const value = JSON.parse(serialized) as Partial<SerializedSearchIndexV1>;
++    if (value.schemaVersion !== 1 || !Array.isArray(value.documents)) {
++      throw new Error('unsupported-search-index-version');
++    }
++    const index = new SearchIndex();
++    for (const rawDocument of value.documents) {
++      const document = validateSerializedDocument(rawDocument);
++      if (index.documents.has(document.summary.id)) throw new Error('duplicate-search-index-id');
++      index.documents.set(document.summary.id, document);
++      index.nextOrdinal = Math.max(index.nextOrdinal, document.ordinal + 1);
++    }
++    return index;
++  }
++}
++
+ export function searchArticles(articles: Article[], query: string): SearchResultDto[] {
+-  const q = query.trim().toLowerCase();
+-  if (!q) return [];
+-  return articles
+-    .map((a) => {
+-      const text = `${a.title} ${a.tags.join(' ')} ${a.markdown}`.toLowerCase();
+-      const score = text.split(q).length - 1;
+-      return { ...summarizeArticle(a), score };
+-    })
+-    .filter((r) => r.score > 0)
+-    .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title));
++  return new SearchIndex(articles).search(query);
+ }
+-export function summarizeArticle(a: Article) {
+-  const { id, slug, title, date, category, tags, excerpt, sourcePath, assetRoot, readingStats } = a;
+-  return {
++
++export function summarizeArticle(article: Article): ArticleSummaryDto {
++  const {
+     id,
+     slug,
+     title,
+     date,
++    updatedAt,
++    category,
++    tags,
++    excerpt,
++    sourcePath,
++    assetRoot,
++    readingStats,
++  } = article;
++  return ArticleSummaryDtoSchema.parse({
++    id,
++    slug,
++    title,
++    date,
++    updatedAt,
+     category,
+     tags: [...tags],
+     excerpt,
+     sourcePath,
+     assetRoot,
+     readingStats,
+-  };
++  });
+ }
