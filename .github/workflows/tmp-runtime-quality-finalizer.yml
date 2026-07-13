@@ -1,5 +1,5 @@
 name: Temporary Enforced Quality Finalizer
-run-name: Run quality gates after import boundary fixes
+run-name: Run quality gates after normalized title expectation
 
 on:
   push:
@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   finalize:
-    if: startsWith(github.event.head_commit.message, 'Run quality gates after import boundary fixes')
+    if: startsWith(github.event.head_commit.message, 'Run quality gates after normalized title expectation')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout target branch
@@ -37,7 +37,7 @@ jobs:
 
           header = re.compile(r'^@@ -(\d+)(?:,\d+)? \+(\d+)(?:,\d+)? @@(.*)$')
           output = []
-          for source_name in ['01.diff', '02.diff', '03.diff']:
+          for source_name in ['01.diff', '02.diff', '03.diff', '04.diff']:
               source = Path('payload/.quality-gate-patches') / source_name
               lines = source.read_text().splitlines(keepends=True)
               index = 0
@@ -106,7 +106,7 @@ jobs:
           git push origin HEAD:agent/enforced-quality-gates
 
   receipt:
-    if: always() && startsWith(github.event.head_commit.message, 'Run quality gates after import boundary fixes')
+    if: always() && startsWith(github.event.head_commit.message, 'Run quality gates after normalized title expectation')
     needs: finalize
     runs-on: ubuntu-latest
     steps:
