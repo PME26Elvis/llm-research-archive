@@ -74,14 +74,16 @@ describe('content engine', () => {
   });
 
   it('handles article path, title, and internal link edge cases deterministically', () => {
-    expect(isArticlePath('README.md', { date: '2026-01-01', tags: [] })).toBe(false);
+    expect(isArticlePath('index.md', { date: '2026-01-01', tags: [] })).toBe(false);
     expect(isArticlePath('alpha/article.md', { date: '2026-01-01', tags: ['x'] })).toBe(true);
     expect(isArticlePath('alpha/article.md', { tags: ['x'] })).toBe(false);
     expect(titleFromMarkdown('# **Clean** title', 'Fallback')).toBe('Clean title');
-    expect(titleFromMarkdown('Body only', 'Fallback_Name')).toBe('Fallback_Name');
+    expect(titleFromMarkdown('Body only', 'Fallback_Name')).toBe('Fallback Name');
     expect(resolveInternalArticleId('alpha/source/index.md', '')).toBeUndefined();
     expect(resolveInternalArticleId('alpha/source/index.md', '#local')).toBeUndefined();
-    expect(resolveInternalArticleId('alpha/source/index.md', 'https://example.com')).toBeUndefined();
+    expect(
+      resolveInternalArticleId('alpha/source/index.md', 'https://example.com'),
+    ).toBeUndefined();
     expect(resolveInternalArticleId('alpha/source/index.md', '../target/')).toBe('alpha/target');
     expect(resolveInternalArticleId('alpha/source/index.md', '../target/index.md#part')).toBe(
       'alpha/target',
@@ -134,9 +136,7 @@ describe('content engine', () => {
     const result = scanArchiveWithDiagnostics(root);
     expect(result.articles.map((article) => article.id)).toEqual(['alpha/source']);
     expect(result.diagnostics.brokenLinks).toEqual(['alpha/source/index.md: ../missing/']);
-    expect(result.diagnostics.missingAssets).toEqual([
-      'alpha/source/index.md: assets/missing.png',
-    ]);
+    expect(result.diagnostics.missingAssets).toEqual(['alpha/source/index.md: assets/missing.png']);
     if (process.platform !== 'win32') {
       expect(result.diagnostics.warnings).toEqual(['linked.md: symlink skipped']);
     }

@@ -142,7 +142,10 @@ describe('import source filesystem boundaries', () => {
       assetsPath: path.join(folder, 'assets'),
     });
     expect(result.warnings).toEqual([
-      expect.objectContaining({ code: 'ignored-source-entry', path: path.join(folder, 'notes.txt') }),
+      expect.objectContaining({
+        code: 'ignored-source-entry',
+        path: path.join(folder, 'notes.txt'),
+      }),
     ]);
   });
 
@@ -227,7 +230,9 @@ describe('import source filesystem boundaries', () => {
     expect(isImportPathInsideRoot(workspace, path.join(workspace, 'a', 'b'))).toBe(true);
     expect(isImportPathInsideRoot(workspace, path.join(root, 'outside'))).toBe(false);
     expect(existingImportSymlinkAncestor(workspace, workspace)).toBeUndefined();
-    expect(existingImportSymlinkAncestor(workspace, path.join(workspace, 'missing', 'target'))).toBeUndefined();
+    expect(
+      existingImportSymlinkAncestor(workspace, path.join(workspace, 'missing', 'target')),
+    ).toBeUndefined();
 
     if (process.platform !== 'win32') {
       const real = path.join(root, 'real');
@@ -275,7 +280,11 @@ describe('metadata and cleanup edge cases', () => {
   it('rejects invalid explicit metadata and impossible dates', () => {
     const root = temporaryRoot();
     const sourcePath = path.join(root, 'report.md');
-    const descriptor = { kind: 'markdown-file' as const, rootPath: sourcePath, articlePath: sourcePath };
+    const descriptor = {
+      kind: 'markdown-file' as const,
+      rootPath: sourcePath,
+      articlePath: sourcePath,
+    };
     expect(
       resolveImportMetadata({
         source: descriptor,
@@ -330,7 +339,9 @@ describe('staged import validation', () => {
     expect(() => validateStagedImport(plan, staging)).toThrow('missing or is not a regular file');
 
     fs.writeFileSync(path.join(staging, 'index.md'), 'tampered');
-    expect(() => validateStagedImport(plan, staging)).toThrow('does not match the approved import plan');
+    expect(() => validateStagedImport(plan, staging)).toThrow(
+      'does not match the approved import plan',
+    );
 
     const content = plan.articleContent.replace('GPU Report', 'Other');
     const changed = { ...plan, articleSha256: sha256Buffer(content) };
@@ -347,7 +358,9 @@ describe('staged import validation', () => {
     expect(() => validateStagedImport(plan, staging)).toThrow('staged asset is missing');
 
     fs.writeFileSync(target, 'same-size');
-    expect(() => validateStagedImport(plan, staging)).toThrow('does not match the approved import plan');
+    expect(() => validateStagedImport(plan, staging)).toThrow(
+      'does not match the approved import plan',
+    );
 
     fs.copyFileSync(asset.sourcePath, target);
     fs.writeFileSync(path.join(staging, 'extra.txt'), 'extra');
@@ -429,7 +442,9 @@ describe('commit rollback and source removal edge cases', () => {
       sha256: sha256Buffer('v1'),
     };
     fs.writeFileSync(source, 'v2');
-    expect(() => defaultOperations.writeAsset(asset, destination)).toThrow('changed after the preview');
+    expect(() => defaultOperations.writeAsset(asset, destination)).toThrow(
+      'changed after the preview',
+    );
     fs.writeFileSync(source, 'v1');
     defaultOperations.writeAsset(asset, destination);
     expect(fs.readFileSync(destination, 'utf8')).toBe('v1');
@@ -453,7 +468,10 @@ describe('commit rollback and source removal edge cases', () => {
 
     const folder = folderPlan();
     const folderReceipt = commitReceipt(folder.plan);
-    const targetAsset = path.join(folderReceipt.targetDirectory, folderReceipt.assets[0].relativePath);
+    const targetAsset = path.join(
+      folderReceipt.targetDirectory,
+      folderReceipt.assets[0].relativePath,
+    );
     fs.writeFileSync(targetAsset, 'changed!');
     expect(removeImportedSource(folderReceipt)).toEqual({
       ok: false,

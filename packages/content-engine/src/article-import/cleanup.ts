@@ -51,8 +51,8 @@ function entityVisibleText(payload: string): string {
 export function imageTarget(destination: string): string {
   return destination
     .trim()
-    .replace(/^<|>$/g, '')
-    .split(/\s+["']/u)[0];
+    .split(/\s+["']/u)[0]
+    .replace(/^<|>$/g, '');
 }
 
 function isNonPortableImageTarget(target: string): boolean {

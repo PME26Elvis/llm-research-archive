@@ -61,8 +61,8 @@ export function cleanHeadingText(text: string): string {
   return text
     .replace(/!\[[^\]]*\]\([^)]*\)/g, ' ')
     .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
-    .replace(/[`*_~>#|]/g, ' ')
     .replace(/<[^>]+>/g, ' ')
+    .replace(/[`*_~>#|]/g, ' ')
     .replace(/\s+/gu, ' ')
     .trim();
 }

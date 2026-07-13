@@ -54,6 +54,15 @@ test('workspace diagnostics expose startup milestones and can be cleared without
   await diagnostics.locator('summary').click();
   await expect(page.getByTestId('startup-telemetry')).toContainText('process-start');
   await expect(page.getByTestId('startup-telemetry')).toContainText('interactive');
+  const startup = await page.evaluate(() =>
+    (
+      window as unknown as {
+        observatory: { diagnostics(): Promise<{ startup: { interactiveMs?: number } }> };
+      }
+    ).observatory.diagnostics(),
+  );
+  expect(startup.startup.interactiveMs).toBeDefined();
+  expect(startup.startup.interactiveMs).toBeLessThanOrEqual(3000);
   await diagnostics.getByRole('button', { name: '清除本機診斷' }).click();
   await expect(diagnostics).toContainText('尚無本機診斷事件');
 });
