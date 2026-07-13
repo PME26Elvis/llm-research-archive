@@ -1,5 +1,5 @@
 name: Desktop Release Recovery
-run-name: Fresh Desktop Release from latest app-main
+run-name: Verified draft-aware Desktop Release from latest app-main
 
 on:
   push:
@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   release:
-    if: github.event.head_commit.message == 'Trigger monitored Desktop Release recovery'
+    if: github.event.head_commit.message == 'Trigger verified draft-aware Desktop Release'
     permissions:
       contents: write
     uses: PME26Elvis/llm-research-archive/.github/workflows/desktop-release-reusable.yml@app-main
