@@ -4,10 +4,13 @@ import {
   SearchRequestSchema,
   SearchResponseSchema,
   ExternalUrlSchema,
+  AppLocaleSchema,
 } from './index';
 it('validates ipc request and response dtos', () => {
   expect(SearchRequestSchema.parse({ query: 'x' }).query).toBe('x');
   expect(() => ExternalUrlSchema.parse('file:///tmp/x')).toThrow();
+  expect(AppLocaleSchema.parse('en')).toBe('en');
+  expect(AppLocaleSchema.safeParse('fr').success).toBe(false);
   const summary = {
     id: 'a',
     slug: 'a',

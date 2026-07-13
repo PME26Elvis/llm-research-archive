@@ -20,6 +20,7 @@ import { loadWindowState, saveWindowState } from './window-state';
 import { ImportSessionService } from './import-session';
 import { LocalDiagnostics } from './local-diagnostics';
 import { StartupTelemetry } from './startup-telemetry';
+import { nativeLocaleText } from './native-locale';
 import {
   DEFAULT_WORKSPACE_STATE,
   loadWorkspaceState,
@@ -29,6 +30,7 @@ import {
 import { ResearchObservatoryApp } from '@research-observatory/application';
 import { summarizeArticle } from '@research-observatory/search-engine';
 import {
+  AppLocaleSchema,
   ArticleListResponseSchema,
   ArticleRequestSchema,
   ArticleDtoSchema,
@@ -47,6 +49,7 @@ import {
   StartupMilestoneSchema,
   WorkspaceInfoSchema,
   WorkspaceSelectionResultSchema,
+  type AppLocale,
   type DesktopCommand,
   type WorkspaceInfoDto,
 } from '@research-observatory/platform-contracts';
@@ -66,6 +69,7 @@ let localDiagnostics: LocalDiagnostics | undefined;
 let workspaceRecoveryWarnings: string[] = [];
 let trustedRendererUrl = '';
 let trustedRendererOrigin = '';
+let activeLocale: AppLocale = 'zh-TW';
 function bundledContentRoot(): string {
   if (!app.isPackaged)
     return process.env.ARCHIVE_CONTENT_ROOT || path.resolve(__dirname, '../../docs');
@@ -76,10 +80,11 @@ function contentRoot(): string {
 }
 function workspaceInfo(kind: 'bundled' | 'local', rootPath: string): WorkspaceInfoDto {
   const diagnostics = core.diagnostics();
+  const text = nativeLocaleText(activeLocale);
   return WorkspaceInfoSchema.parse({
     kind,
     rootPath,
-    displayName: kind === 'bundled' ? '內建封存' : path.basename(rootPath),
+    displayName: kind === 'bundled' ? text.bundledArchive : path.basename(rootPath),
     articleCount: core.listArticles().length,
     warnings: [
       ...workspaceRecoveryWarnings,
@@ -115,13 +120,9 @@ function initializeWorkspace(): void {
       activateWorkspace(selected.rootPath, 'local');
       return;
     } catch {
-      workspaceRecoveryWarnings.push('先前工作區無法使用，已回復內建封存');
-      localDiagnostics?.record(
-        'warning',
-        'workspace',
-        'workspace-recovered',
-        '先前工作區無法使用，已回復內建封存',
-      );
+      const recoveryMessage = nativeLocaleText(activeLocale).recoveredWorkspace;
+      workspaceRecoveryWarnings.push(recoveryMessage);
+      localDiagnostics?.record('warning', 'workspace', 'workspace-recovered', recoveryMessage);
       saveWorkspaceState(stateFile, DEFAULT_WORKSPACE_STATE);
     }
   }
@@ -146,53 +147,54 @@ function validateSender(sender: WebContents, frame?: WebFrameMain | null): void 
   if (actual !== trustedRendererUrl) throw new Error(`invalid-ipc-sender:${actual}`);
 }
 function installApplicationMenu(win: BrowserWindow): void {
+  const text = nativeLocaleText(activeLocale);
   const send = (command: DesktopCommand) =>
     win.webContents.send('app:command', DesktopCommandSchema.parse(command));
   const template: MenuItemConstructorOptions[] = [
     {
-      label: '導覽',
+      label: text.navigation,
       submenu: [
-        { label: '上一個閱讀位置', click: () => send('navigation.back') },
-        { label: '下一個閱讀位置', click: () => send('navigation.forward') },
+        { label: text.previousLocation, click: () => send('navigation.back') },
+        { label: text.nextLocation, click: () => send('navigation.forward') },
         { type: 'separator' },
+        { label: text.focusSearch, accelerator: 'CmdOrCtrl+F', click: () => send('search.focus') },
         {
-          label: '聚焦搜尋',
-          accelerator: 'CmdOrCtrl+F',
-          click: () => send('search.focus'),
-        },
-        {
-          label: '開啟本機工作區',
+          label: text.openWorkspace,
           accelerator: 'CmdOrCtrl+O',
           click: () => send('workspace.open'),
         },
         {
-          label: '匯入文章…',
+          label: text.importArticle,
           accelerator: 'CmdOrCtrl+Shift+I',
           click: () => send('import.open'),
         },
       ],
     },
     {
-      label: '檢視',
+      label: text.view,
       submenu: [
         {
-          label: '指令面板',
+          label: text.commandPalette,
           accelerator: 'CmdOrCtrl+K',
           click: () => send('palette.open'),
         },
         {
-          label: 'Observatory 摘要',
+          label: text.observatorySummary,
           accelerator: 'CmdOrCtrl+Shift+O',
           click: () => send('observatory.open'),
         },
       ],
     },
     {
-      label: '說明',
-      submenu: [{ label: '關於 Research Observatory', click: () => send('about.open') }],
+      label: text.help,
+      submenu: [{ label: text.about, click: () => send('about.open') }],
     },
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));
+}
+
+function refreshApplicationMenus(): void {
+  for (const win of BrowserWindow.getAllWindows()) installApplicationMenu(win);
 }
 
 function createWindow() {
@@ -292,7 +294,7 @@ ipcMain.handle('workspace:select', async (event) => {
   validateSender(event.sender, event.senderFrame);
   const owner = BrowserWindow.fromWebContents(event.sender);
   const options: OpenDialogOptions = {
-    title: '選擇 Research Observatory 工作區',
+    title: nativeLocaleText(activeLocale).selectWorkspace,
     properties: ['openDirectory'],
   };
   const selection = owner
@@ -317,7 +319,7 @@ ipcMain.handle('workspace:select', async (event) => {
     localDiagnostics?.record('warning', 'workspace', 'workspace-open-rejected', error);
     return WorkspaceSelectionResultSchema.parse({
       status: 'rejected',
-      message: '無法開啟工作區；請確認資料夾包含可讀取的 Markdown 文章且未使用符號連結。',
+      message: nativeLocaleText(activeLocale).workspaceRejected,
     });
   }
 });
@@ -330,7 +332,9 @@ ipcMain.handle('import:select-source', async (event, rawRequest: unknown) => {
   const owner = BrowserWindow.fromWebContents(event.sender);
   const options: OpenDialogOptions = {
     title:
-      request.kind === 'markdown-file' ? '選擇要匯入的 Markdown 檔案' : '選擇要匯入的文章資料夾',
+      request.kind === 'markdown-file'
+        ? nativeLocaleText(activeLocale).chooseMarkdown
+        : nativeLocaleText(activeLocale).chooseArticleFolder,
     properties: request.kind === 'markdown-file' ? ['openFile'] : ['openDirectory'],
     ...(request.kind === 'markdown-file'
       ? { filters: [{ name: 'Markdown', extensions: ['md'] }] }
@@ -414,6 +418,18 @@ ipcMain.handle('app:info', (event) => {
     contentArticleCount: manifest.articles.length,
     contentManifestHash: manifest.contentHash,
   });
+});
+ipcMain.handle('app:set-locale', (event, rawLocale: unknown) => {
+  validateSender(event.sender, event.senderFrame);
+  activeLocale = AppLocaleSchema.parse(rawLocale);
+  if (activeWorkspace?.kind === 'bundled') {
+    activeWorkspace = WorkspaceInfoSchema.parse({
+      ...activeWorkspace,
+      displayName: nativeLocaleText(activeLocale).bundledArchive,
+    });
+  }
+  refreshApplicationMenus();
+  return activeLocale;
 });
 ipcMain.handle('external:open', (event, url) => {
   validateSender(event.sender, event.senderFrame);

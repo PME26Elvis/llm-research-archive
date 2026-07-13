@@ -1,18 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import {
-  DEFAULT_READER_PREFERENCES,
-  adjustTextScale,
-  applyReaderPreferences,
-  loadReaderPreferences,
-  resolveTheme,
-  saveReaderPreferences,
-  type ReaderPreferences,
-  type ThemePreference,
-} from './preferences';
-
-const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
-const initialPreferences = loadReaderPreferences(window.localStorage);
-applyReaderPreferences(document, initialPreferences, systemTheme.matches);
+import type { AppLocale } from '@research-observatory/platform-contracts';
+import { adjustTextScale, type ReaderPreferences, type ThemePreference } from './preferences';
+import { translate } from './i18n';
 
 interface SettingsDialogProps {
   preferences: ReaderPreferences;
@@ -23,6 +12,7 @@ interface SettingsDialogProps {
 function SettingsDialog({ preferences, onChange, onClose }: SettingsDialogProps) {
   const dialogRef = useRef<HTMLElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const t = (key: Parameters<typeof translate>[1]) => translate(preferences.locale, key);
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -53,13 +43,7 @@ function SettingsDialog({ preferences, onChange, onClose }: SettingsDialogProps)
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
 
-  function setTheme(theme: ThemePreference) {
-    onChange({ ...preferences, theme });
-  }
-
-  function setTextScale(textScale: number) {
-    onChange({ ...preferences, textScale });
-  }
+  const update = (patch: Partial<ReaderPreferences>) => onChange({ ...preferences, ...patch });
 
   return (
     <div className="modal-backdrop" role="presentation">
@@ -70,107 +54,86 @@ function SettingsDialog({ preferences, onChange, onClose }: SettingsDialogProps)
         aria-modal="true"
         aria-labelledby="settings-title"
       >
-        <h2 id="settings-title">閱讀設定</h2>
+        <h2 id="settings-title">{t('settings.title')}</h2>
         <fieldset className="settings-theme">
-          <legend>外觀</legend>
+          <legend>{t('settings.appearance')}</legend>
           {(
             [
-              ['system', '跟隨系統'],
-              ['light', '淺色'],
-              ['dark', '深色'],
+              ['system', 'settings.theme.system'],
+              ['light', 'settings.theme.light'],
+              ['dark', 'settings.theme.dark'],
             ] as const
-          ).map(([value, label]) => (
+          ).map(([value, key]) => (
             <label key={value}>
               <input
                 type="radio"
                 name="theme"
                 value={value}
                 checked={preferences.theme === value}
-                onChange={() => setTheme(value)}
+                onChange={() => update({ theme: value as ThemePreference })}
               />
-              {label}
+              {t(key)}
             </label>
           ))}
         </fieldset>
+        <section className="settings-language" aria-labelledby="language-title">
+          <h3 id="language-title">{t('settings.language')}</h3>
+          <select
+            aria-label={t('settings.language')}
+            value={preferences.locale}
+            onChange={(event) => update({ locale: event.target.value as AppLocale })}
+          >
+            <option value="zh-TW">{t('settings.language.zhTW')}</option>
+            <option value="en">{t('settings.language.en')}</option>
+          </select>
+          <p className="settings-hint">{t('settings.language.description')}</p>
+        </section>
         <section className="settings-text" aria-labelledby="text-size-title">
-          <h3 id="text-size-title">文章文字大小</h3>
+          <h3 id="text-size-title">{t('settings.textSize')}</h3>
           <div className="text-scale-controls">
             <button
               type="button"
-              aria-label="縮小文章文字"
-              onClick={() => setTextScale(adjustTextScale(preferences.textScale, -1))}
+              aria-label={t('settings.textSmaller')}
+              onClick={() => update({ textScale: adjustTextScale(preferences.textScale, -1) })}
             >
               A−
             </button>
-            <button type="button" aria-label="重設文章文字大小" onClick={() => setTextScale(1)}>
+            <button
+              type="button"
+              aria-label={t('settings.textReset')}
+              onClick={() => update({ textScale: 1 })}
+            >
               <output data-testid="settings-text-scale">
                 {Math.round(preferences.textScale * 100)}%
               </output>
             </button>
             <button
               type="button"
-              aria-label="放大文章文字"
-              onClick={() => setTextScale(adjustTextScale(preferences.textScale, 1))}
+              aria-label={t('settings.textLarger')}
+              onClick={() => update({ textScale: adjustTextScale(preferences.textScale, 1) })}
             >
               A+
             </button>
           </div>
-          <p className="settings-hint">快捷鍵：Ctrl++、Ctrl+-、Ctrl+0</p>
+          <p className="settings-hint">{t('settings.shortcuts')}</p>
         </section>
         <button ref={closeRef} type="button" onClick={onClose}>
-          關閉設定
+          {t('settings.close')}
         </button>
       </section>
     </div>
   );
 }
 
-export function ReaderSettings() {
-  const [preferences, setPreferences] = useState<ReaderPreferences>(initialPreferences);
-  const [systemPrefersDark, setSystemPrefersDark] = useState(systemTheme.matches);
+interface ReaderSettingsProps {
+  preferences: ReaderPreferences;
+  onChange(preferences: ReaderPreferences): void;
+}
+
+export function ReaderSettings({ preferences, onChange }: ReaderSettingsProps) {
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const resolvedThemeRef = useRef(resolveTheme(initialPreferences.theme, systemTheme.matches));
-
-  useEffect(() => {
-    const onChange = (event: MediaQueryListEvent) => setSystemPrefersDark(event.matches);
-    systemTheme.addEventListener('change', onChange);
-    return () => systemTheme.removeEventListener('change', onChange);
-  }, []);
-
-  useEffect(() => {
-    applyReaderPreferences(document, preferences, systemPrefersDark);
-    saveReaderPreferences(window.localStorage, preferences);
-    const resolved = resolveTheme(preferences.theme, systemPrefersDark);
-    if (resolved !== resolvedThemeRef.current) {
-      resolvedThemeRef.current = resolved;
-      document.dispatchEvent(new Event('observatory-theme-change'));
-    }
-  }, [preferences, systemPrefersDark]);
-
-  useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      if (!event.ctrlKey || event.altKey || event.metaKey) return;
-      if (event.key === '+' || event.key === '=' || event.code === 'NumpadAdd') {
-        event.preventDefault();
-        setPreferences((current) => ({
-          ...current,
-          textScale: adjustTextScale(current.textScale, 1),
-        }));
-      } else if (event.key === '-' || event.code === 'NumpadSubtract') {
-        event.preventDefault();
-        setPreferences((current) => ({
-          ...current,
-          textScale: adjustTextScale(current.textScale, -1),
-        }));
-      } else if (event.key === '0' || event.code === 'Numpad0') {
-        event.preventDefault();
-        setPreferences((current) => ({ ...current, textScale: 1 }));
-      }
-    };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, []);
+  const t = (key: Parameters<typeof translate>[1]) => translate(preferences.locale, key);
 
   function close() {
     setOpen(false);
@@ -180,13 +143,9 @@ export function ReaderSettings() {
   return (
     <>
       <button ref={buttonRef} type="button" onClick={() => setOpen(true)}>
-        設定
+        {t('settings.button')}
       </button>
-      {open && (
-        <SettingsDialog preferences={preferences} onChange={setPreferences} onClose={close} />
-      )}
+      {open && <SettingsDialog preferences={preferences} onChange={onChange} onClose={close} />}
     </>
   );
 }
-
-export const __test__ = { initialPreferences, defaults: DEFAULT_READER_PREFERENCES };

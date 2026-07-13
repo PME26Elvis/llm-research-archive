@@ -1,14 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type {
+  AppLocale,
   ImportCommitResult,
   ImportMetadataDto,
   ImportPlanPreviewDto,
   ImportSourceKind,
   WorkspaceInfoDto,
 } from '@research-observatory/platform-contracts';
+import { translate } from './i18n';
 
 interface ImportWizardProps {
   open: boolean;
+  locale: AppLocale;
   workspace: WorkspaceInfoDto | null;
   onClose(): void;
   onChooseWorkspace(): Promise<void>;
@@ -35,11 +38,64 @@ function metadataFromPreview(preview: ImportPlanPreviewDto) {
 
 export function ImportWizard({
   open,
+  locale,
   workspace,
   onClose,
   onChooseWorkspace,
   onCommitted,
 }: ImportWizardProps) {
+  const t = (key: Parameters<typeof translate>[1], values: Record<string, string | number> = {}) =>
+    translate(locale, key, values);
+
+  function previewError(code: string, fallback: string): string {
+    const keys = {
+      'workspace-read-only': 'import.error.workspaceReadOnly',
+      'plan-not-found': 'import.error.planNotFound',
+      'invalid-source': 'import.error.invalidSource',
+      'invalid-metadata': 'import.error.invalidMetadata',
+    } as const;
+    const key = keys[code as keyof typeof keys];
+    return key ? t(key) : fallback;
+  }
+
+  function commitError(code: string, fallback: string): string {
+    const keys = {
+      'workspace-read-only': 'import.error.workspaceReadOnly',
+      'plan-not-found': 'import.error.planNotFound',
+      'plan-not-committable': 'import.error.notCommittable',
+      'stale-plan': 'import.error.stalePlan',
+      'target-conflict': 'import.error.targetConflict',
+      'commit-in-progress': 'import.error.inProgress',
+      'stage-failed': 'import.error.stageFailed',
+      'validation-failed': 'import.error.validationFailed',
+      'commit-failed': 'import.error.commitFailed',
+      'rollback-failed': 'import.error.rollbackFailed',
+    } as const;
+    const key = keys[code as keyof typeof keys];
+    return key ? t(key) : fallback;
+  }
+
+  function issueMessage(code: string, fallback: string): string {
+    const keys = {
+      'source-not-found': 'import.issue.sourceNotFound',
+      'unsupported-source': 'import.issue.unsupportedSource',
+      'source-symlink': 'import.issue.sourceSymlink',
+      'source-escape': 'import.issue.sourceEscape',
+      'article-not-found': 'import.issue.articleNotFound',
+      'invalid-frontmatter': 'import.issue.invalidFrontmatter',
+      'invalid-metadata': 'import.issue.invalidMetadata',
+      'category-fallback': 'import.issue.categoryFallback',
+      'slug-fallback': 'import.issue.slugFallback',
+      'ignored-source-entry': 'import.issue.ignoredSourceEntry',
+      'asset-symlink': 'import.issue.assetSymlink',
+      'asset-escape': 'import.issue.assetEscape',
+      'missing-asset-reference': 'import.issue.missingAssetReference',
+      'target-symlink': 'import.issue.targetSymlink',
+    } as const;
+    const key = keys[code as keyof typeof keys];
+    return key ? t(key) : fallback;
+  }
+
   const dialogRef = useRef<HTMLElement>(null);
   const firstButtonRef = useRef<HTMLButtonElement>(null);
   const [preview, setPreview] = useState<ImportPlanPreviewDto | null>(null);
@@ -106,26 +162,26 @@ export function ImportWizard({
     setError('');
     setStatus(
       next.canCommit
-        ? '預覽已更新，可以提交。'
+        ? t('import.previewReady')
         : next.requiresMetadataConfirmation
-          ? '請確認分類、slug 與其他 metadata 後更新預覽。'
-          : '預覽包含阻擋提交的衝突。',
+          ? t('import.confirmMetadata')
+          : t('import.previewBlocked'),
     );
   }
 
   async function chooseSource(kind: ImportSourceKind) {
     setBusy(true);
     setError('');
-    setStatus(kind === 'markdown-file' ? '正在讀取 Markdown…' : '正在掃描文章資料夾…');
+    setStatus(kind === 'markdown-file' ? t('import.readingMarkdown') : t('import.scanningFolder'));
     try {
       const result = await window.observatory.selectImportSource(kind);
       if (result.status === 'preview') acceptPreview(result.preview);
       else if (result.status === 'rejected') {
-        setError(result.message);
+        setError(previewError(result.code, result.message));
         setStatus('');
-      } else setStatus('已取消選擇來源。');
+      } else setStatus(t('import.cancelled'));
     } catch (cause) {
-      setError(`無法建立匯入預覽：${String(cause)}`);
+      setError(t('import.previewFailed', { error: String(cause) }));
       setStatus('');
     } finally {
       setBusy(false);
@@ -138,23 +194,23 @@ export function ImportWizard({
       .map((tag) => tag.trim())
       .filter(Boolean);
     if (!metadata.title.trim()) {
-      setError('標題不可為空。');
+      setError(t('import.titleRequired'));
       return undefined;
     }
     if (!kebabCasePattern.test(metadata.category)) {
-      setError('分類必須是小寫英文 kebab-case，例如 llm-research。');
+      setError(t('import.categoryInvalid'));
       return undefined;
     }
     if (!kebabCasePattern.test(metadata.slug)) {
-      setError('slug 必須是小寫英文 kebab-case，例如 model-report。');
+      setError(t('import.slugInvalid'));
       return undefined;
     }
     if (!/^\d{4}-\d{2}-\d{2}$/.test(metadata.date)) {
-      setError('日期必須是 YYYY-MM-DD。');
+      setError(t('import.dateInvalid'));
       return undefined;
     }
     if (!tags.length || tags.length > 8) {
-      setError('請輸入 1 到 8 個標籤，並以逗號分隔。');
+      setError(t('import.tagsInvalid'));
       return undefined;
     }
     return {
@@ -172,7 +228,7 @@ export function ImportWizard({
     if (!nextMetadata) return;
     setBusy(true);
     setError('');
-    setStatus('正在重新驗證 metadata 與輸出路徑…');
+    setStatus(t('import.revalidating'));
     try {
       const result = await window.observatory.refreshImportPreview({
         planId: preview.planId,
@@ -180,11 +236,11 @@ export function ImportWizard({
       });
       if (result.status === 'preview') acceptPreview(result.preview);
       else if (result.status === 'rejected') {
-        setError(result.message);
+        setError(previewError(result.code, result.message));
         setStatus('');
       }
     } catch (cause) {
-      setError(`無法更新匯入預覽：${String(cause)}`);
+      setError(t('import.refreshFailed', { error: String(cause) }));
       setStatus('');
     } finally {
       setBusy(false);
@@ -195,22 +251,22 @@ export function ImportWizard({
     if (!preview || dirty || !preview.canCommit) return;
     setBusy(true);
     setError('');
-    setStatus('正在原子寫入並驗證文章…');
+    setStatus(t('import.committing'));
     try {
       const result = await window.observatory.commitImport({
         planId: preview.planId,
         removeSource,
       });
       if (result.status === 'rejected') {
-        setError(result.message);
-        setStatus('提交失敗；工作區不應包含部分輸出。');
+        setError(commitError(result.code, result.message));
+        setStatus(t('import.commitRejected'));
         return;
       }
-      setStatus('匯入完成，正在重新載入工作區…');
+      setStatus(t('import.completed'));
       await onCommitted(result);
       onClose();
     } catch (cause) {
-      setError(`匯入提交失敗：${String(cause)}`);
+      setError(t('import.commitFailed', { error: String(cause) }));
       setStatus('');
     } finally {
       setBusy(false);
@@ -237,56 +293,54 @@ export function ImportWizard({
       >
         <div className="import-wizard-header">
           <div>
-            <h2 id="import-wizard-title">匯入文章</h2>
-            <p id="import-wizard-description">
-              先建立唯讀預覽；確認 metadata、資產與輸出檔案後，才會原子寫入工作區。
-            </p>
+            <h2 id="import-wizard-title">{t('import.title')}</h2>
+            <p id="import-wizard-description">{t('import.description')}</p>
           </div>
           <button type="button" className="icon-button" onClick={onClose} disabled={busy}>
-            關閉
+            {t('general.close')}
           </button>
         </div>
 
         <div className="import-target" data-testid="import-target-workspace">
-          <strong>目標工作區：</strong>{' '}
+          <strong>{t('import.targetWorkspace')}</strong>{' '}
           {workspace
-            ? `${workspace.displayName}（${workspace.kind === 'local' ? '可寫入' : '唯讀'}）`
-            : '載入中'}
+            ? `${workspace.displayName} (${workspace.kind === 'local' ? t('import.writable') : t('import.readOnly')})`
+            : t('general.loading')}
         </div>
 
         {!writable && (
           <div className="import-blocker" role="alert">
-            <p>內建封存不可寫入。請先選擇本機工作區。</p>
+            <p>{t('import.bundledBlocked')}</p>
             <button
               ref={firstButtonRef}
               type="button"
               onClick={() => void onChooseWorkspace()}
               disabled={busy}
             >
-              開啟本機工作區
+              {t('import.openWorkspace')}
             </button>
           </div>
         )}
 
         {writable && !preview && (
           <div className="import-source-options">
-            <h3>1. 選擇來源</h3>
+            <h3>{t('import.stepSource')}</h3>
             <button
               ref={firstButtonRef}
               type="button"
               onClick={() => void chooseSource('markdown-file')}
               disabled={busy}
             >
-              選擇 Markdown 檔案…
-              <small>匯入單一 .md 檔案</small>
+              {t('import.chooseMarkdown')}
+              <small>{t('import.chooseMarkdownHint')}</small>
             </button>
             <button
               type="button"
               onClick={() => void chooseSource('article-folder')}
               disabled={busy}
             >
-              選擇文章資料夾…
-              <small>article.md、可選 research-activity.md 與 assets/</small>
+              {t('import.chooseFolder')}
+              <small>{t('import.chooseFolderHint')}</small>
             </button>
           </div>
         )}
@@ -296,8 +350,8 @@ export function ImportWizard({
             <section className="import-section" aria-labelledby="import-metadata-title">
               <div className="import-section-heading">
                 <div>
-                  <h3 id="import-metadata-title">2. 檢查 metadata</h3>
-                  <small>來源：{preview.source.displayName}</small>
+                  <h3 id="import-metadata-title">{t('import.stepMetadata')}</h3>
+                  <small>{t('import.source', { name: preview.source.displayName })}</small>
                 </div>
                 <button
                   type="button"
@@ -309,12 +363,12 @@ export function ImportWizard({
                   }}
                   disabled={busy}
                 >
-                  更換來源
+                  {t('import.changeSource')}
                 </button>
               </div>
               <div className="import-metadata-grid">
                 <label>
-                  標題
+                  {t('import.fieldTitle')}
                   <input
                     type="text"
                     value={metadata.title}
@@ -329,7 +383,7 @@ export function ImportWizard({
                   />
                 </label>
                 <label>
-                  日期
+                  {t('import.fieldDate')}
                   <input
                     type="text"
                     inputMode="numeric"
@@ -345,7 +399,7 @@ export function ImportWizard({
                   />
                 </label>
                 <label>
-                  分類
+                  {t('import.fieldCategory')}
                   <input
                     type="text"
                     value={metadata.category}
@@ -360,7 +414,7 @@ export function ImportWizard({
                   />
                 </label>
                 <label>
-                  slug
+                  {t('import.fieldSlug')}
                   <input
                     type="text"
                     value={metadata.slug}
@@ -375,7 +429,7 @@ export function ImportWizard({
                   />
                 </label>
                 <label className="import-tags-field">
-                  標籤（逗號分隔）
+                  {t('import.fieldTags')}
                   <input
                     type="text"
                     value={metadata.tags}
@@ -396,41 +450,46 @@ export function ImportWizard({
                 onClick={() => void refreshPreview()}
                 disabled={busy || !dirty}
               >
-                更新並重新驗證預覽
+                {t('import.refresh')}
               </button>
             </section>
 
             <section className="import-section" aria-labelledby="import-plan-title">
-              <h3 id="import-plan-title">3. 寫入計畫</h3>
+              <h3 id="import-plan-title">{t('import.stepPlan')}</h3>
               <dl className="import-summary-grid">
                 <div>
-                  <dt>目標文章</dt>
+                  <dt>{t('import.targetArticle')}</dt>
                   <dd data-testid="import-target-path">{preview.targetArticleRelativePath}</dd>
                 </div>
                 <div>
-                  <dt>資產</dt>
-                  <dd>{preview.assets.length} 個</dd>
+                  <dt>{t('import.assets')}</dt>
+                  <dd>{t('import.itemCount', { count: preview.assets.length })}</dd>
                 </div>
                 <div>
-                  <dt>輸出檔案</dt>
-                  <dd>{preview.outputFiles.length} 個</dd>
+                  <dt>{t('import.outputFiles')}</dt>
+                  <dd>{t('import.itemCount', { count: preview.outputFiles.length })}</dd>
                 </div>
                 <div>
-                  <dt>清理項目</dt>
+                  <dt>{t('import.cleanupItems')}</dt>
                   <dd>
-                    {Object.values(preview.cleanup).reduce((total, value) => total + value, 0)} 個
+                    {t('import.itemCount', {
+                      count: Object.values(preview.cleanup).reduce(
+                        (total, value) => total + value,
+                        0,
+                      ),
+                    })}
                   </dd>
                 </div>
               </dl>
 
               {!!preview.warnings.length && (
                 <div className="import-messages" aria-labelledby="import-warning-title">
-                  <h4 id="import-warning-title">警告</h4>
+                  <h4 id="import-warning-title">{t('import.warnings')}</h4>
                   <ul>
                     {preview.warnings.map((warning, index) => (
                       <li key={`${warning.code}-${warning.path || index}`}>
-                        {warning.message}
-                        {warning.path ? `（${warning.path}）` : ''}
+                        {issueMessage(warning.code, warning.message)}
+                        {warning.path ? ` (${warning.path})` : ''}
                       </li>
                     ))}
                   </ul>
@@ -439,11 +498,11 @@ export function ImportWizard({
 
               {!!preview.conflicts.length && (
                 <div className="import-messages import-conflicts" role="alert">
-                  <h4>阻擋提交的衝突</h4>
+                  <h4>{t('import.conflicts')}</h4>
                   <ul>
                     {preview.conflicts.map((conflict) => (
                       <li key={conflict.path}>
-                        {conflict.message}（{conflict.path}）
+                        {t('import.error.targetConflict')} ({conflict.path})
                       </li>
                     ))}
                   </ul>
@@ -451,7 +510,7 @@ export function ImportWizard({
               )}
 
               <details>
-                <summary>檢視預計寫入的檔案</summary>
+                <summary>{t('import.viewFiles')}</summary>
                 <ul className="import-file-list">
                   {preview.outputFiles.map((file) => (
                     <li key={file.relativePath}>
@@ -467,7 +526,7 @@ export function ImportWizard({
               className="import-section import-confirm"
               aria-labelledby="import-confirm-title"
             >
-              <h3 id="import-confirm-title">4. 確認提交</h3>
+              <h3 id="import-confirm-title">{t('import.stepConfirm')}</h3>
               <label className="import-remove-source">
                 <input
                   type="checkbox"
@@ -475,12 +534,12 @@ export function ImportWizard({
                   onChange={(event) => setRemoveSource(event.target.checked)}
                   disabled={busy}
                 />
-                匯入成功且再次驗證後，刪除原始來源
+                {t('import.removeSource')}
               </label>
-              <small>預設保留來源。刪除是獨立且不可復原的動作；任一驗證失敗都會保留來源。</small>
-              {dirty && <p className="import-inline-note">metadata 已變更；請先更新預覽。</p>}
+              <small>{t('import.removeSourceHint')}</small>
+              {dirty && <p className="import-inline-note">{t('import.metadataDirty')}</p>}
               {!preview.canCommit && !dirty && (
-                <p className="import-inline-note">目前預覽不可提交；請修正 metadata 或衝突。</p>
+                <p className="import-inline-note">{t('import.notCommittable')}</p>
               )}
               <button
                 type="button"
@@ -489,7 +548,7 @@ export function ImportWizard({
                 onClick={() => void commit()}
                 disabled={busy || dirty || !preview.canCommit}
               >
-                {busy ? '處理中…' : '原子匯入文章'}
+                {busy ? t('import.processing') : t('import.commit')}
               </button>
             </section>
           </>

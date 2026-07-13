@@ -2,6 +2,7 @@ import MarkdownIt from 'markdown-it';
 import footnote from 'markdown-it-footnote';
 import sanitizeHtml from 'sanitize-html';
 import { HeadingSlugger } from '@research-observatory/domain';
+import type { AppLocale } from '@research-observatory/platform-contracts';
 
 export * from './browse';
 
@@ -24,33 +25,43 @@ function footnoteReferenceId(token: FootnoteToken): string {
 
 const md = new MarkdownIt({ html: true, linkify: true, typographer: true }).use(footnote);
 
-md.renderer.rules.footnote_ref = (tokens, idx) => {
+md.renderer.rules.footnote_ref = (tokens, idx, _options, env) => {
   const token = tokens[idx] as unknown as FootnoteToken;
   const number = footnoteNumber(token);
   const subId = Number(token.meta.subId ?? 0);
   const caption = `[${number}${subId > 0 ? `:${subId}` : ''}]`;
-  return `<sup class="footnote-ref"><a href="#fn-${number}" id="${footnoteReferenceId(token)}" aria-label="註腳 ${number}">${caption}</a></sup>`;
+  const locale = (env.locale as AppLocale | undefined) ?? 'zh-TW';
+  const label = locale === 'en' ? `Footnote ${number}` : `註腳 ${number}`;
+  return `<sup class="footnote-ref"><a href="#fn-${number}" id="${footnoteReferenceId(token)}" aria-label="${label}">${caption}</a></sup>`;
 };
 
-md.renderer.rules.footnote_block_open = () =>
-  '<hr class="footnotes-sep">\n<section class="footnotes" aria-label="註腳">\n<ol class="footnotes-list">\n';
+md.renderer.rules.footnote_block_open = (_tokens, _idx, _options, env) => {
+  const locale = (env.locale as AppLocale | undefined) ?? 'zh-TW';
+  const label = locale === 'en' ? 'Footnotes' : '註腳';
+  return `<hr class="footnotes-sep">\n<section class="footnotes" aria-label="${label}">\n<ol class="footnotes-list">\n`;
+};
 md.renderer.rules.footnote_block_close = () => '</ol>\n</section>\n';
 md.renderer.rules.footnote_open = (tokens, idx) => {
   const number = footnoteNumber(tokens[idx] as unknown as FootnoteToken);
   return `<li id="fn-${number}" class="footnote-item" tabindex="-1">`;
 };
 md.renderer.rules.footnote_close = () => '</li>\n';
-md.renderer.rules.footnote_anchor = (tokens, idx) => {
+md.renderer.rules.footnote_anchor = (tokens, idx, _options, env) => {
   const token = tokens[idx] as unknown as FootnoteToken;
   const number = footnoteNumber(token);
   const subId = Number(token.meta.subId ?? 0);
-  const position = subId > 0 ? `第 ${subId + 1} 個` : '第一個';
-  return ` <a href="#${footnoteReferenceId(token)}" class="footnote-backref" aria-label="返回註腳 ${number} 的${position}引用位置">↩︎</a>`;
+  const locale = (env.locale as AppLocale | undefined) ?? 'zh-TW';
+  const position = subId > 0 ? subId + 1 : 1;
+  const label =
+    locale === 'en'
+      ? `Return to reference ${position} for footnote ${number}`
+      : `返回註腳 ${number} 的${position === 1 ? '第一個' : `第 ${position} 個`}引用位置`;
+  return ` <a href="#${footnoteReferenceId(token)}" class="footnote-backref" aria-label="${label}">↩︎</a>`;
 };
 
-export function renderMarkdown(markdown: string): string {
+export function renderMarkdown(markdown: string, locale: AppLocale = 'zh-TW'): string {
   const slugger = new HeadingSlugger();
-  const env = { slugger };
+  const env = { slugger, locale };
   md.renderer.rules.heading_open = (tokens, idx, options, currentEnv, self) => {
     const inline = tokens[idx + 1];
     const text = inline?.type === 'inline' ? inline.content : '';

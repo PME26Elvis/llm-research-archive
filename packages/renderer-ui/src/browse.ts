@@ -1,3 +1,5 @@
+import type { AppLocale } from '@research-observatory/platform-contracts';
+
 export type BrowseMode = 'all' | 'category' | 'tag' | 'timeline';
 
 export interface BrowsableArticle {
@@ -27,19 +29,26 @@ export function articleMonthKey(date: string): string {
   return match ? `${match[1]}-${match[2]}` : 'unknown';
 }
 
-function monthLabel(key: string): string {
-  if (key === 'unknown') return '日期不明';
+function monthLabel(key: string, locale: AppLocale): string {
+  if (key === 'unknown') return locale === 'en' ? 'Unknown date' : '日期不明';
   const [year, month] = key.split('-').map(Number);
-  return `${year} 年 ${month} 月`;
+  return locale === 'en'
+    ? new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'long', timeZone: 'UTC' }).format(
+        new Date(Date.UTC(year, month - 1, 1)),
+      )
+    : `${year} 年 ${month} 月`;
 }
 
-function alphabeticalFacets(counts: Map<string, number>): BrowseFacet[] {
+function alphabeticalFacets(counts: Map<string, number>, locale: AppLocale): BrowseFacet[] {
   return [...counts]
     .map(([key, count]) => ({ key, label: key, count }))
-    .sort((a, b) => a.label.localeCompare(b.label));
+    .sort((a, b) => a.label.localeCompare(b.label, locale === 'en' ? 'en' : 'zh-Hant'));
 }
 
-export function buildArchiveBrowseModel(articles: readonly BrowsableArticle[]): ArchiveBrowseModel {
+export function buildArchiveBrowseModel(
+  articles: readonly BrowsableArticle[],
+  locale: AppLocale = 'zh-TW',
+): ArchiveBrowseModel {
   const categories = new Map<string, number>();
   const tags = new Map<string, number>();
   const timeline = new Map<string, number>();
@@ -51,10 +60,10 @@ export function buildArchiveBrowseModel(articles: readonly BrowsableArticle[]): 
   }
 
   return {
-    categories: alphabeticalFacets(categories),
-    tags: alphabeticalFacets(tags),
+    categories: alphabeticalFacets(categories, locale),
+    tags: alphabeticalFacets(tags, locale),
     timeline: [...timeline]
-      .map(([key, count]) => ({ key, label: monthLabel(key), count }))
+      .map(([key, count]) => ({ key, label: monthLabel(key, locale), count }))
       .sort((a, b) => {
         if (a.key === 'unknown') return 1;
         if (b.key === 'unknown') return -1;

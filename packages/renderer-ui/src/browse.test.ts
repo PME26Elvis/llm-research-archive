@@ -43,4 +43,8 @@ describe('archive browse model', () => {
     ).toEqual(['alpha', 'gamma']);
     expect(filterArticlesByBrowse(articles, 'all', '')).toEqual(articles);
   });
+  it('localizes timeline labels for English without changing stable keys', () => {
+    const model = buildArchiveBrowseModel(articles, 'en');
+    expect(model.timeline[0]).toMatchObject({ key: '2026-02', label: 'February 2026' });
+  });
 });

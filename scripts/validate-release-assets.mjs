@@ -29,6 +29,15 @@ if (applyVersionStepCount !== 4) {
     `all four release stages must use the cross-platform version applicator; found ${applyVersionStepCount}`,
   );
 }
+if (!releaseWorkflow.includes("release_notes: { type: string, required: false, default: '' }")) {
+  throw new Error('release workflow must expose optional release highlights');
+}
+if (!releaseWorkflow.includes('node scripts/release-notes.mjs /tmp/release-notes.md')) {
+  throw new Error('release workflow must render structured Markdown release notes');
+}
+if (releaseWorkflow.split('--notes-file /tmp/release-notes.md').length - 1 !== 2) {
+  throw new Error('new and refreshed drafts must both use the generated notes file');
+}
 if (releaseWorkflow.includes('npm version "$RELEASE_VERSION"')) {
   throw new Error('release workflow must not use shell-specific RELEASE_VERSION expansion');
 }

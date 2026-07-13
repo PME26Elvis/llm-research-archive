@@ -6,6 +6,7 @@ on:
       requested_version: { type: string, required: false, default: '' }
       channel: { type: string, required: false, default: prerelease }
       publish: { type: boolean, required: false, default: false }
+      release_notes: { type: string, required: false, default: '' }
 concurrency:
   group: desktop-release
   cancel-in-progress: false
@@ -200,8 +201,11 @@ jobs:
           TAG: ${{ needs.preflight.outputs.tag }}
           TARGET_SHA: ${{ needs.preflight.outputs.sha }}
           VERSION_SOURCE: ${{ needs.preflight.outputs.version_source }}
+          RELEASE_NOTES_INPUT: ${{ inputs.release_notes }}
         run: |
           set -euo pipefail
+          RELEASE_TAG="$TAG" RELEASE_VERSION_SOURCE="$VERSION_SOURCE" \
+            node scripts/release-notes.mjs /tmp/release-notes.md
           if gh release view "$TAG" --json isDraft,targetCommitish,assets > /tmp/release-before.json 2>/dev/null; then
             node -e 'const r=require("/tmp/release-before.json"); if(!r.isDraft){console.error(`release ${process.env.TAG} is already published`); process.exit(1);}'
             draft_target=$(node -p 'require("/tmp/release-before.json").targetCommitish')
@@ -211,8 +215,9 @@ jobs:
               exit 1
             fi
             node -e 'const { spawnSync }=require("node:child_process"); const r=require("/tmp/release-before.json"); for(const a of r.assets){const result=spawnSync("gh",["release","delete-asset",process.env.TAG,a.name,"-y"],{stdio:"inherit"}); if(result.status!==0) process.exit(result.status ?? 1);}'
+            gh release edit "$TAG" --title "$TAG" --notes-file /tmp/release-notes.md
           else
-            gh release create "$TAG" --draft --target "$TARGET_SHA" --title "$TAG" --notes "Desktop release $TAG (${VERSION_SOURCE})"
+            gh release create "$TAG" --draft --target "$TARGET_SHA" --title "$TAG" --notes-file /tmp/release-notes.md
           fi
           gh release upload "$TAG" dist/aggregate-release/* --clobber
       - name: Verify GitHub release assets
@@ -264,6 +269,8 @@ jobs:
           console.log(`Resolved SHA: ${process.env.TARGET_SHA}`);
           console.log(`Channel: ${process.env.CHANNEL}`);
           console.log(`Publish requested: ${process.env.PUBLISH}\n`);
+          const highlights = process.env.RELEASE_NOTES_INPUT?.trim();
+          if (highlights) console.log(`Release highlights input: ${highlights}\n`);
           console.log('## Build verification');
           console.log('- Quality gate: passed');
           console.log('- Windows x64 make and packaged smoke: passed');
@@ -294,3 +301,4 @@ jobs:
           TARGET_SHA: ${{ needs.preflight.outputs.sha }}
           CHANNEL: ${{ inputs.channel }}
           PUBLISH: ${{ inputs.publish }}
+          RELEASE_NOTES_INPUT: ${{ inputs.release_notes }}

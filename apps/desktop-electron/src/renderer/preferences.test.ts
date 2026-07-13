@@ -46,12 +46,26 @@ describe('reader preferences', () => {
 
   it('migrates the legacy fontScale shape and clamps values', () => {
     expect(parseReaderPreferences('{"theme":"dark","fontScale":1.28}')).toEqual({
-      schemaVersion: 1,
+      schemaVersion: 2,
       theme: 'dark',
       textScale: 1.3,
+      locale: 'zh-TW',
     });
     expect(normalizeTextScale(4)).toBe(1.4);
     expect(normalizeTextScale(0)).toBe(0.8);
+  });
+
+  it('migrates schema v1 preferences to Traditional Chinese and accepts English', () => {
+    expect(parseReaderPreferences('{"schemaVersion":1,"theme":"system","textScale":1.1}')).toEqual({
+      schemaVersion: 2,
+      theme: 'system',
+      textScale: 1.1,
+      locale: 'zh-TW',
+    });
+    expect(
+      parseReaderPreferences('{"schemaVersion":2,"theme":"dark","textScale":1,"locale":"en"}')
+        .locale,
+    ).toBe('en');
   });
 
   it('backs up corrupt data and resets safely', () => {
@@ -65,7 +79,12 @@ describe('reader preferences', () => {
 
   it('persists a normalized versioned payload', () => {
     const storage = new MemoryStorage();
-    const preferences = { schemaVersion: 1 as const, theme: 'light' as const, textScale: 1.2 };
+    const preferences = {
+      schemaVersion: 2 as const,
+      theme: 'light' as const,
+      textScale: 1.2,
+      locale: 'en' as const,
+    };
 
     saveReaderPreferences(storage, preferences);
     expect(loadReaderPreferences(storage)).toEqual(preferences);

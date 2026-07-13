@@ -18,6 +18,13 @@ describe('desktop command catalog', () => {
     ]);
   });
 
+  it('localizes command labels while keeping bilingual search aliases', () => {
+    expect(filterDesktopCommands('', 'en')[0].label).toBe('Focus search');
+    expect(filterDesktopCommands('搜尋', 'en').map((command) => command.id)).toEqual([
+      'search.focus',
+    ]);
+  });
+
   it('returns no arbitrary action for an unknown query', () => {
     expect(filterDesktopCommands('delete everything')).toEqual([]);
   });

@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import {
   AppInfoResponseSchema,
+  AppLocaleSchema,
   ArchiveDiagnosticsSchema,
   DesktopCommandSchema,
   ImportCommitRequestSchema,
@@ -14,6 +15,7 @@ import {
   WorkspaceInfoSchema,
   WorkspaceSelectionResultSchema,
   type AppInfoDto,
+  type AppLocale,
   type ArchiveDiagnosticsDto,
   type ArticleDto,
   type ArticleSummaryDto,
@@ -48,6 +50,10 @@ contextBridge.exposeInMainWorld('observatory', {
   appInfo: async (): Promise<AppInfoDto> =>
     AppInfoResponseSchema.parse(await ipcRenderer.invoke('app:info')),
   openExternal: (url: string) => ipcRenderer.invoke('external:open', url),
+  setLocale: async (locale: AppLocale): Promise<AppLocale> =>
+    AppLocaleSchema.parse(
+      await ipcRenderer.invoke('app:set-locale', AppLocaleSchema.parse(locale)),
+    ),
   workspaceInfo: async (): Promise<WorkspaceInfoDto> =>
     WorkspaceInfoSchema.parse(await ipcRenderer.invoke('workspace:info')),
   selectWorkspace: async (): Promise<WorkspaceSelectionResult> =>

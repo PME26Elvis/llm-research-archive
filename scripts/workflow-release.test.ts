@@ -19,6 +19,14 @@ describe('desktop release workflow safety', () => {
     for (const ref of actionRefs) expect(ref).toMatch(/^[^@]+@[0-9a-f]{40}$/);
   });
 
+  it('turns optional release highlights into refreshed Markdown notes', () => {
+    expect(workflow).toContain("release_notes: { type: string, required: false, default: '' }");
+    const refresh = namedStep('Create or refresh draft release assets');
+    expect(refresh).toContain('node scripts/release-notes.mjs /tmp/release-notes.md');
+    expect(refresh).toContain('gh release edit "$TAG" --title "$TAG" --notes-file /tmp/release-notes.md');
+    expect(refresh).toContain('gh release create "$TAG" --draft --target "$TARGET_SHA" --title "$TAG" --notes-file /tmp/release-notes.md');
+  });
+
   it('keeps release writes in the single release job and publishes only on explicit input', () => {
     expect(workflow).toContain('permissions: { contents: write }');
     expect(workflow).toContain('- if: inputs.publish');

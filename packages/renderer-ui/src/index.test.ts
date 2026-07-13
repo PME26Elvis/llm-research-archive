@@ -56,4 +56,10 @@ describe('footnotes', () => {
     expect(html).not.toContain('<script>');
     expect(html).toContain('<section class="footnotes" aria-label="註腳">');
   });
+  it('localizes footnote accessibility labels in English', () => {
+    const html = renderMarkdown('Text[^1].\n\n[^1]: Note.', 'en');
+    expect(html).toContain('aria-label="Footnote 1"');
+    expect(html).toContain('aria-label="Footnotes"');
+    expect(html).toContain('Return to reference 1 for footnote 1');
+  });
 });

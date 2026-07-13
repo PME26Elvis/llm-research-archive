@@ -1,20 +1,23 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import type { DesktopCommand } from '@research-observatory/platform-contracts';
+import type { AppLocale, DesktopCommand } from '@research-observatory/platform-contracts';
 import { filterDesktopCommands } from './desktop-commands';
+import { translate } from './i18n';
 
 interface CommandPaletteProps {
   open: boolean;
+  locale: AppLocale;
   onClose(): void;
   onExecute(command: DesktopCommand): void;
 }
 
-export function CommandPalette({ open, onClose, onExecute }: CommandPaletteProps) {
+export function CommandPalette({ open, locale, onClose, onExecute }: CommandPaletteProps) {
   const [query, setQuery] = useState('');
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
-  const results = useMemo(() => filterDesktopCommands(query), [query]);
+  const results = useMemo(() => filterDesktopCommands(query, locale), [locale, query]);
+  const t = (key: Parameters<typeof translate>[1]) => translate(locale, key);
 
   useEffect(() => {
     if (!open) return;
@@ -39,7 +42,7 @@ export function CommandPalette({ open, onClose, onExecute }: CommandPaletteProps
     if (command !== 'search.focus') return;
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        const search = document.querySelector<HTMLInputElement>('input[aria-label="搜尋文章"]');
+        const search = document.querySelector<HTMLInputElement>('[data-testid="article-search"]');
         search?.focus();
         search?.select();
       });
@@ -60,7 +63,7 @@ export function CommandPalette({ open, onClose, onExecute }: CommandPaletteProps
             event.preventDefault();
             onClose();
           } else if (event.key === 'Tab' && dialogRef.current) {
-            const focusable: HTMLElement[] = Array.from(
+            const focusable = Array.from(
               dialogRef.current.querySelectorAll<HTMLElement>(
                 'button, input, [href], [tabindex]:not([tabindex="-1"])',
               ),
@@ -87,19 +90,19 @@ export function CommandPalette({ open, onClose, onExecute }: CommandPaletteProps
           }
         }}
       >
-        <h2 id="command-palette-title">指令面板</h2>
+        <h2 id="command-palette-title">{t('palette.title')}</h2>
         <input
           ref={inputRef}
           type="search"
-          aria-label="搜尋指令"
-          placeholder="輸入指令名稱…"
+          aria-label={t('palette.search')}
+          placeholder={t('palette.placeholder')}
           value={query}
           onChange={(event) => {
             setQuery(event.target.value);
             setActiveIndex(0);
           }}
         />
-        <div className="command-results" role="listbox" aria-label="可用指令">
+        <div className="command-results" role="listbox" aria-label={t('palette.results')}>
           {results.map((command, index) => (
             <button
               key={command.id}
@@ -113,7 +116,7 @@ export function CommandPalette({ open, onClose, onExecute }: CommandPaletteProps
               {command.shortcut && <kbd>{command.shortcut}</kbd>}
             </button>
           ))}
-          {!results.length && <p>沒有符合的指令</p>}
+          {!results.length && <p>{t('palette.empty')}</p>}
         </div>
       </section>
     </div>

@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import type { AppLocale } from '@research-observatory/platform-contracts';
+import { translate } from './i18n';
 import {
   MAX_SIDEBAR_WIDTH,
   MIN_SIDEBAR_WIDTH,
@@ -12,11 +14,13 @@ const initialPreferences = loadLayoutPreferences(window.localStorage);
 
 interface ResizableLayoutProps {
   articleCount: number;
+  locale: AppLocale;
   sidebar: ReactNode;
   children: ReactNode;
 }
 
-export function ResizableLayout({ articleCount, sidebar, children }: ResizableLayoutProps) {
+export function ResizableLayout({ articleCount, locale, sidebar, children }: ResizableLayoutProps) {
+  const t = (key: Parameters<typeof translate>[1]) => translate(locale, key);
   const [preferences, setPreferences] = useState<LayoutPreferences>(initialPreferences);
   const dragStartRef = useRef<{ x: number; width: number } | null>(null);
 
@@ -72,7 +76,7 @@ export function ResizableLayout({ articleCount, sidebar, children }: ResizableLa
         <div
           className="pane-separator"
           role="separator"
-          aria-label="調整導覽欄寬度"
+          aria-label={t('layout.resizeSidebar')}
           aria-orientation="vertical"
           aria-valuemin={MIN_SIDEBAR_WIDTH}
           aria-valuemax={MAX_SIDEBAR_WIDTH}
@@ -104,11 +108,13 @@ export function ResizableLayout({ articleCount, sidebar, children }: ResizableLa
         <button
           type="button"
           className="sidebar-toggle"
-          aria-label={preferences.sidebarCollapsed ? '顯示導覽欄' : '隱藏導覽欄'}
+          aria-label={
+            preferences.sidebarCollapsed ? t('layout.showSidebar') : t('layout.hideSidebar')
+          }
           aria-expanded={!preferences.sidebarCollapsed}
           onClick={toggleSidebar}
         >
-          {preferences.sidebarCollapsed ? '顯示導覽欄' : '隱藏導覽欄'}
+          {preferences.sidebarCollapsed ? t('layout.showSidebar') : t('layout.hideSidebar')}
         </button>
         {children}
       </section>

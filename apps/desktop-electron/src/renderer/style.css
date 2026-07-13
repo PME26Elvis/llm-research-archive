@@ -360,8 +360,19 @@ th {
   margin: 0;
 }
 
+.settings-language {
+  display: grid;
+  gap: 0.45rem;
+  margin: 1rem 0;
+}
+
+.settings-language h3,
 .settings-text h3 {
   margin-bottom: 0.5rem;
+}
+
+.settings-language select {
+  width: 100%;
 }
 
 .text-scale-controls {

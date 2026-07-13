@@ -1,5 +1,7 @@
 import { z } from 'zod';
 
+export const AppLocaleSchema = z.enum(['zh-TW', 'en']);
+
 export const ReadingStatsDtoSchema = z.object({
   displayCount: z.number().int().nonnegative(),
   cjkCharacters: z.number().int().nonnegative(),
@@ -263,6 +265,7 @@ export const ImportCommitResultSchema = z.discriminatedUnion('status', [
 ]);
 export const ArticleListResponseSchema = z.array(ArticleSummaryDtoSchema);
 export const SearchResponseSchema = z.array(SearchResultDtoSchema);
+export type AppLocale = z.infer<typeof AppLocaleSchema>;
 export type DesktopCommand = z.infer<typeof DesktopCommandSchema>;
 
 export type StartupMilestone = z.infer<typeof StartupMilestoneSchema>;

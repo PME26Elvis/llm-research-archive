@@ -1,8 +1,11 @@
 import './mermaid.css';
+import type { AppLocale } from '@research-observatory/platform-contracts';
 import { renderMermaidSvg, type MermaidTheme } from './mermaid-renderer';
+import { translate } from './i18n';
 
 interface MermaidMountOptions {
   render?: typeof renderMermaidSvg;
+  locale?: AppLocale;
 }
 
 let diagramSequence = 0;
@@ -11,7 +14,8 @@ function resolvedTheme(): MermaidTheme {
   return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
 }
 
-function createMermaidFigure(pre: HTMLPreElement, source: string): HTMLElement {
+function createMermaidFigure(pre: HTMLPreElement, source: string, locale: AppLocale): HTMLElement {
+  const t = (key: Parameters<typeof translate>[1]) => translate(locale, key);
   const figure = document.createElement('figure');
   figure.className = 'mermaid-diagram';
   figure.dataset.mermaidState = 'pending';
@@ -19,7 +23,7 @@ function createMermaidFigure(pre: HTMLPreElement, source: string): HTMLElement {
   figure.dataset.mermaidRenderVersion = '0';
 
   const caption = document.createElement('figcaption');
-  caption.textContent = 'Mermaid 圖表';
+  caption.textContent = t('mermaid.caption');
 
   const canvas = document.createElement('div');
   canvas.className = 'mermaid-canvas';
@@ -30,12 +34,12 @@ function createMermaidFigure(pre: HTMLPreElement, source: string): HTMLElement {
   status.dataset.mermaidStatus = '';
   status.setAttribute('role', 'status');
   status.setAttribute('aria-live', 'polite');
-  status.textContent = '圖表將在接近閱讀區域時載入';
+  status.textContent = t('mermaid.pending');
 
   const sourceDetails = document.createElement('details');
   sourceDetails.className = 'mermaid-source';
   const summary = document.createElement('summary');
-  summary.textContent = '查看 Mermaid 原始碼';
+  summary.textContent = t('mermaid.source');
 
   pre.replaceWith(figure);
   sourceDetails.append(summary, pre);
@@ -43,7 +47,12 @@ function createMermaidFigure(pre: HTMLPreElement, source: string): HTMLElement {
   return figure;
 }
 
-async function renderFigure(figure: HTMLElement, render: typeof renderMermaidSvg): Promise<void> {
+async function renderFigure(
+  figure: HTMLElement,
+  render: typeof renderMermaidSvg,
+  locale: AppLocale,
+): Promise<void> {
+  const t = (key: Parameters<typeof translate>[1]) => translate(locale, key);
   if (figure.dataset.mermaidState !== 'pending') return;
   const source = figure.dataset.mermaidSource || '';
   const canvas = figure.querySelector<HTMLElement>('[data-mermaid-canvas]');
@@ -55,23 +64,23 @@ async function renderFigure(figure: HTMLElement, render: typeof renderMermaidSvg
   figure.dataset.mermaidRenderVersion = String(version);
   figure.dataset.mermaidState = 'rendering';
   status.setAttribute('role', 'status');
-  status.textContent = '正在渲染 Mermaid 圖表…';
+  status.textContent = t('mermaid.rendering');
   const id = `research-observatory-mermaid-${++diagramSequence}`;
 
   try {
-    const svg = await render(id, source, 'Mermaid 圖表', undefined, resolvedTheme());
+    const svg = await render(id, source, t('mermaid.caption'), undefined, resolvedTheme());
     if (!figure.isConnected || Number(figure.dataset.mermaidRenderVersion) !== version) return;
     canvas.innerHTML = svg;
     figure.dataset.mermaidState = 'rendered';
     figure.dataset.mermaidTheme = resolvedTheme();
-    status.textContent = 'Mermaid 圖表已完成';
+    status.textContent = t('mermaid.complete');
     sourceDetails.open = false;
   } catch {
     if (!figure.isConnected || Number(figure.dataset.mermaidRenderVersion) !== version) return;
     canvas.replaceChildren();
     figure.dataset.mermaidState = 'error';
     status.setAttribute('role', 'alert');
-    status.textContent = 'Mermaid 圖表無法渲染，已保留原始碼';
+    status.textContent = t('mermaid.failed');
     sourceDetails.open = true;
   }
 }
@@ -81,26 +90,27 @@ export function mountMermaidBlocks(
   options: MermaidMountOptions = {},
 ): () => void {
   const render = options.render ?? renderMermaidSvg;
+  const locale = options.locale ?? 'zh-TW';
   const figures: HTMLElement[] = [];
 
   for (const code of reader.querySelectorAll<HTMLElement>('pre > code.language-mermaid')) {
     const pre = code.parentElement;
     if (!(pre instanceof HTMLPreElement) || pre.closest('.mermaid-diagram')) continue;
-    figures.push(createMermaidFigure(pre, code.textContent || ''));
+    figures.push(createMermaidFigure(pre, code.textContent || '', locale));
   }
 
   if (!figures.length) return () => undefined;
 
   let observer: IntersectionObserver | undefined;
   if (typeof IntersectionObserver === 'undefined') {
-    for (const figure of figures) void renderFigure(figure, render);
+    for (const figure of figures) void renderFigure(figure, render, locale);
   } else {
     observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
           if (!entry.isIntersecting) continue;
           observer?.unobserve(entry.target);
-          void renderFigure(entry.target as HTMLElement, render);
+          void renderFigure(entry.target as HTMLElement, render, locale);
         }
       },
       { rootMargin: '320px 0px' },
@@ -115,7 +125,7 @@ export function mountMermaidBlocks(
       if (figure.dataset.mermaidTheme === resolvedTheme()) continue;
       figure.dataset.mermaidState = 'pending';
       figure.querySelector<HTMLElement>('[data-mermaid-canvas]')?.replaceChildren();
-      void renderFigure(figure, render);
+      void renderFigure(figure, render, locale);
     }
   };
   document.addEventListener('observatory-theme-change', onThemeChange);
