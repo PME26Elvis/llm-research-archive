@@ -1,4 +1,4 @@
-name: Temporary i18n Finalizer
+name: Temporary language docs finalizer
 
 on:
   push:
@@ -17,107 +17,70 @@ jobs:
       commit_sha: ${{ steps.commit.outputs.commit_sha }}
       push_result: ${{ steps.commit.outputs.push_result }}
     steps:
-      - name: Checkout feature branch
+      - name: Checkout documentation branch
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
-          ref: agent/language-settings-and-release-notes
+          ref: agent/sync-language-development-docs
           fetch-depth: 0
-      - name: Checkout transparent implementation payload
+      - name: Checkout transparent documentation patch
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
-          ref: ops/i18n-payload
+          ref: ops/language-docs-payload
           path: .payload
           fetch-depth: 1
-      - name: Reconstruct and verify implementation sources
+      - name: Apply documentation synchronization
         shell: bash
         run: |
           set -euo pipefail
-          exec > >(tee i18n-reconstruct.log) 2>&1
-          cat \
-            .payload/.i18n-patches/01.diff \
-            .payload/.i18n-patches/02.diff \
-            .payload/.i18n-patches/03.diff \
-            .payload/.i18n-patches/04.diff \
-            .payload/.i18n-patches/05.diff \
-            .payload/.i18n-patches/06a.part \
-            .payload/.i18n-patches/06b.part \
-            .payload/.i18n-patches/06c.part \
-            .payload/.i18n-patches/07.diff > /tmp/i18n.patch
-
-          mkdir -p apps/desktop-electron/src/main apps/desktop-electron/src/renderer scripts
-          cp .payload/.i18n-new/apps/desktop-electron/src/main/main-i18n.ts apps/desktop-electron/src/main/main-i18n.ts
-          cp .payload/.i18n-new/apps/desktop-electron/src/main/main-i18n.test.ts apps/desktop-electron/src/main/main-i18n.test.ts
-          cat \
-            .payload/.i18n-new/apps/desktop-electron/src/renderer/i18n.01.part \
-            .payload/.i18n-new/apps/desktop-electron/src/renderer/i18n.02.part \
-            .payload/.i18n-new/apps/desktop-electron/src/renderer/i18n.03.part \
-            > apps/desktop-electron/src/renderer/i18n.ts
-          cp .payload/.i18n-new/apps/desktop-electron/src/renderer/i18n.test.ts apps/desktop-electron/src/renderer/i18n.test.ts
-          cp .payload/.i18n-new/apps/desktop-electron/src/renderer/preferences-context.tsx apps/desktop-electron/src/renderer/preferences-context.tsx
-          cp .payload/.i18n-new/scripts/release-notes.mjs scripts/release-notes.mjs
-          cp .payload/.i18n-new/scripts/release-notes.test.ts scripts/release-notes.test.ts
-
-          sha256sum \
-            /tmp/i18n.patch \
-            apps/desktop-electron/src/main/main-i18n.ts \
-            apps/desktop-electron/src/main/main-i18n.test.ts \
-            apps/desktop-electron/src/renderer/i18n.ts \
-            apps/desktop-electron/src/renderer/i18n.test.ts \
-            apps/desktop-electron/src/renderer/preferences-context.tsx \
-            scripts/release-notes.mjs \
-            scripts/release-notes.test.ts \
-            | tee i18n-payload-sha256.txt
-
-          git apply --check /tmp/i18n.patch
-          git apply /tmp/i18n.patch
+          cat .payload/.language-docs/01.part .payload/.language-docs/02.part .payload/.language-docs/03.part .payload/.language-docs/04.part > /tmp/language-docs.patch
+          echo '32c7aa5884efe33cce6d7310874cd809215e1674c66ddf8fbeb44cadb9ae4890  /tmp/language-docs.patch' | sha256sum --check
+          git apply --check /tmp/language-docs.patch
+          git apply /tmp/language-docs.patch
           rm -rf .payload
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
           cache: npm
       - run: npm ci
-      - name: Format with repository toolchain
+      - name: Format documentation
         run: npm run format:write
       - name: Execute complete quality gate
         shell: bash
         run: |
           set -o pipefail
-          npm run verify 2>&1 | tee i18n-verify.log
-      - name: Upload verification evidence
+          npm run verify 2>&1 | tee language-docs-verify.log
+      - name: Upload documentation verification
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
-          name: i18n-finalizer-verification-${{ github.run_attempt }}
+          name: language-docs-verification-${{ github.run_attempt }}
           path: |
-            i18n-reconstruct.log
-            i18n-payload-sha256.txt
-            i18n-verify.log
+            language-docs-verify.log
             coverage/
             dist/quality/
             dist/performance/
-            test-results/
           if-no-files-found: warn
           retention-days: 14
-      - name: Create verified feature commit
+      - name: Create verified documentation commit
         id: commit
         shell: bash
         run: |
           set -euo pipefail
-          rm -f i18n-reconstruct.log i18n-payload-sha256.txt i18n-verify.log
+          rm -f language-docs-verify.log
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
           git add -A
-          git commit -m "Add switchable interface languages and structured release notes"
+          git commit -m "Synchronize language and release documentation"
           commit_sha=$(git rev-parse HEAD)
           echo "commit_sha=$commit_sha" >> "$GITHUB_OUTPUT"
           set +e
-          git push origin HEAD:agent/language-settings-and-release-notes
+          git push origin HEAD:agent/sync-language-development-docs
           push_status=$?
           set -e
           if [[ $push_status -eq 0 ]]; then
             echo 'push_result=success' >> "$GITHUB_OUTPUT"
           else
-            echo 'push_result=workflow-permission-rejected' >> "$GITHUB_OUTPUT"
+            echo 'push_result=permission-rejected' >> "$GITHUB_OUTPUT"
           fi
 
   receipt:
@@ -127,7 +90,7 @@ jobs:
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
-          ref: ops/i18n-finalizer-receipt
+          ref: ops/language-docs-finalizer-receipt
           fetch-depth: 0
       - name: Record finalizer result
         env:
@@ -147,11 +110,11 @@ jobs:
             triggerSha: process.env.FINALIZER_TRIGGER_SHA,
             recordedAt: new Date().toISOString(),
           };
-          fs.writeFileSync('.i18n-finalizer.json', `${JSON.stringify(receipt, null, 2)}\n`);
+          fs.writeFileSync('.language-docs-finalizer.json', `${JSON.stringify(receipt, null, 2)}\n`);
           NODE
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add .i18n-finalizer.json
-          git commit -m "Record i18n finalizer ${FINALIZER_RUN_ID}"
-          git pull --rebase origin ops/i18n-finalizer-receipt
-          git push origin HEAD:ops/i18n-finalizer-receipt
+          git add .language-docs-finalizer.json
+          git commit -m "Record language docs finalizer ${FINALIZER_RUN_ID}"
+          git pull --rebase origin ops/language-docs-finalizer-receipt
+          git push origin HEAD:ops/language-docs-finalizer-receipt
