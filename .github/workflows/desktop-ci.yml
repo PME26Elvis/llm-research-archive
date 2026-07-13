@@ -50,27 +50,38 @@ jobs:
         run: npm run validate:generated
       - name: Release assets
         run: npm run validate:release-assets
-      - name: Unit tests
+      - name: Enforced coverage
         shell: bash
         run: |
           set -o pipefail
-          npm run test 2>&1 | tee unit-tests.log
-      - name: Upload unit-test diagnostics
-        if: failure()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: desktop-unit-test-diagnostics-${{ github.run_attempt }}
-          path: |
-            unit-tests.log
-            test-results/
-          if-no-files-found: warn
-          retention-days: 14
+          npm run test:coverage 2>&1 | tee coverage-tests.log
       - name: Security tests
         run: npm run test:security
       - name: Compatibility tests
         run: npm run test:compatibility
+      - name: WCAG accessibility policy
+        run: npm run validate:accessibility
+      - name: Production dependency governance
+        run: npm run validate:dependencies
+      - name: Search performance benchmark
+        run: npm run benchmark:search
       - name: Build
         run: npm run build
+      - name: Renderer footprint
+        run: npm run validate:footprint:renderer
+      - name: Upload quality evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: desktop-quality-evidence-${{ github.run_attempt }}
+          path: |
+            coverage-tests.log
+            coverage/
+            dist/quality/
+            dist/performance/
+            test-results/
+          if-no-files-found: warn
+          retention-days: 14
   e2e:
     needs: quality
     runs-on: ubuntu-latest
@@ -122,7 +133,11 @@ jobs:
         run: xvfb-run -a npm run smoke:packaged
       - if: runner.os != 'Linux'
         run: npm run smoke:packaged
+      - name: Installed package footprint
+        run: npm run validate:footprint:package
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: ${{ matrix.artifact }}
-          path: dist/release-assets/*
+          path: |
+            dist/release-assets/*
+            dist/quality/footprint-package-*.json
