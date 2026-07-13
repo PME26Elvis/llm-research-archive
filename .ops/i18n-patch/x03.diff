@@ -1,0 +1,200 @@
++  'import.fieldSlug': 'Slug',
++  'import.fieldTags': 'Tags (comma-separated)',
++  'import.refresh': 'Update and revalidate preview',
++  'import.stepPlan': '3. Write plan',
++  'import.targetArticle': 'Target article',
++  'import.assets': 'Assets',
++  'import.outputFiles': 'Output files',
++  'import.cleanupItems': 'Cleanup items',
++  'import.itemCount': '{count} items',
++  'import.warnings': 'Warnings',
++  'import.conflicts': 'Conflicts blocking commit',
++  'import.viewFiles': 'View files to be written',
++  'import.stepConfirm': '4. Confirm commit',
++  'import.removeSource': 'Delete the original source after a successful import and final validation',
++  'import.removeSourceHint': 'Sources are retained by default. Deletion is separate and irreversible; any validation failure keeps the source.',
++  'import.metadataDirty': 'Metadata changed. Update the preview first.',
++  'import.notCommittable': 'The current preview cannot be committed. Fix metadata or conflicts.',
++  'import.processing': 'Processing…',
++  'import.commit': 'Import article atomically',
++  'import.previewReady': 'Preview updated and ready to commit.',
++  'import.confirmMetadata': 'Confirm the category, slug, and other metadata, then update the preview.',
++  'import.previewBlocked': 'The preview contains conflicts that block commit.',
++  'import.readingMarkdown': 'Reading Markdown…',
++  'import.scanningFolder': 'Scanning article folder…',
++  'import.cancelled': 'Source selection cancelled.',
++  'import.previewFailed': 'Import preview could not be created: {error}',
++  'import.titleRequired': 'Title is required.',
++  'import.categoryInvalid': 'Category must be lowercase English kebab-case, such as llm-research.',
++  'import.slugInvalid': 'Slug must be lowercase English kebab-case, such as model-report.',
++  'import.dateInvalid': 'Date must use YYYY-MM-DD.',
++  'import.tagsInvalid': 'Enter 1 to 8 comma-separated tags.',
++  'import.revalidating': 'Revalidating metadata and output paths…',
++  'import.refreshFailed': 'Import preview could not be updated: {error}',
++  'import.committing': 'Writing and validating the article atomically…',
++  'import.commitRejected': 'Commit failed; the workspace should not contain partial output.',
++  'import.completed': 'Import complete. Reloading the workspace…',
++  'import.commitFailed': 'Import commit failed: {error}',
++  'import.error.workspaceReadOnly': 'The current workspace is read-only.',
++  'import.error.planNotFound': 'The import preview expired. Choose the source again.',
++  'import.error.invalidSource': 'The source did not pass safety validation.',
++  'import.error.invalidMetadata': 'Metadata is invalid. Fix it and revalidate.',
++  'import.error.notCommittable': 'The current preview cannot be committed.',
++  'import.error.stalePlan': 'The source changed after preview. Create a new preview.',
++  'import.error.targetConflict': 'The target article already exists. No files were written.',
++  'import.error.inProgress': 'Another import transaction is in progress.',
++  'import.error.stageFailed': 'A secure staging area could not be created.',
++  'import.error.validationFailed': 'Staged output validation failed.',
++  'import.error.commitFailed': 'Atomic commit failed and rollback was attempted.',
++  'import.error.rollbackFailed': 'Commit and rollback both failed. Check workspace diagnostics.',
++  'import.issue.sourceNotFound': 'The source was not found.',
++  'import.issue.unsupportedSource': 'The source format is not supported.',
++  'import.issue.sourceSymlink': 'The source uses a symbolic link and was blocked.',
++  'import.issue.sourceEscape': 'The source path escapes the allowed boundary and was blocked.',
++  'import.issue.articleNotFound': 'No article.md was found in the folder.',
++  'import.issue.invalidFrontmatter': 'Front matter could not be parsed.',
++  'import.issue.invalidMetadata': 'Metadata does not satisfy the article contract.',
++  'import.issue.categoryFallback': 'The category was inferred from content. Confirm it.',
++  'import.issue.slugFallback': 'The slug was inferred from the title. Confirm it.',
++  'import.issue.ignoredSourceEntry': 'The source contains an entry that will not be imported.',
++  'import.issue.assetSymlink': 'An asset uses a symbolic link and was ignored.',
++  'import.issue.assetEscape': 'An asset escapes the allowed boundary and was ignored.',
++  'import.issue.missingAssetReference': 'The article references a missing asset.',
++  'import.issue.targetSymlink': 'The target path traverses a symbolic link and was blocked.',
++};
++
++const catalogs: Record<AppLocale, Record<MessageKey, string>> = { 'zh-TW': zhTW, en };
++
++export function translate(
++  locale: AppLocale,
++  key: MessageKey,
++  values: MessageValues = {},
++): string {
++  const template = catalogs[locale][key];
++  return template.replace(/\{([a-zA-Z0-9_]+)\}/g, (_match, name: string) =>
++    Object.prototype.hasOwnProperty.call(values, name) ? String(values[name]) : `{${name}}`,
++  );
++}
++
++export function localeForIntl(locale: AppLocale): string {
++  return locale === 'en' ? 'en-US' : 'zh-TW';
++}
++
++export function formatNumber(locale: AppLocale, value: number): string {
++  return value.toLocaleString(localeForIntl(locale));
++}
++
++export function applyDocumentLocale(document: Document, locale: AppLocale): void {
++  document.documentElement.lang = locale === 'en' ? 'en' : 'zh-Hant-TW';
++  document.documentElement.dataset.locale = locale;
++  document.documentElement.dir = 'ltr';
++}
++
++export type { MessageKey };
+diff --git a/apps/desktop-electron/src/renderer/import-wizard.tsx b/apps/desktop-electron/src/renderer/import-wizard.tsx
+index d1b79e4..c03f290 100644
+--- a/apps/desktop-electron/src/renderer/import-wizard.tsx
++++ b/apps/desktop-electron/src/renderer/import-wizard.tsx
+@@ -1,14 +1,17 @@
+ import React, { useEffect, useRef, useState } from 'react';
+ import type {
++  AppLocale,
+   ImportCommitResult,
+   ImportMetadataDto,
+   ImportPlanPreviewDto,
+   ImportSourceKind,
+   WorkspaceInfoDto,
+ } from '@research-observatory/platform-contracts';
++import { translate } from './i18n';
+ 
+ interface ImportWizardProps {
+   open: boolean;
++  locale: AppLocale;
+   workspace: WorkspaceInfoDto | null;
+   onClose(): void;
+   onChooseWorkspace(): Promise<void>;
+@@ -35,11 +38,64 @@ function metadataFromPreview(preview: ImportPlanPreviewDto) {
+ 
+ export function ImportWizard({
+   open,
++  locale,
+   workspace,
+   onClose,
+   onChooseWorkspace,
+   onCommitted,
+ }: ImportWizardProps) {
++  const t = (key: Parameters<typeof translate>[1], values: Record<string, string | number> = {}) =>
++    translate(locale, key, values);
++
++  function previewError(code: string, fallback: string): string {
++    const keys = {
++      'workspace-read-only': 'import.error.workspaceReadOnly',
++      'plan-not-found': 'import.error.planNotFound',
++      'invalid-source': 'import.error.invalidSource',
++      'invalid-metadata': 'import.error.invalidMetadata',
++    } as const;
++    const key = keys[code as keyof typeof keys];
++    return key ? t(key) : fallback;
++  }
++
++  function commitError(code: string, fallback: string): string {
++    const keys = {
++      'workspace-read-only': 'import.error.workspaceReadOnly',
++      'plan-not-found': 'import.error.planNotFound',
++      'plan-not-committable': 'import.error.notCommittable',
++      'stale-plan': 'import.error.stalePlan',
++      'target-conflict': 'import.error.targetConflict',
++      'commit-in-progress': 'import.error.inProgress',
++      'stage-failed': 'import.error.stageFailed',
++      'validation-failed': 'import.error.validationFailed',
++      'commit-failed': 'import.error.commitFailed',
++      'rollback-failed': 'import.error.rollbackFailed',
++    } as const;
++    const key = keys[code as keyof typeof keys];
++    return key ? t(key) : fallback;
++  }
++
++  function issueMessage(code: string, fallback: string): string {
++    const keys = {
++      'source-not-found': 'import.issue.sourceNotFound',
++      'unsupported-source': 'import.issue.unsupportedSource',
++      'source-symlink': 'import.issue.sourceSymlink',
++      'source-escape': 'import.issue.sourceEscape',
++      'article-not-found': 'import.issue.articleNotFound',
++      'invalid-frontmatter': 'import.issue.invalidFrontmatter',
++      'invalid-metadata': 'import.issue.invalidMetadata',
++      'category-fallback': 'import.issue.categoryFallback',
++      'slug-fallback': 'import.issue.slugFallback',
++      'ignored-source-entry': 'import.issue.ignoredSourceEntry',
++      'asset-symlink': 'import.issue.assetSymlink',
++      'asset-escape': 'import.issue.assetEscape',
++      'missing-asset-reference': 'import.issue.missingAssetReference',
++      'target-symlink': 'import.issue.targetSymlink',
++    } as const;
++    const key = keys[code as keyof typeof keys];
++    return key ? t(key) : fallback;
++  }
++
+   const dialogRef = useRef<HTMLElement>(null);
+   const firstButtonRef = useRef<HTMLButtonElement>(null);
+   const [preview, setPreview] = useState<ImportPlanPreviewDto | null>(null);
+@@ -106,26 +162,26 @@ export function ImportWizard({
+     setError('');
+     setStatus(
+       next.canCommit
+-        ? '預覽已更新，可以提交。'
++        ? t('import.previewReady')
+         : next.requiresMetadataConfirmation
+-          ? '請確認分類、slug 與其他 metadata 後更新預覽。'
+-          : '預覽包含阻擋提交的衝突。',
++          ? t('import.confirmMetadata')
++          : t('import.previewBlocked'),
+     );
+   }
+ 
+   async function chooseSource(kind: ImportSourceKind) {
+     setBusy(true);
+     setError('');
+-    setStatus(kind === 'markdown-file' ? '正在讀取 Markdown…' : '正在掃描文章資料夾…');
++    setStatus(kind === 'markdown-file' ? t('import.readingMarkdown') : t('import.scanningFolder'));
+     try {
