@@ -1,0 +1,88 @@
+diff --git a/packages/content-engine/src/article-import/cleanup.ts b/packages/content-engine/src/article-import/cleanup.ts
+--- a/packages/content-engine/src/article-import/cleanup.ts
++++ b/packages/content-engine/src/article-import/cleanup.ts
+@@ -49,10 +49,10 @@ function entityVisibleText(payload: string): string {
+ }
+ 
+ export function imageTarget(destination: string): string {
+   return destination
+     .trim()
+-    .replace(/^<|>$/g, '')
+-    .split(/\s+["']/u)[0];
++    .split(/\s+["']/u)[0]
++    .replace(/^<|>$/g, '');
+ }
+ 
+ function isNonPortableImageTarget(target: string): boolean {
+   return (
+diff --git a/packages/content-engine/src/article-import/source.ts b/packages/content-engine/src/article-import/source.ts
+--- a/packages/content-engine/src/article-import/source.ts
++++ b/packages/content-engine/src/article-import/source.ts
+@@ -291,7 +291,12 @@ export function resolveImportWorkspaceRoot(
+   workspaceRoot: string,
+ ): { ok: true; root: string } | { ok: false; issues: ImportIssue[] } {
+   const absolute = path.resolve(workspaceRoot);
+-  if (!fs.existsSync(absolute) || !fs.lstatSync(absolute).isDirectory()) {
++  if (!fs.existsSync(absolute)) {
++    return {
++      ok: false,
++      issues: [
++        importIssue(
++          'error',
++          'source-not-found',
++          'Workspace root must be an existing directory for conflict detection.',
++          absolute,
++        ),
++      ],
++    };
++  }
++  const stat = fs.lstatSync(absolute);
++  if (stat.isSymbolicLink()) {
++    return {
++      ok: false,
++      issues: [
++        importIssue(
++          'error',
++          'source-symlink',
++          'Workspace root must not be a symbolic link.',
++          absolute,
++        ),
++      ],
++    };
++  }
++  if (!stat.isDirectory()) {
+     return {
+       ok: false,
+       issues: [
+@@ -305,19 +310,6 @@ export function resolveImportWorkspaceRoot(
+       ],
+     };
+   }
+-  if (fs.lstatSync(absolute).isSymbolicLink()) {
+-    return {
+-      ok: false,
+-      issues: [
+-        importIssue(
+-          'error',
+-          'source-symlink',
+-          'Workspace root must not be a symbolic link.',
+-          absolute,
+-        ),
+-      ],
+-    };
+-  }
+   const realRoot = fs.realpathSync(absolute);
+   if (!samePath(absolute, realRoot)) {
+     return {
+diff --git a/packages/content-engine/src/index.test.ts b/packages/content-engine/src/index.test.ts
+--- a/packages/content-engine/src/index.test.ts
++++ b/packages/content-engine/src/index.test.ts
+@@ -74,7 +74,7 @@ describe('content engine', () => {
+   });
+ 
+   it('handles article path, title, and internal link edge cases deterministically', () => {
+-    expect(isArticlePath('README.md', { date: '2026-01-01', tags: [] })).toBe(false);
++    expect(isArticlePath('index.md', { date: '2026-01-01', tags: [] })).toBe(false);
+     expect(isArticlePath('alpha/article.md', { date: '2026-01-01', tags: ['x'] })).toBe(true);
+     expect(isArticlePath('alpha/article.md', { tags: ['x'] })).toBe(false);
+     expect(titleFromMarkdown('# **Clean** title', 'Fallback')).toBe('Clean title');
