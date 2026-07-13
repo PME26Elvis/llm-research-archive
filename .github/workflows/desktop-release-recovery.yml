@@ -1,0 +1,24 @@
+name: Desktop Release Recovery
+run-name: Fresh Desktop Release from latest app-main
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/desktop-release-recovery.yml
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    if: github.event.head_commit.message == 'Trigger fresh Desktop Release recovery'
+    permissions:
+      contents: write
+    uses: PME26Elvis/llm-research-archive/.github/workflows/desktop-release-reusable.yml@app-main
+    with:
+      target_ref: app-main
+      requested_version: ''
+      channel: prerelease
+      publish: true
