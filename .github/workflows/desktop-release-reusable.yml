@@ -13,6 +13,8 @@ permissions:
   contents: read
 jobs:
   preflight:
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     outputs:
       sha: ${{ steps.release.outputs.sha }}
