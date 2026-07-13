@@ -1,5 +1,5 @@
-name: Temporary Runtime Quality Finalizer
-run-name: Runtime quality operations
+name: Temporary Enforced Quality Finalizer
+run-name: Finalize enforced quality gates
 
 on:
   push:
@@ -9,57 +9,68 @@ on:
       - .github/workflows/tmp-runtime-quality-finalizer.yml
 
 permissions:
-  actions: read
   contents: write
 
 jobs:
   finalize:
-    if: startsWith(github.event.head_commit.message, 'Finalize runtime quality foundations')
+    if: startsWith(github.event.head_commit.message, 'Finalize enforced quality gates')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout target branch
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
-          ref: agent/runtime-quality-foundations
+          ref: agent/enforced-quality-gates
           fetch-depth: 0
-      - name: Checkout staged patches
+      - name: Checkout staged patch
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
         with:
           ref: ops/planned-audit-receipt
           path: payload
           fetch-depth: 1
-      - name: Apply transparent runtime patches
+      - name: Apply transparent quality patch
         shell: bash
         run: |
           set -euo pipefail
-          cat payload/.runtime-patches/01.diff \
-              payload/.runtime-patches/02.diff \
-              payload/.runtime-patches/03.diff \
-              payload/.runtime-patches/04.diff \
-              payload/.runtime-patches/05.diff \
-              payload/.runtime-patches/06.diff > /tmp/runtime-quality.patch
-          git apply --check /tmp/runtime-quality.patch
-          git apply /tmp/runtime-quality.patch
+          git apply --check payload/.quality-gate-patches/01.diff
+          git apply payload/.quality-gate-patches/01.diff
           rm -rf payload
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24'
           cache: npm
+      - name: Refresh lockfile for governed dependencies
+        run: npm install --package-lock-only --ignore-scripts
       - run: npm ci
       - run: npm run format:write
-      - run: npm run verify
-      - name: Publish verified runtime foundations
+      - name: Execute complete quality gate
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run verify 2>&1 | tee enforced-quality-verify.log
+      - name: Upload quality evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: enforced-quality-evidence-${{ github.run_attempt }}
+          path: |
+            enforced-quality-verify.log
+            coverage/
+            dist/quality/
+            dist/performance/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Publish verified quality gates
         shell: bash
         run: |
           set -euo pipefail
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add apps packages scripts/search-benchmark.mjs
-          git commit -m "Add runtime quality foundations"
-          git push origin HEAD:agent/runtime-quality-foundations
+          git add apps forge.config.ts package.json package-lock.json packages project-docs/quality scripts vite.*.config.ts vitest.config.ts
+          git commit -m "Enforce desktop quality gates"
+          git push origin HEAD:agent/enforced-quality-gates
 
   receipt:
-    if: always() && startsWith(github.event.head_commit.message, 'Finalize runtime quality foundations')
+    if: always() && startsWith(github.event.head_commit.message, 'Finalize enforced quality gates')
     needs: finalize
     runs-on: ubuntu-latest
     steps:
@@ -81,38 +92,11 @@ jobs:
             triggerSha: process.env.FINALIZER_TRIGGER_SHA,
             recordedAt: new Date().toISOString(),
           };
-          fs.writeFileSync('.runtime-quality-finalizer.json', `${JSON.stringify(receipt, null, 2)}\n`);
+          fs.writeFileSync('.enforced-quality-finalizer.json', `${JSON.stringify(receipt, null, 2)}\n`);
           NODE
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add .runtime-quality-finalizer.json
-          git commit -m "Record runtime quality finalizer ${FINALIZER_RUN_ID}"
-          git pull --rebase origin ops/planned-audit-receipt
-          git push origin HEAD:ops/planned-audit-receipt
-
-  inspect:
-    if: startsWith(github.event.head_commit.message, 'Inspect runtime quality finalizer')
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
-        with:
-          ref: ops/planned-audit-receipt
-          fetch-depth: 0
-      - name: Capture failed verify diagnostics
-        env:
-          GH_TOKEN: ${{ github.token }}
-          FINALIZER_JOB_ID: '86734762636'
-        run: |
-          set -euo pipefail
-          gh api "repos/${GITHUB_REPOSITORY}/actions/jobs/${FINALIZER_JOB_ID}/logs" > /tmp/runtime-finalizer.log
-          grep -iE 'error|failed|failure|expected|received|typecheck|typescript|test files|tests|architecture|traceability|release validation' /tmp/runtime-finalizer.log \
-            > .runtime-quality-finalizer-errors.log || true
-          tail -n 220 /tmp/runtime-finalizer.log > .runtime-quality-finalizer-tail.log
-      - name: Publish diagnostics
-        run: |
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add .runtime-quality-finalizer-errors.log .runtime-quality-finalizer-tail.log
-          git commit -m "Record runtime quality finalizer diagnostics"
+          git add .enforced-quality-finalizer.json
+          git commit -m "Record enforced quality finalizer ${FINALIZER_RUN_ID}"
           git pull --rebase origin ops/planned-audit-receipt
           git push origin HEAD:ops/planned-audit-receipt
