@@ -1,0 +1,66 @@
+name: Temporary i18n Source Snapshot
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/tmp-i18n-source-snapshot.yml
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    outputs:
+      source_sha: ${{ steps.meta.outputs.source_sha }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: app-main
+          fetch-depth: 1
+      - id: meta
+        shell: bash
+        run: echo "source_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Archive app-main source
+        shell: bash
+        run: tar --exclude=.git -czf app-main-source.tar.gz .
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: app-main-i18n-source-${{ github.run_id }}
+          path: app-main-source.tar.gz
+          if-no-files-found: error
+          retention-days: 7
+
+  receipt:
+    if: always()
+    needs: snapshot
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: ops/i18n-snapshot-receipt
+          fetch-depth: 0
+      - name: Record snapshot result
+        env:
+          SNAPSHOT_RUN_ID: ${{ github.run_id }}
+          SNAPSHOT_RESULT: ${{ needs.snapshot.result }}
+          SNAPSHOT_SOURCE_SHA: ${{ needs.snapshot.outputs.source_sha }}
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const receipt = {
+            runId: Number(process.env.SNAPSHOT_RUN_ID),
+            result: process.env.SNAPSHOT_RESULT,
+            sourceSha: process.env.SNAPSHOT_SOURCE_SHA || null,
+            recordedAt: new Date().toISOString(),
+          };
+          fs.writeFileSync('.i18n-source-snapshot.json', `${JSON.stringify(receipt, null, 2)}\n`);
+          NODE
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .i18n-source-snapshot.json
+          git commit -m "Record i18n source snapshot ${SNAPSHOT_RUN_ID}"
+          git pull --rebase origin ops/i18n-snapshot-receipt
+          git push origin HEAD:ops/i18n-snapshot-receipt
