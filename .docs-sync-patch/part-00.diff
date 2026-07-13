@@ -1,0 +1,208 @@
+diff --git a/README.md b/README.md
+index 0790f12..97273d6 100644
+--- a/README.md
++++ b/README.md
+@@ -209,4 +209,4 @@ https://PME26Elvis.github.io/llm-research-archive/
+ 
+ ## Research Observatory Desktop
+ 
+-This branch contains a TypeScript/Electron desktop refactor. Use `npm ci`, then `npm run verify` for the full local gate. Windows, Linux and WSL developers use the same root npm scripts; native packaging is exposed as `npm run make:windows` and `npm run make:linux`. The app reads canonical Markdown from `docs/` by default or `ARCHIVE_CONTENT_ROOT` for a local workspace.
++This branch contains the completed TypeScript/Electron desktop implementation. Use `npm ci`, then `npm run verify` for coverage, architecture, accessibility, dependency, performance, build, and renderer-footprint gates. Desktop CI additionally runs Electron E2E plus native Windows x64, Linux x64, macOS arm64, and macOS x64 make, packaged smoke, and installed-footprint checks. The app reads canonical Markdown from `docs/` by default and can select validated local workspaces through the native UI.
+diff --git a/docs/desktop-release.md b/docs/desktop-release.md
+index 182107a..2bd6747 100644
+--- a/docs/desktop-release.md
++++ b/docs/desktop-release.md
+@@ -73,7 +73,7 @@ Reusable workflow 會先執行完整的 `npm run verify`，再分別在原生 ru
+ | macOS Apple Silicon | arm64 ZIP |
+ | macOS Intel | x64 ZIP |
+ 
+-每個平台都必須通過 packaged smoke。之後 aggregate job 才會建立：
++每個平台都必須通過 packaged smoke，並以 2 GiB hard ceiling 檢查 installed footprint，同時拒絕 repository 私有目錄與明顯的 secrets/private keys。這個上限是防止失控與 GitHub Release asset 失敗，不是要求小專案積極瘦身。之後 aggregate job 才會建立：
+ 
+ - `SHA256SUMS.txt`
+ - `release-manifest.json`
+diff --git a/project-docs/architecture/architecture.md b/project-docs/architecture/architecture.md
+index 2dd1a08..c0ae7d3 100644
+--- a/project-docs/architecture/architecture.md
++++ b/project-docs/architecture/architecture.md
+@@ -1,11 +1,19 @@
+ ---
+ status: accepted
+ owner: repository-maintainer
+-last-verified: 2026-07-10
++last-verified: 2026-07-13
+ related-adrs:
+   - ADR-0001
++  - ADR-0004
++  - ADR-0016
++  - ADR-0017
++  - ADR-0018
+ ---
+ 
+ # Architecture
+ 
+-Packages are layered: domain, content-engine/search-engine, application, platform-contracts, Electron adapters and renderer. Electron is only an adapter. Renderer communicates through validated preload APIs.
++The dependency direction is Domain -> Content/Search Engines -> Application -> Platform Contracts -> Electron adapters and Renderer. Electron remains an adapter: main owns filesystem, workspace, import transactions, search-index lifecycle, startup telemetry, local diagnostics, native menu, packaging, and release authority; renderer receives validated DTOs and emits typed commands through preload.
++
++Canonical Markdown remains the source of truth. Content Engine produces article summaries, revision dates, reading statistics, diagnostics, manifests, and deterministic import plans. Search Engine owns a serializable incremental index. Renderer builds browsing, reading, Observatory summaries, preferences, navigation history, and accessible dialogs without direct Node or filesystem access.
++
++Architecture, traceability, coverage, accessibility, dependency, performance, renderer-footprint, Electron E2E, and four-platform packaged-smoke gates are repository-enforced boundaries rather than optional documentation conventions.
+diff --git a/project-docs/architecture/error-model.md b/project-docs/architecture/error-model.md
+index 1676f9d..4496871 100644
+--- a/project-docs/architecture/error-model.md
++++ b/project-docs/architecture/error-model.md
+@@ -1,11 +1,15 @@
+ ---
+ status: accepted
+ owner: repository-maintainer
+-last-verified: 2026-07-10
++last-verified: 2026-07-13
+ related-adrs:
+-  - ADR-0001
++  - ADR-0004
++  - ADR-0017
++  - ADR-0018
+ ---
+ 
+ # Error Model
+ 
+-Application errors use code, message, safe details and optional cause. Platform errors are mapped to validation, not-found, permission-denied, conflict, corrupted-content, external-link-denied or internal-error.
++Application errors use a stable code, user-safe message, optional safe details, and an internal cause that is never serialized directly. Platform failures map to validation, not-found, permission-denied, conflict, corrupted-content, workspace-read-only, stale-plan, external-link-denied, or internal-error outcomes.
++
++Import and workspace failures preserve the existing workspace and source by default. Transaction failures remove staging and lock residue before returning. Recoverable startup/workspace errors fall back to the bundled archive and write a redacted local diagnostic. Unexpected main or renderer failures are recorded in a bounded main-owned log; article bodies, raw IPC payloads, secrets, and full private paths are excluded.
+diff --git a/project-docs/architecture/ipc-contract.md b/project-docs/architecture/ipc-contract.md
+index c8d4e36..2291a59 100644
+--- a/project-docs/architecture/ipc-contract.md
++++ b/project-docs/architecture/ipc-contract.md
+@@ -1,11 +1,17 @@
+ ---
+ status: accepted
+ owner: repository-maintainer
+-last-verified: 2026-07-10
++last-verified: 2026-07-13
+ related-adrs:
+-  - ADR-0001
++  - ADR-0004
++  - ADR-0015
++  - ADR-0016
++  - ADR-0017
++  - ADR-0018
+ ---
+ 
+ # IPC Contract
+ 
+-IPC channels accept JSON DTOs only: archive:list, article:get, search:query, workspace:select, import:preview, import:commit, diagnostics:get, preferences:get, preferences:set, app:info, external:open. Payloads are validated before use.
++IPC accepts and returns schema-validated JSON DTOs only. Main validates sender origin before performing privileged work. Current capabilities cover archive list/article/search, workspace select/info, import source selection/preview/commit, diagnostics read/clear/report, startup milestones, preferences, app/build information, external links, and typed desktop commands.
++
++Renderer never receives unrestricted filesystem paths or reusable write authority. Import previews are sanitized and keyed by opaque plan IDs held in main. Diagnostics return bounded redacted events and aggregate startup timing, not raw logs. Menu shortcuts and Command Palette share the same command allowlist.
+diff --git a/project-docs/llm/maintenance-playbook.md b/project-docs/llm/maintenance-playbook.md
+index 6800e6d..bfc0637 100644
+--- a/project-docs/llm/maintenance-playbook.md
++++ b/project-docs/llm/maintenance-playbook.md
+@@ -1,11 +1,16 @@
+ ---
+ status: accepted
+ owner: repository-maintainer
+-last-verified: 2026-07-10
++last-verified: 2026-07-13
+ related-adrs:
+   - ADR-0001
++  - ADR-0018
+ ---
+ 
+ # LLM Maintenance Playbook
+ 
+-New feature: Requirement -> Spec -> ADR if needed -> Contract -> Test -> Implementation -> Traceability check. Bug fix: Reproduce -> Regression test -> Root cause -> Minimal fix -> Full verification. IPC change: Schema -> Main handler -> Preload bridge -> Renderer client -> Contract tests -> Security review. Avoid using MkDocs as a wrapper, Node in renderer, duplicated Article types, unschematized IPC and release matrix races.
++Feature workflow: Requirement or approved roadmap proposal -> Product Spec -> ADR when the decision is architectural -> Contract -> deterministic test -> implementation -> traceability -> full CI. Bug workflow: reproduce -> regression test -> root cause -> minimal production fix -> `npm run verify` -> relevant Electron/package journey. IPC workflow: schema -> main authority -> preload bridge -> renderer client -> contract/security tests.
++
++Before merge, confirm the final SHA passes formatting, architecture, TypeScript, traceability, generated content, release validation, enforced coverage, security, compatibility, WCAG policy, production dependency audit, search benchmark, build, renderer footprint, Electron E2E, and the affected native package smoke/footprint jobs.
++
++Avoid MkDocs wrappers, Node in renderer, duplicated article types, unschematized IPC, renderer-owned paths or write authority, unbounded diagnostics, release matrix races, weakening tests to obtain green CI, and marking proposals as traceable requirements before stable IDs and acceptance criteria exist.
+diff --git a/project-docs/migration/current-system-inventory.md b/project-docs/migration/current-system-inventory.md
+index 26a0cbf..5c8a00f 100644
+--- a/project-docs/migration/current-system-inventory.md
++++ b/project-docs/migration/current-system-inventory.md
+@@ -1,11 +1,14 @@
+ ---
+ status: accepted
+ owner: repository-maintainer
+-last-verified: 2026-07-10
++last-verified: 2026-07-13
+ related-adrs:
+   - ADR-0008
++  - ADR-0018
+ ---
+ 
+ # Current System Inventory
+ 
+-MkDocs owns web presentation through `mkdocs.yml`, `docs/stylesheets/extra.css` and `docs/javascripts/extra.js`. Python tools own legacy domain behavior: `hooks/word_counts.py` computes CJK/Latin reading counts, `tools/publish_article.py` imports articles from `_incoming/articles`, `tools/new_note.py` scaffolds notes, and `tools/remove_citations.py` removes citation/entity noise. Canonical data remains `docs/<category>/<slug>/index.md` with YAML front matter and `.meta.yml` navigation. Domain logic retained: article parsing, category inference, tags, word counts, reading time, import cleanup, asset copying and search. MkDocs-only adapters are retired for desktop runtime but kept for the web site.
++Canonical content remains `docs/<category>/<slug>/index.md` with YAML front matter and local assets. MkDocs still owns the web presentation through `mkdocs.yml`, CSS, JavaScript, hooks, and the public Observatory/word-count pages. The desktop runtime does not wrap MkDocs: TypeScript Content Engine owns article parsing, category/tag/timeline data, revision dates, reading statistics, diagnostics, manifests, safe import cleanup/assets, and canonical metadata; Search Engine owns the serialized incremental index; Electron owns native workspace, import, diagnostics, telemetry, packaging, and release boundaries.
++
++Desktop parity is complete for reading, search, category/tag/timeline browsing, revision dates, word counts, Observatory summaries, internal links, images, diagrams, syntax highlighting, footnotes, preferences, navigation history, local workspaces, and article import. GitHub Pages deployment remains a separate preserved adapter.
+diff --git a/project-docs/migration/mkdocs-feature-parity-matrix.md b/project-docs/migration/mkdocs-feature-parity-matrix.md
+index e0b85c2..ce5ff6f 100644
+--- a/project-docs/migration/mkdocs-feature-parity-matrix.md
++++ b/project-docs/migration/mkdocs-feature-parity-matrix.md
+@@ -1,10 +1,11 @@
+ ---
+ status: accepted
+ owner: repository-maintainer
+-last-verified: 2026-07-12
++last-verified: 2026-07-13
+ related-adrs:
+   - ADR-0008
+   - ADR-0009
++  - ADR-0018
+ ---
+ 
+ # MkDocs Feature Parity Matrix
+@@ -25,16 +26,16 @@ related-adrs:
+ | Footnotes | Markdown | renderer | implemented | packages/renderer-ui/src/index.test.ts; apps/desktop-electron/e2e/footnotes.spec.ts | Named, inline, multi-block, and repeated footnotes use deterministic accessible in-app navigation. |
+ | Internal links | Markdown | application/renderer | implemented | packages/content-engine/src/index.test.ts; apps/desktop-electron/e2e/source.spec.ts | Same-page and cross-article Unicode fragments remain inside the app shell. |
+ | Reader navigation history | browser navigation | renderer | implemented | apps/desktop-electron/src/renderer/navigation-history.test.ts; apps/desktop-electron/e2e/navigation-history.spec.ts | Semantic Back/Forward restores article, fragment, search, and facet state without changing the trusted renderer URL. |
+-| Git revision date | plugin | manifest | planned | planned | Not in current reader UI. |
++| Git revision date | plugin | content-engine/renderer | implemented | packages/content-engine/src/index.test.ts; apps/desktop-electron/e2e/accessibility.spec.ts | Front-matter `updated` dates flow through DTOs, reader metadata, and Observatory recent revisions. |
+ | Blog ordering | MkDocs | content-engine | implemented | packages/content-engine/src/index.test.ts | Date sorting for formal articles. |
+-| Observatory | docs page | renderer | planned | planned | Not in P1 reader slice. |
++| Observatory | docs page | renderer | implemented | apps/desktop-electron/e2e/accessibility.spec.ts | Accessible archive summary exposes article, category, tag, timeline, word-count, and recent-revision views. |
+ | Article import | publish_article.py | content-engine/main/renderer | implemented | packages/content-engine/src/article-import/index.test.ts; packages/content-engine/src/article-import/commit.test.ts; apps/desktop-electron/e2e/import-wizard.spec.ts | Native selection, deterministic preview, metadata correction, atomic commit, rollback, navigation, and restart persistence are available offline. |
+ | Citation cleanup | tools | content-engine/import | implemented | packages/content-engine/src/article-import/index.test.ts; apps/desktop-electron/e2e/import-wizard.spec.ts | Cleanup is previewed before write and shared by file and folder imports. |
+ | Category inference | tools | content-engine | implemented | packages/content-engine/src/index.test.ts | Canonical path category. |
+ | Slug generation | tools | content-engine | implemented | packages/content-engine/src/index.test.ts | Canonical path slug. |
+ | Assets copying | tools | content-engine/import | implemented | packages/content-engine/src/article-import/commit.test.ts; apps/desktop-electron/e2e/import-wizard.spec.ts | Assets are fingerprinted, staged, validated, and atomically published. |
+ | Research appendix | tools | content-engine/import | implemented | packages/content-engine/src/article-import/index.test.ts; packages/content-engine/src/article-import/commit.test.ts | Optional research activity is cleaned and embedded in the canonical article. |
+-| Generated word-count index | hook | manifest | planned | planned | Manifest exists; page generation not replaced. |
++| Generated word-count index | hook | content-engine/renderer | implemented | packages/content-engine/src/index.test.ts; apps/desktop-electron/e2e/accessibility.spec.ts | Canonical reading statistics drive reader metadata and the Observatory aggregate without a generated desktop page. |
+ | GitHub Pages deployment | workflow | deploy.yml | preserved | .github/workflows/deploy.yml | Web deployment remains separate. |
+ 
+ | Persistent desktop layout | fixed browser viewport | main/renderer | implemented | apps/desktop-electron/src/main/window-state.test.ts; apps/desktop-electron/e2e/resizable-layout.spec.ts | Accessible pane resizing/collapse and validated native window bounds survive restart. |
+diff --git a/project-docs/migration/refactor-full-prompt.md b/project-docs/migration/refactor-full-prompt.md
+index 0185bf1..f71d6fc 100644
+--- a/project-docs/migration/refactor-full-prompt.md
++++ b/project-docs/migration/refactor-full-prompt.md
+@@ -1406,7 +1406,7 @@ UI snapshot coverage 不得拿來取代行為測試。
+ 
+ 初始 budget：
+ 
+-* packaged installed footprint 目標 ≤ 250 MB。
++* packaged installed footprint 使用寬鬆的 2 GiB hard ceiling；小專案不以積極瘦身為目標，但不得夾帶 repository 私有內容或 secrets/private keys。
+ * Renderer initial JS 目標 ≤ 2 MB gzip，不含 lazy chunks。
+ * 不得將整個原始 repository、Python venv、MkDocs dependencies 或測試 fixtures 打入 production package。
+ 
+diff --git a/project-docs/product/desktop-product-spec.md b/project-docs/product/desktop-product-spec.md
+index 338c04b..a915396 100644
+--- a/project-docs/product/desktop-product-spec.md
++++ b/project-docs/product/desktop-product-spec.md
+@@ -1,7 +1,7 @@
+ ---
+ status: accepted
+ owner: repository-maintainer
+-last-verified: 2026-07-11
++last-verified: 2026-07-13
+ related-adrs:
+   - ADR-0001
+   - ADR-0009
+@@ -9,13 +9,14 @@ related-adrs:
+   - ADR-0011
+   - ADR-0012
+   - ADR-0016
