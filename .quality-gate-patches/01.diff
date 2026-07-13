@@ -1,0 +1,1129 @@
+diff --git a/apps/desktop-electron/e2e/accessibility.spec.ts b/apps/desktop-electron/e2e/accessibility.spec.ts
+index 2252d31..1df50d1 100644
+--- a/apps/desktop-electron/e2e/accessibility.spec.ts
++++ b/apps/desktop-electron/e2e/accessibility.spec.ts
+@@ -53,6 +53,12 @@ test('workspace diagnostics expose startup milestones and can be cleared without
+   await diagnostics.locator('summary').click();
+   await expect(page.getByTestId('startup-telemetry')).toContainText('process-start');
+   await expect(page.getByTestId('startup-telemetry')).toContainText('interactive');
++  const startup = await page.evaluate(() =>
++    (window as unknown as { observatory: { diagnostics(): Promise<{ startup: { interactiveMs?: number } }> } })
++      .observatory.diagnostics(),
++  );
++  expect(startup.startup.interactiveMs).toBeDefined();
++  expect(startup.startup.interactiveMs).toBeLessThanOrEqual(3000);
+   await diagnostics.getByRole('button', { name: '清除本機診斷' }).click();
+   await expect(diagnostics).toContainText('尚無本機診斷事件');
+ });
+diff --git a/forge.config.ts b/forge.config.ts
+index a7e7852..f657cb0 100644
+--- a/forge.config.ts
++++ b/forge.config.ts
+@@ -11,6 +11,8 @@ const config: ForgeConfig = {
+       "apps/desktop-electron/resources/archive-manifest.json",
+       "docs",
+     ],
++    ignore:
++      /^\/(?:\.github|\.vscode|\.devcontainer|apps|project-docs|scripts|packages|tools|hooks|_incoming|docs|coverage|test-results|playwright-report)(?:\/|$)|^\/(?:README\.md|AGENTS\.md|mkdocs\.yml|requirements\.txt|package-lock\.json|tsconfig(?:\.base)?\.json|vitest\.config\.ts|playwright\.config\.ts|vite\..*\.config\.ts|forge\.config\.ts)$/i,
+     osxSign: { identity: "-" },
+   },
+   rebuildConfig: {},
+diff --git a/package.json b/package.json
+index a70e816..98015ec 100644
+--- a/package.json
++++ b/package.json
+@@ -8,7 +8,7 @@
+     "dev": "electron-forge start -- --no-sandbox",
+     "build": "npm run content:manifest && electron-forge package",
+     "lint": "node scripts/validate-architecture.mjs",
+     "lint:fix": "npm run lint",
+-    "format": "prettier --check \"{package.json,tsconfig*.json,vitest.config.ts,playwright.config.ts,scripts/**/*.{mjs,js},packages/**/*.{ts,json},apps/**/*.{ts,tsx,mjs,json,html},.github/workflows/desktop-*.yml}\"",
++    "format": "prettier --check \"{package.json,tsconfig*.json,vitest.config.ts,playwright.config.ts,scripts/**/*.{mjs,js},packages/**/*.{ts,json},apps/**/*.{ts,tsx,mjs,json,html},project-docs/quality/*.json,.github/workflows/desktop-*.yml}\"",
+     "format:check": "npm run format",
+     "typecheck": "tsc -b",
+     "test": "vitest run",
+@@ -16,7 +16,7 @@
+     "test:contract": "vitest run packages/platform-contracts packages/application",
+     "test:renderer": "vitest run packages/renderer-ui",
+     "test:e2e": "playwright test",
+-    "test:coverage": "vitest run --coverage",
++    "test:coverage": "vitest run --coverage && node scripts/verify-coverage-policy.mjs",
+     "test:security": "vitest run apps/desktop-electron/tests/security.spec.ts",
+     "test:compatibility": "vitest run packages/content-engine",
+     "validate:architecture": "node scripts/validate-architecture.mjs",
+@@ -34,12 +34,17 @@
+     "release:assets": "node scripts/release-assets.mjs all",
+     "benchmark": "node --import tsx scripts/node-smoke.mjs --benchmark",
+-    "verify": "npm run format:check && npm run lint && npm run typecheck && npm run validate:traceability && npm run validate:generated && npm run validate:release-assets && npm run test && npm run test:security && npm run test:compatibility && npm run build",
++    "verify": "npm run format:check && npm run lint && npm run typecheck && npm run validate:traceability && npm run validate:generated && npm run validate:release-assets && npm run test:coverage && npm run test:security && npm run test:compatibility && npm run validate:accessibility && npm run validate:dependencies && npm run benchmark:search && npm run build && npm run validate:footprint:renderer",
+     "smoke:packaged": "node scripts/packaged-smoke.mjs",
+-    "format:write": "prettier --write \"{package.json,tsconfig*.json,vitest.config.ts,playwright.config.ts,scripts/**/*.{mjs,js},packages/**/*.{ts,json},apps/**/*.{ts,tsx,mjs,json,html},.github/workflows/desktop-*.yml}\"",
++    "format:write": "prettier --write \"{package.json,tsconfig*.json,vitest.config.ts,playwright.config.ts,scripts/**/*.{mjs,js},packages/**/*.{ts,json},apps/**/*.{ts,tsx,mjs,json,html},project-docs/quality/*.json,.github/workflows/desktop-*.yml}\"",
+     "validate:generated": "node scripts/validate-generated-clean.mjs",
+-    "validate:release-assets": "node scripts/validate-release-assets.mjs"
++    "validate:release-assets": "node scripts/validate-release-assets.mjs",
++    "benchmark:search": "node --import tsx scripts/search-benchmark.mjs",
++    "validate:accessibility": "node scripts/validate-accessibility.mjs",
++    "validate:dependencies": "node scripts/validate-dependencies.mjs",
++    "validate:footprint:renderer": "node scripts/verify-footprint.mjs renderer",
++    "validate:footprint:package": "node scripts/verify-footprint.mjs package"
+   },
+   "devDependencies": {
++    "@electron/asar": "3.4.1",
+     "@electron-forge/cli": "^7.11.2",
+     "@electron-forge/maker-deb": "^7.11.2",
+@@ -54,27 +59,29 @@
+     "@types/sanitize-html": "^2.16.1",
+     "@types/semver": "^7.7.1",
+     "@vitejs/plugin-react": "^4.3.1",
++    "@vitest/coverage-v8": "1.6.0",
+     "electron": "43.1.0",
+-    "electron-squirrel-startup": "^1.0.1",
+-    "gray-matter": "^4.0.3",
+-    "highlight.js": "11.11.1",
+     "js-yaml": "^4.1.0",
+-    "markdown-it": "^14.3.0",
+-    "markdown-it-footnote": "4.0.0",
+-    "mermaid": "11.16.0",
+     "prettier": "^3.3.2",
+-    "react": "^18.3.1",
+-    "react-dom": "^18.3.1",
+-    "sanitize-html": "^2.17.5",
+     "semver": "^7.8.5",
+     "tsx": "^4.16.2",
+     "typescript": "^5.5.3",
+     "vite": "^5.3.3",
+-    "vitest": "^1.6.0",
++    "vitest": "^1.6.0"
++  },
++  "dependencies": {
++    "electron-squirrel-startup": "^1.0.1",
++    "gray-matter": "^4.0.3",
++    "highlight.js": "11.11.1",
++    "markdown-it": "^14.3.0",
++    "markdown-it-footnote": "4.0.0",
++    "mermaid": "11.16.0",
++    "react": "^18.3.1",
++    "react-dom": "^18.3.1",
++    "sanitize-html": "^2.17.5",
+     "zod": "^3.23.8"
+   },
+   "main": ".vite/build/main.js",
+@@ -86,13 +93,5 @@
+   "author": {
+     "name": "PME26Elvis"
+-  }
++  }
+ }
+diff --git a/packages/application/src/index.test.ts b/packages/application/src/index.test.ts
+index 21370f6..71bdf0a 100644
+--- a/packages/application/src/index.test.ts
++++ b/packages/application/src/index.test.ts
+@@ -1,12 +1,75 @@
+-import { expect, it } from 'vitest';
++import { afterEach, describe, expect, it } from 'vitest';
++import fs from 'node:fs';
++import os from 'node:os';
++import path from 'node:path';
+ import { ResearchObservatoryApp } from './index';
+ 
+-it('runs node-only core flow', () => {
+-  const app = new ResearchObservatoryApp('docs');
+-  const articles = app.listArticles();
+-  expect(articles.length).toBe(6);
+-  expect(app.search('AI').length).toBeGreaterThan(0);
+-  expect(app.getArticle(articles[0].id).markdown.length).toBeGreaterThan(100);
+-  expect(app.diagnostics().validArticles).toBe(6);
++const temporaryRoots: string[] = [];
++function fixture(title = 'Fixture Article', body = 'searchable benchmark body') {
++  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'application-core-'));
++  temporaryRoots.push(root);
++  const directory = path.join(root, 'quality', 'fixture');
++  fs.mkdirSync(directory, { recursive: true });
++  fs.writeFileSync(
++    path.join(directory, 'index.md'),
++    `---\ndate: 2026-07-13\nupdated: 2026-07-14\ntags: [quality, fixture]\n---\n# ${title}\n\n${body}\n`,
++  );
++  return root;
++}
++afterEach(() => {
++  for (const root of temporaryRoots.splice(0)) fs.rmSync(root, { recursive: true, force: true });
++});
++
++describe('ResearchObservatoryApp', () => {
++  it('runs the bundled node-only core flow', () => {
++    const app = new ResearchObservatoryApp('docs');
++    const articles = app.listArticles();
++    expect(articles.length).toBe(6);
++    expect(app.search('AI').length).toBeGreaterThan(0);
++    expect(app.getArticle(articles[0].id).markdown.length).toBeGreaterThan(100);
++    expect(app.diagnostics().validArticles).toBe(6);
++  });
++
++  it('reloads a different archive, rebuilds search, manifest, and diagnostics', () => {
++    const first = fixture('First Article', 'first needle');
++    const second = fixture('Second Article', 'second needle');
++    const app = new ResearchObservatoryApp(first);
++    expect(app.search('first')).toHaveLength(1);
++    expect(app.manifest().articles).toHaveLength(1);
++    app.reload(second);
++    expect(app.listArticles().map((article) => article.title)).toEqual(['Second Article']);
++    expect(app.search('first')).toEqual([]);
++    expect(app.search('second')[0].title).toBe('Second Article');
++    expect(app.diagnostics()).toMatchObject({
++      validArticles: 1,
++      invalidFiles: [],
++      missingAssets: [],
++    });
++  });
++
++  it('throws a stable error for an unknown article id', () => {
++    const app = new ResearchObservatoryApp(fixture());
++    expect(() => app.getArticle('missing')).toThrow('article-not-found');
++  });
++
++  it('creates deterministic lightweight import previews with title and fallback', () => {
++    const app = new ResearchObservatoryApp(fixture());
++    expect(app.importPreview('# Imported Title\n\nBody')).toEqual({
++      title: 'Imported Title',
++      warnings: [],
++      files: ['index.md'],
++    });
++    expect(app.importPreview('Body without heading')).toEqual({
++      title: 'Untitled',
++      warnings: [],
++      files: ['index.md'],
++    });
++  });
+ });
+diff --git a/packages/domain/src/heading-slug.test.ts b/packages/domain/src/heading-slug.test.ts
+index 43ea3fa..5a89940 100644
+--- a/packages/domain/src/heading-slug.test.ts
++++ b/packages/domain/src/heading-slug.test.ts
+@@ -1,7 +1,23 @@
+ import { describe, expect, it } from 'vitest';
+-import { baseHeadingSlug, HeadingSlugger } from './index';
++import {
++  asArticleId,
++  asCategoryId,
++  baseHeadingSlug,
++  cleanHeadingText,
++  HeadingSlugger,
++  slugHeadings,
++} from './index';
+ 
+-describe('heading slugger', () => {
+-  it('supports Chinese, English, mixed text, punctuation, and normalization', () => {
++describe('domain identifiers and heading utilities', () => {
++  it('brands article and category identifiers without changing their runtime values', () => {
++    expect(asArticleId('llm/compute')).toBe('llm/compute');
++    expect(asCategoryId('llm')).toBe('llm');
++  });
++
++  it('cleans Markdown images, links, formatting, HTML, and repeated whitespace', () => {
++    expect(
++      cleanHeadingText('  ## **Model** [report](https://example.com) ![plot](plot.png) <span>v2</span>  '),
++    ).toBe('Model report v2');
++  });
++
++  it('supports Chinese, English, mixed text, punctuation, normalization, and fallback slugs', () => {
+     expect(baseHeadingSlug('模型')).toBe('模型');
+     expect(baseHeadingSlug('Deep Heading')).toBe('deep-heading');
+     expect(baseHeadingSlug('模型 Deep Heading ２')).toBe('模型-deep-heading-2');
+@@ -9,7 +25,8 @@ describe('heading slugger', () => {
+     expect(baseHeadingSlug('Hello, world!')).toBe('hello-world');
+     expect(baseHeadingSlug('ＡＩ　模型')).toBe('ai-模型');
++    expect(baseHeadingSlug('***')).toBe('section');
+   });
+ 
+-  it('deduplicates repeated Chinese and English headings deterministically', () => {
++  it('deduplicates repeated headings deterministically', () => {
+     const slugger = new HeadingSlugger();
+     expect(slugger.slug('模型')).toBe('模型');
+@@ -19,4 +36,22 @@ describe('heading slugger', () => {
+     expect(slugger.slug('Deep Heading')).toBe('deep-heading');
+     expect(slugger.slug('Deep Heading')).toBe('deep-heading-1');
+   });
++
++  it('adds slugs while retaining the original heading fields and order', () => {
++    expect(
++      slugHeadings([
++        { text: 'Overview', depth: 2 },
++        { text: 'Overview', depth: 3 },
++        { text: '模型', depth: 2 },
++      ]),
++    ).toEqual([
++      { text: 'Overview', depth: 2, slug: 'overview' },
++      { text: 'Overview', depth: 3, slug: 'overview-1' },
++      { text: '模型', depth: 2, slug: '模型' },
++    ]);
++  });
+ });
+diff --git a/project-docs/quality/dependency-inventory.json b/project-docs/quality/dependency-inventory.json
+new file mode 100644
+index 0000000..bb51d15
+--- /dev/null
++++ b/project-docs/quality/dependency-inventory.json
+@@ -0,0 +1,282 @@
++{
++  "schemaVersion": 1,
++  "generatedFrom": "package.json",
++  "entries": [
++    {
++      "name": "electron-squirrel-startup",
++      "section": "dependencies",
++      "range": "^1.0.1",
++      "purpose": "Windows Squirrel lifecycle handling",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "gray-matter",
++      "section": "dependencies",
++      "range": "^4.0.3",
++      "purpose": "Markdown frontmatter parsing",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "highlight.js",
++      "section": "dependencies",
++      "range": "11.11.1",
++      "purpose": "Lazy syntax highlighting",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "markdown-it",
++      "section": "dependencies",
++      "range": "^14.3.0",
++      "purpose": "Markdown rendering",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "markdown-it-footnote",
++      "section": "dependencies",
++      "range": "4.0.0",
++      "purpose": "Markdown footnote rendering",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "mermaid",
++      "section": "dependencies",
++      "range": "11.16.0",
++      "purpose": "Lazy diagram rendering",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "react",
++      "section": "dependencies",
++      "range": "^18.3.1",
++      "purpose": "Desktop renderer UI",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "react-dom",
++      "section": "dependencies",
++      "range": "^18.3.1",
++      "purpose": "Desktop renderer mounting",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "sanitize-html",
++      "section": "dependencies",
++      "range": "^2.17.5",
++      "purpose": "Rendered Markdown sanitization",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "zod",
++      "section": "dependencies",
++      "range": "^3.23.8",
++      "purpose": "Runtime IPC and DTO validation",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "@electron-forge/cli",
++      "section": "devDependencies",
++      "range": "^7.11.2",
++      "purpose": "Electron packaging orchestration",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "@electron-forge/maker-deb",
++      "section": "devDependencies",
++      "range": "^7.11.2",
++      "purpose": "Linux DEB maker",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "@electron-forge/maker-rpm",
++      "section": "devDependencies",
++      "range": "^7.11.2",
++      "purpose": "Linux RPM maker",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "@electron-forge/maker-squirrel",
++      "section": "devDependencies",
++      "range": "^7.11.2",
++      "purpose": "Windows installer maker",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "@electron-forge/maker-zip",
++      "section": "devDependencies",
++      "range": "^7.11.2",
++      "purpose": "Portable ZIP maker",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "@electron-forge/plugin-vite",
++      "section": "devDependencies",
++      "range": "^7.11.2",
++      "purpose": "Vite integration for Electron Forge",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "@electron/asar",
++      "section": "devDependencies",
++      "range": "3.4.1",
++      "purpose": "Inspect packaged ASAR contents for footprint policy",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "@playwright/test",
++      "section": "devDependencies",
++      "range": "^1.61.1",
++      "purpose": "Electron end-to-end testing",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "@types/markdown-it",
++      "section": "devDependencies",
++      "range": "^14.1.2",
++      "purpose": "Markdown-It TypeScript declarations",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "@types/node",
++      "section": "devDependencies",
++      "range": "^24.0.0",
++      "purpose": "Node.js TypeScript declarations",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "@types/react",
++      "section": "devDependencies",
++      "range": "^18.3.3",
++      "purpose": "React TypeScript declarations",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "@types/react-dom",
++      "section": "devDependencies",
++      "range": "^18.3.0",
++      "purpose": "React DOM TypeScript declarations",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "@types/sanitize-html",
++      "section": "devDependencies",
++      "range": "^2.16.1",
++      "purpose": "sanitize-html TypeScript declarations",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "@types/semver",
++      "section": "devDependencies",
++      "range": "^7.7.1",
++      "purpose": "semver TypeScript declarations",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "@vitejs/plugin-react",
++      "section": "devDependencies",
++      "range": "^4.3.1",
++      "purpose": "React transform for Vite",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "@vitest/coverage-v8",
++      "section": "devDependencies",
++      "range": "1.6.0",
++      "purpose": "V8 coverage provider and reports",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "electron",
++      "section": "devDependencies",
++      "range": "43.1.0",
++      "purpose": "Desktop runtime and package target",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "js-yaml",
++      "section": "devDependencies",
++      "range": "^4.1.0",
++      "purpose": "YAML parsing for traceability tooling",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "prettier",
++      "section": "devDependencies",
++      "range": "^3.3.2",
++      "purpose": "Deterministic source formatting",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "semver",
++      "section": "devDependencies",
++      "range": "^7.8.5",
++      "purpose": "Release version policy",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "tsx",
++      "section": "devDependencies",
++      "range": "^4.16.2",
++      "purpose": "TypeScript execution for repository scripts",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "typescript",
++      "section": "devDependencies",
++      "range": "^5.5.3",
++      "purpose": "Static type checking",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "vite",
++      "section": "devDependencies",
++      "range": "^5.3.3",
++      "purpose": "Desktop process and renderer bundling",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    },
++    {
++      "name": "vitest",
++      "section": "devDependencies",
++      "range": "^1.6.0",
++      "purpose": "Unit, contract, security, and compatibility tests",
++      "owner": "desktop-maintainers",
++      "updateCadence": "monthly-security-review"
++    }
++  ]
++}
+diff --git a/project-docs/quality/dependency-vulnerability-exceptions.json b/project-docs/quality/dependency-vulnerability-exceptions.json
+new file mode 100644
+index 0000000..6c910a0
+--- /dev/null
++++ b/project-docs/quality/dependency-vulnerability-exceptions.json
+@@ -0,0 +1,4 @@
++{
++  "schemaVersion": 1,
++  "exceptions": []
++}
+diff --git a/scripts/dependency-policy.mjs b/scripts/dependency-policy.mjs
+new file mode 100644
+index 0000000..60a463d
+--- /dev/null
++++ b/scripts/dependency-policy.mjs
+@@ -0,0 +1,44 @@
++export function validateExceptions(value, now = new Date()) {
++  if (!value || value.schemaVersion !== 1 || !Array.isArray(value.exceptions)) {
++    throw new Error('invalid dependency exception document');
++  }
++  return value.exceptions.map((exception) => {
++    if (
++      !exception ||
++      typeof exception.package !== 'string' ||
++      typeof exception.advisory !== 'string' ||
++      typeof exception.rationale !== 'string' ||
++      typeof exception.owner !== 'string' ||
++      typeof exception.expiresAt !== 'string'
++    ) {
++      throw new Error('invalid dependency vulnerability exception');
++    }
++    const expiry = new Date(exception.expiresAt);
++    if (Number.isNaN(expiry.getTime())) throw new Error(`invalid expiry for ${exception.package}`);
++    if (expiry <= now) throw new Error(`expired dependency exception for ${exception.package}`);
++    if (expiry.getTime() - now.getTime() > 90 * 24 * 60 * 60 * 1000) {
++      throw new Error(`dependency exception exceeds 90 days for ${exception.package}`);
++    }
++    return exception;
++  });
++}
++
++export function advisoryIdentifiers(vulnerability) {
++  const values = Array.isArray(vulnerability.via) ? vulnerability.via : [];
++  return values.flatMap((entry) => {
++    if (typeof entry === 'string') return [entry];
++    if (!entry || typeof entry !== 'object') return [];
++    return [entry.url, entry.source && String(entry.source), entry.name].filter(Boolean);
++  });
++}
++
++export function isVulnerabilityExcepted(name, vulnerability, exceptions) {
++  const identifiers = advisoryIdentifiers(vulnerability);
++  return exceptions.some(
++    (exception) =>
++      exception.package === name &&
++      (exception.advisory === '*' || identifiers.includes(exception.advisory)),
++  );
++}
+diff --git a/scripts/dependency-policy.test.ts b/scripts/dependency-policy.test.ts
+new file mode 100644
+index 0000000..cb6a555
+--- /dev/null
++++ b/scripts/dependency-policy.test.ts
+@@ -0,0 +1,70 @@
++import { describe, expect, it } from 'vitest';
++import {
++  advisoryIdentifiers,
++  isVulnerabilityExcepted,
++  validateExceptions,
++} from './dependency-policy.mjs';
++
++describe('dependency governance policy', () => {
++  it('accepts bounded future exceptions and matches explicit advisories', () => {
++    const now = new Date('2026-07-13T00:00:00.000Z');
++    const exceptions = validateExceptions(
++      {
++        schemaVersion: 1,
++        exceptions: [
++          {
++            package: 'example',
++            advisory: 'https://example.test/advisory',
++            rationale: 'Upgrade is blocked by an upstream API change.',
++            owner: 'desktop-maintainers',
++            expiresAt: '2026-08-01T00:00:00.000Z',
++          },
++        ],
++      },
++      now,
++    );
++    const vulnerability = {
++      via: [{ url: 'https://example.test/advisory', source: 123, name: 'CVE-test' }],
++    };
++    expect(advisoryIdentifiers(vulnerability)).toContain('123');
++    expect(isVulnerabilityExcepted('example', vulnerability, exceptions)).toBe(true);
++  });
++
++  it('rejects expired, overlong, and malformed exceptions', () => {
++    const now = new Date('2026-07-13T00:00:00.000Z');
++    expect(() =>
++      validateExceptions(
++        {
++          schemaVersion: 1,
++          exceptions: [
++            {
++              package: 'example',
++              advisory: '*',
++              rationale: 'expired',
++              owner: 'desktop-maintainers',
++              expiresAt: '2026-07-12T00:00:00.000Z',
++            },
++          ],
++        },
++        now,
++      ),
++    ).toThrow('expired');
++    expect(() =>
++      validateExceptions(
++        {
++          schemaVersion: 1,
++          exceptions: [
++            {
++              package: 'example',
++              advisory: '*',
++              rationale: 'too long',
++              owner: 'desktop-maintainers',
++              expiresAt: '2027-01-01T00:00:00.000Z',
++            },
++          ],
++        },
++        now,
++      ),
++    ).toThrow('90 days');
++    expect(() => validateExceptions({ schemaVersion: 1, exceptions: [{}] }, now)).toThrow();
++  });
++});
+diff --git a/scripts/validate-accessibility.mjs b/scripts/validate-accessibility.mjs
+new file mode 100644
+index 0000000..20a96f4
+--- /dev/null
++++ b/scripts/validate-accessibility.mjs
+@@ -0,0 +1,89 @@
++import fs from 'node:fs';
++
++const css = fs.readFileSync('apps/desktop-electron/src/renderer/style.css', 'utf8');
++const renderer = fs.readFileSync('apps/desktop-electron/src/renderer/renderer.tsx', 'utf8');
++const observatory = fs.readFileSync('apps/desktop-electron/src/renderer/observatory-modal.tsx', 'utf8');
++const commandPalette = fs.readFileSync('apps/desktop-electron/src/renderer/command-palette.tsx', 'utf8');
++
++function parseVariables(selector) {
++  const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
++  const match = new RegExp(`${escaped}\\s*\\{([\\s\\S]*?)\\}`, 'm').exec(css);
++  if (!match) throw new Error(`theme variables missing for ${selector}`);
++  return Object.fromEntries(
++    [...match[1].matchAll(/--([a-z0-9-]+):\s*(#[0-9a-f]{6})\s*;/gi)].map((entry) => [
++      entry[1],
++      entry[2],
++    ]),
++  );
++}
++
++function rgb(hex) {
++  return [1, 3, 5].map((offset) => Number.parseInt(hex.slice(offset, offset + 2), 16) / 255);
++}
++function luminance(hex) {
++  const values = rgb(hex).map((channel) =>
++    channel <= 0.04045 ? channel / 12.92 : ((channel + 0.055) / 1.055) ** 2.4,
++  );
++  return 0.2126 * values[0] + 0.7152 * values[1] + 0.0722 * values[2];
++}
++function contrast(foreground, background) {
++  const light = Math.max(luminance(foreground), luminance(background));
++  const dark = Math.min(luminance(foreground), luminance(background));
++  return (light + 0.05) / (dark + 0.05);
++}
++
++const themes = {
++  dark: parseVariables(':root'),
++  light: parseVariables(":root[data-theme='light']"),
++};
++const pairs = [
++  ['text-primary', 'surface-body', 4.5],
++  ['text-muted', 'surface-body', 4.5],
++  ['text-primary', 'surface-control', 4.5],
++  ['accent', 'surface-body', 3],
++  ['accent', 'surface-control', 3],
++];
++const contrasts = [];
++for (const [themeName, variables] of Object.entries(themes)) {
++  for (const [foregroundName, backgroundName, minimum] of pairs) {
++    const foreground = variables[foregroundName];
++    const background = variables[backgroundName];
++    if (!foreground || !background) {
++      throw new Error(`${themeName} theme missing ${foregroundName} or ${backgroundName}`);
++    }
++    const ratio = contrast(foreground, background);
++    contrasts.push({ theme: themeName, foregroundName, backgroundName, ratio, minimum });
++    if (ratio + 1e-9 < minimum) {
++      throw new Error(
++        `${themeName} ${foregroundName}/${backgroundName} contrast ${ratio.toFixed(2)} < ${minimum}`,
++      );
++    }
++  }
++}
++
++const sourceChecks = [
++  ['skip link', renderer.includes('className="skip-link"') && renderer.includes('href="#main-reader"')],
++  ['main reader focus target', renderer.includes('id="main-reader"') && renderer.includes('tabIndex={-1}')],
++  ['polite live region', renderer.includes('aria-live="polite"')],
++  ['reduced motion policy', css.includes('@media (prefers-reduced-motion: reduce)')],
++  ['visible focus policy', css.includes(':focus-visible')],
++  ['200 percent responsive layout', css.includes('@media (max-width: 760px)')],
++  ['Observatory modal semantics', observatory.includes('role="dialog"') && observatory.includes('aria-modal="true"')],
++  ['Observatory nonvisual tables', (observatory.match(/<table>/g) ?? []).length >= 2],
++  ['Observatory focus trap', observatory.includes("event.key !== 'Tab'")],
++  ['Command Palette focus trap', commandPalette.includes("event.key === 'Tab'")],
++];
++const failedChecks = sourceChecks.filter(([, passed]) => !passed).map(([name]) => name);
++if (failedChecks.length) throw new Error(`accessibility source checks failed: ${failedChecks.join(', ')}`);
++
++const report = {
++  schemaVersion: 1,
++  generatedAt: new Date().toISOString(),
++  standard: 'WCAG 2.2 AA',
++  contrasts,
++  sourceChecks: sourceChecks.map(([name, passed]) => ({ name, passed })),
++};
++fs.mkdirSync('dist/quality', { recursive: true });
++fs.writeFileSync('dist/quality/accessibility.json', `${JSON.stringify(report, null, 2)}\n`);
++console.log(JSON.stringify(report, null, 2));
+diff --git a/scripts/validate-dependencies.mjs b/scripts/validate-dependencies.mjs
+new file mode 100644
+index 0000000..1cb7fb2
+--- /dev/null
++++ b/scripts/validate-dependencies.mjs
+@@ -0,0 +1,102 @@
++import fs from 'node:fs';
++import { spawnSync } from 'node:child_process';
++import { isVulnerabilityExcepted, validateExceptions } from './dependency-policy.mjs';
++
++const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
++const inventory = JSON.parse(
++  fs.readFileSync('project-docs/quality/dependency-inventory.json', 'utf8'),
++);
++if (inventory.schemaVersion !== 1 || !Array.isArray(inventory.entries)) {
++  throw new Error('invalid dependency inventory');
++}
++const expected = new Map();
++for (const section of ['dependencies', 'devDependencies']) {
++  for (const [name, range] of Object.entries(pkg[section] ?? {})) {
++    expected.set(`${section}:${name}`, { name, section, range });
++    if (range === '*' || range === 'latest' || /[xX]$/.test(range)) {
++      throw new Error(`unbounded dependency range for ${name}: ${range}`);
++    }
++  }
++}
++const actual = new Map();
++for (const entry of inventory.entries) {
++  if (
++    !entry ||
++    typeof entry.name !== 'string' ||
++    !['dependencies', 'devDependencies'].includes(entry.section) ||
++    typeof entry.range !== 'string' ||
++    typeof entry.purpose !== 'string' ||
++    typeof entry.owner !== 'string' ||
++    typeof entry.updateCadence !== 'string'
++  ) {
++    throw new Error('invalid dependency inventory entry');
++  }
++  const key = `${entry.section}:${entry.name}`;
++  if (actual.has(key)) throw new Error(`duplicate dependency inventory entry: ${key}`);
++  actual.set(key, entry);
++}
++const mismatches = [];
++for (const [key, dependency] of expected) {
++  const entry = actual.get(key);
++  if (!entry) mismatches.push(`missing inventory entry ${key}`);
++  else if (entry.range !== dependency.range) {
++    mismatches.push(`${key} inventory ${entry.range} != package.json ${dependency.range}`);
++  }
++}
++for (const key of actual.keys()) {
++  if (!expected.has(key)) mismatches.push(`stale inventory entry ${key}`);
++}
++if (mismatches.length) throw new Error(`dependency inventory mismatch:\n- ${mismatches.join('\n- ')}`);
++
++const exceptionDocument = JSON.parse(
++  fs.readFileSync('project-docs/quality/dependency-vulnerability-exceptions.json', 'utf8'),
++);
++const exceptions = validateExceptions(exceptionDocument);
++const audit = spawnSync('npm', ['audit', '--omit=dev', '--json'], {
++  encoding: 'utf8',
++  maxBuffer: 16 * 1024 * 1024,
++  shell: process.platform === 'win32',
++});
++if (!audit.stdout) {
++  throw new Error(`npm audit produced no JSON: ${audit.stderr || `exit ${audit.status}`}`);
++}
++let auditReport;
++try {
++  auditReport = JSON.parse(audit.stdout);
++} catch (error) {
++  throw new Error(`unable to parse npm audit JSON: ${error}`);
++}
++const blocking = [];
++const excepted = [];
++for (const [name, vulnerability] of Object.entries(auditReport.vulnerabilities ?? {})) {
++  if (!['high', 'critical'].includes(vulnerability.severity)) continue;
++  if (isVulnerabilityExcepted(name, vulnerability, exceptions)) {
++    excepted.push({ name, severity: vulnerability.severity });
++  } else {
++    blocking.push({
++      name,
++      severity: vulnerability.severity,
++      range: vulnerability.range,
++      via: vulnerability.via,
++    });
++  }
++}
++const report = {
++  schemaVersion: 1,
++  generatedAt: new Date().toISOString(),
++  directDependencies: pkg.dependencies ?? {},
++  directDevDependencies: pkg.devDependencies ?? {},
++  auditMetadata: auditReport.metadata ?? {},
++  excepted,
++  blocking,
++};
++fs.mkdirSync('dist/quality', { recursive: true });
++fs.writeFileSync('dist/quality/dependency-governance.json', `${JSON.stringify(report, null, 2)}\n`);
++console.log(JSON.stringify(report, null, 2));
++if (blocking.length) {
++  throw new Error(
++    `high or critical production dependency vulnerabilities:\n- ${blocking
++      .map((item) => `${item.name} (${item.severity}) ${item.range ?? ''}`)
++      .join('\n- ')}`,
++  );
++}
+diff --git a/scripts/verify-coverage-policy.mjs b/scripts/verify-coverage-policy.mjs
+new file mode 100644
+index 0000000..eb57667
+--- /dev/null
++++ b/scripts/verify-coverage-policy.mjs
+@@ -0,0 +1,91 @@
++import fs from 'node:fs';
++import path from 'node:path';
++
++const reportPath = path.resolve('coverage/coverage-final.json');
++if (!fs.existsSync(reportPath)) throw new Error(`coverage report missing: ${reportPath}`);
++const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
++
++const policies = [
++  { name: 'overall', match: () => true, statements: 80, branches: 75 },
++  {
++    name: 'packages/domain',
++    match: (file) => file.includes('/packages/domain/src/'),
++    statements: 95,
++    branches: 90,
++  },
++  {
++    name: 'packages/content-engine',
++    match: (file) => file.includes('/packages/content-engine/src/'),
++    statements: 90,
++    branches: 85,
++  },
++  {
++    name: 'packages/application',
++    match: (file) => file.includes('/packages/application/src/'),
++    statements: 90,
++    branches: 85,
++  },
++];
++
++function ratio(covered, total) {
++  return total === 0 ? 100 : (covered / total) * 100;
++}
++
++function summarize(files) {
++  let statementsCovered = 0;
++  let statementsTotal = 0;
++  let branchesCovered = 0;
++  let branchesTotal = 0;
++  let functionsCovered = 0;
++  let functionsTotal = 0;
++  for (const file of files) {
++    const entry = report[file];
++    const statementValues = Object.values(entry.s ?? {});
++    statementsTotal += statementValues.length;
++    statementsCovered += statementValues.filter((value) => value > 0).length;
++    const branchValues = Object.values(entry.b ?? {}).flat();
++    branchesTotal += branchValues.length;
++    branchesCovered += branchValues.filter((value) => value > 0).length;
++    const functionValues = Object.values(entry.f ?? {});
++    functionsTotal += functionValues.length;
++    functionsCovered += functionValues.filter((value) => value > 0).length;
++  }
++  return {
++    files: files.length,
++    statements: ratio(statementsCovered, statementsTotal),
++    branches: ratio(branchesCovered, branchesTotal),
++    functions: ratio(functionsCovered, functionsTotal),
++    counts: {
++      statements: { covered: statementsCovered, total: statementsTotal },
++      branches: { covered: branchesCovered, total: branchesTotal },
++      functions: { covered: functionsCovered, total: functionsTotal },
++    },
++  };
++}
++
++const files = Object.keys(report).map((file) => file.replaceAll('\\', '/'));
++const results = policies.map((policy) => {
++  const selected = files.filter(policy.match);
++  if (!selected.length) throw new Error(`coverage policy ${policy.name} matched no files`);
++  const metrics = summarize(selected);
++  return { name: policy.name, thresholds: { statements: policy.statements, branches: policy.branches }, ...metrics };
++});
++
++const failures = [];
++for (const policy of policies) {
++  const result = results.find((candidate) => candidate.name === policy.name);
++  if (!result) throw new Error(`coverage result missing for ${policy.name}`);
++  if (result.statements + 1e-9 < policy.statements) {
++    failures.push(
++      `${policy.name} statements ${result.statements.toFixed(2)}% < ${policy.statements}%`,
++    );
++  }
++  if (result.branches + 1e-9 < policy.branches) {
++    failures.push(`${policy.name} branches ${result.branches.toFixed(2)}% < ${policy.branches}%`);
++  }
++}
++
++const output = {
++  schemaVersion: 1,
++  generatedAt: new Date().toISOString(),
++  results,
++  failures,
++};
++fs.mkdirSync('dist/quality', { recursive: true });
++fs.writeFileSync('dist/quality/coverage-policy.json', `${JSON.stringify(output, null, 2)}\n`);
++console.log(JSON.stringify(output, null, 2));
++if (failures.length) throw new Error(`coverage policy failed:\n- ${failures.join('\n- ')}`);
+diff --git a/scripts/verify-footprint.mjs b/scripts/verify-footprint.mjs
+new file mode 100644
+index 0000000..01f143e
+--- /dev/null
++++ b/scripts/verify-footprint.mjs
+@@ -0,0 +1,102 @@
++import fs from 'node:fs';
++import path from 'node:path';
++import zlib from 'node:zlib';
++import { listPackage } from '@electron/asar';
++
++const mode = process.argv[2];
++const RENDERER_GZIP_BUDGET = 2 * 1024 * 1024;
++const PACKAGE_BUDGET = 250 * 1024 * 1024;
++
++function walk(root) {
++  const output = [];
++  if (!fs.existsSync(root)) return output;
++  for (const entry of fs.readdirSync(root, { withFileTypes: true })) {
++    const absolute = path.join(root, entry.name);
++    if (entry.isDirectory()) output.push(...walk(absolute));
++    else if (entry.isFile()) output.push(absolute);
++  }
++  return output;
++}
++function writeReport(name, value) {
++  fs.mkdirSync('dist/quality', { recursive: true });
++  fs.writeFileSync(`dist/quality/${name}.json`, `${JSON.stringify(value, null, 2)}\n`);
++  console.log(JSON.stringify(value, null, 2));
++}
++
++if (mode === 'renderer') {
++  const root = path.resolve('.vite/renderer/main_window');
++  const htmlPath = path.join(root, 'index.html');
++  if (!fs.existsSync(htmlPath)) throw new Error(`renderer entry missing: ${htmlPath}`);
++  const html = fs.readFileSync(htmlPath, 'utf8');
++  const initialAssets = new Set();
++  for (const match of html.matchAll(/<(?:script|link)\b[^>]+(?:src|href)=["']([^"']+\.js)["'][^>]*>/gi)) {
++    initialAssets.add(match[1].replace(/^\.\//, ''));
++  }
++  if (!initialAssets.size) throw new Error('renderer entry references no initial JavaScript');
++  const files = [...initialAssets].map((relative) => {
++    const absolute = path.resolve(root, relative);
++    if (!absolute.startsWith(`${root}${path.sep}`) || !fs.existsSync(absolute)) {
++      throw new Error(`renderer initial asset missing: ${relative}`);
++    }
++    const content = fs.readFileSync(absolute);
++    return { relative, bytes: content.length, gzipBytes: zlib.gzipSync(content, { level: 9 }).length };
++  });
++  const totalGzipBytes = files.reduce((sum, file) => sum + file.gzipBytes, 0);
++  const report = {
++    schemaVersion: 1,
++    generatedAt: new Date().toISOString(),
++    mode,
++    budgetBytes: RENDERER_GZIP_BUDGET,
++    totalGzipBytes,
++    files,
++  };
++  writeReport('footprint-renderer', report);
++  if (totalGzipBytes > RENDERER_GZIP_BUDGET) {
++    throw new Error(`initial renderer JavaScript gzip ${totalGzipBytes} > ${RENDERER_GZIP_BUDGET}`);
++  }
++} else if (mode === 'package') {
++  const outRoot = path.resolve('out');
++  const asars = walk(outRoot).filter((file) => path.basename(file) === 'app.asar');
++  if (!asars.length) throw new Error('no packaged app.asar found under out/');
++  const forbidden = [];
++  const packages = asars.map((asarPath) => {
++    const relativeAsar = path.relative(outRoot, asarPath);
++    const packageRootName = relativeAsar.split(path.sep)[0];
++    const packageRoot = path.join(outRoot, packageRootName);
++    const files = walk(packageRoot);
++    const totalBytes = files.reduce((sum, file) => sum + fs.statSync(file).size, 0);
++    const entries = listPackage(asarPath).map((entry) => entry.replaceAll('\\', '/'));
++    const blocked = entries.filter((entry) =>
++      /(?:^|\/)(?:project-docs|scripts|packages|apps|tests?|e2e|coverage|playwright-report|test-results|\.github|\.vscode|\.devcontainer)(?:\/|$)|\.(?:map|py|pyc)$|(?:^|\/)(?:mkdocs\.yml|requirements\.txt|AGENTS\.md)$/i.test(
++        entry,
++      ),
++    );
++    forbidden.push(...blocked.map((entry) => `${packageRootName}:${entry}`));
++    return { packageRoot: packageRootName, totalBytes, asarPath: relativeAsar, asarEntries: entries.length };
++  });
++  const report = {
++    schemaVersion: 1,
++    generatedAt: new Date().toISOString(),
++    mode,
++    budgetBytes: PACKAGE_BUDGET,
++    packages,
++    forbidden,
++  };
++  writeReport(`footprint-package-${process.platform}-${process.arch}`, report);
++  for (const item of packages) {
++    if (item.totalBytes > PACKAGE_BUDGET) {
++      throw new Error(`${item.packageRoot} installed footprint ${item.totalBytes} > ${PACKAGE_BUDGET}`);
++    }
++  }
++  if (forbidden.length) throw new Error(`forbidden packaged files:\n- ${forbidden.join('\n- ')}`);
++} else {
++  throw new Error('usage: node scripts/verify-footprint.mjs <renderer|package>');
++}
+diff --git a/vite.main.config.ts b/vite.main.config.ts
+index bb49e1e..34da93e 100644
+--- a/vite.main.config.ts
++++ b/vite.main.config.ts
+@@ -22,5 +22,5 @@ function resolveCommit() {
+ export default defineConfig({
+   resolve: { alias },
+   define: { __OBSERVATORY_BUILD_COMMIT__: JSON.stringify(resolveCommit()) },
+-  build: { sourcemap: true, rollupOptions: { external: ['electron'] } },
++  build: { sourcemap: false, rollupOptions: { external: ['electron'] } },
+ });
+diff --git a/vite.preload.config.ts b/vite.preload.config.ts
+index a3ab621..ffef046 100644
+--- a/vite.preload.config.ts
++++ b/vite.preload.config.ts
+@@ -7,5 +7,5 @@ const alias = {
+ };
+ export default defineConfig({
+   resolve: { alias },
+-  build: { sourcemap: true, rollupOptions: { external: ['electron'] } },
++  build: { sourcemap: false, rollupOptions: { external: ['electron'] } },
+ });
+diff --git a/vitest.config.ts b/vitest.config.ts
+index 848fc00..56ad588 100644
+--- a/vitest.config.ts
++++ b/vitest.config.ts
+@@ -23,5 +23,17 @@ export default defineConfig({
+       'scripts/**/*.test.ts',
+     ],
+     environment: 'node',
++    coverage: {
++      provider: 'v8',
++      reporter: ['text', 'json', 'json-summary', 'lcov'],
++      reportsDirectory: 'coverage',
++      all: true,
++      include: [
++        'packages/*/src/**/*.ts',
++        'apps/desktop-electron/src/main/{asset-path,window-state,workspace-state,import-session,local-diagnostics,startup-telemetry}.ts',
++        'apps/desktop-electron/src/renderer/{copy-code,desktop-commands,layout-preferences,mermaid-renderer,navigation-history,preferences,syntax-highlight}.ts',
++      ],
++      exclude: ['**/*.test.ts', '**/*.spec.ts', '**/index.d.ts'],
++    },
+   },
+ });
