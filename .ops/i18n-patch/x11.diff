@@ -1,0 +1,232 @@
+-            <p>請選擇文章</p>
++            <p>{t('article.select')}</p>
+           )}
+         </article>
+       </ResizableLayout>
+       <CommandPalette
+         open={commandPaletteOpen}
++        locale={locale}
+         onClose={() => setCommandPaletteOpen(false)}
+         onExecute={executeDesktopCommand}
+       />
+-      {about && <AboutModal info={about} onClose={closeAbout} />}
+-      {observatoryOpen && <ObservatoryModal articles={articles} onClose={closeObservatory} />}
++      {about && <AboutModal info={about} locale={locale} onClose={closeAbout} />}
++      {observatoryOpen && <ObservatoryModal articles={articles} locale={locale} onClose={closeObservatory} />}
+       <ImportWizard
+         open={importWizardOpen}
++        locale={locale}
+         workspace={workspace}
+         onClose={closeImportWizard}
+         onChooseWorkspace={chooseWorkspace}
+         onCommitted={handleImportCommitted}
+       />
+-      {lightbox && <ImageLightbox image={lightbox} onClose={closeImageLightbox} />}
++      {lightbox && <ImageLightbox image={lightbox} locale={locale} onClose={closeImageLightbox} />}
+     </>
+   );
+ }
+diff --git a/apps/desktop-electron/src/renderer/resizable-layout.tsx b/apps/desktop-electron/src/renderer/resizable-layout.tsx
+index 00571e6..4dc41cd 100644
+--- a/apps/desktop-electron/src/renderer/resizable-layout.tsx
++++ b/apps/desktop-electron/src/renderer/resizable-layout.tsx
+@@ -1,4 +1,6 @@
+ import React, { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
++import type { AppLocale } from '@research-observatory/platform-contracts';
++import { translate } from './i18n';
+ import {
+   MAX_SIDEBAR_WIDTH,
+   MIN_SIDEBAR_WIDTH,
+@@ -12,11 +14,13 @@ const initialPreferences = loadLayoutPreferences(window.localStorage);
+ 
+ interface ResizableLayoutProps {
+   articleCount: number;
++  locale: AppLocale;
+   sidebar: ReactNode;
+   children: ReactNode;
+ }
+ 
+-export function ResizableLayout({ articleCount, sidebar, children }: ResizableLayoutProps) {
++export function ResizableLayout({ articleCount, locale, sidebar, children }: ResizableLayoutProps) {
++  const t = (key: Parameters<typeof translate>[1]) => translate(locale, key);
+   const [preferences, setPreferences] = useState<LayoutPreferences>(initialPreferences);
+   const dragStartRef = useRef<{ x: number; width: number } | null>(null);
+ 
+@@ -72,7 +76,7 @@ export function ResizableLayout({ articleCount, sidebar, children }: ResizableLa
+         <div
+           className="pane-separator"
+           role="separator"
+-          aria-label="調整導覽欄寬度"
++          aria-label={t('layout.resizeSidebar')}
+           aria-orientation="vertical"
+           aria-valuemin={MIN_SIDEBAR_WIDTH}
+           aria-valuemax={MAX_SIDEBAR_WIDTH}
+@@ -104,11 +108,11 @@ export function ResizableLayout({ articleCount, sidebar, children }: ResizableLa
+         <button
+           type="button"
+           className="sidebar-toggle"
+-          aria-label={preferences.sidebarCollapsed ? '顯示導覽欄' : '隱藏導覽欄'}
++          aria-label={preferences.sidebarCollapsed ? t('layout.showSidebar') : t('layout.hideSidebar')}
+           aria-expanded={!preferences.sidebarCollapsed}
+           onClick={toggleSidebar}
+         >
+-          {preferences.sidebarCollapsed ? '顯示導覽欄' : '隱藏導覽欄'}
++          {preferences.sidebarCollapsed ? t('layout.showSidebar') : t('layout.hideSidebar')}
+         </button>
+         {children}
+       </section>
+diff --git a/apps/desktop-electron/src/renderer/style.css b/apps/desktop-electron/src/renderer/style.css
+index 7fdead0..544a11d 100644
+--- a/apps/desktop-electron/src/renderer/style.css
++++ b/apps/desktop-electron/src/renderer/style.css
+@@ -360,10 +360,21 @@ th {
+   margin: 0;
+ }
+ 
++.settings-language {
++  display: grid;
++  gap: 0.45rem;
++  margin: 1rem 0;
++}
++
++.settings-language h3,
+ .settings-text h3 {
+   margin-bottom: 0.5rem;
+ }
+ 
++.settings-language select {
++  width: 100%;
++}
++
+ .text-scale-controls {
+   display: grid;
+   grid-template-columns: repeat(3, minmax(0, 1fr));
+diff --git a/packages/platform-contracts/src/index.test.ts b/packages/platform-contracts/src/index.test.ts
+index ff7f24a..ae181ac 100644
+--- a/packages/platform-contracts/src/index.test.ts
++++ b/packages/platform-contracts/src/index.test.ts
+@@ -4,10 +4,13 @@ import {
+   SearchRequestSchema,
+   SearchResponseSchema,
+   ExternalUrlSchema,
++  AppLocaleSchema,
+ } from './index';
+ it('validates ipc request and response dtos', () => {
+   expect(SearchRequestSchema.parse({ query: 'x' }).query).toBe('x');
+   expect(() => ExternalUrlSchema.parse('file:///tmp/x')).toThrow();
++  expect(AppLocaleSchema.parse('en')).toBe('en');
++  expect(AppLocaleSchema.safeParse('fr').success).toBe(false);
+   const summary = {
+     id: 'a',
+     slug: 'a',
+diff --git a/packages/platform-contracts/src/index.ts b/packages/platform-contracts/src/index.ts
+index 131d0de..97657aa 100644
+--- a/packages/platform-contracts/src/index.ts
++++ b/packages/platform-contracts/src/index.ts
+@@ -1,5 +1,7 @@
+ import { z } from 'zod';
+ 
++export const AppLocaleSchema = z.enum(['zh-TW', 'en']);
++
+ export const ReadingStatsDtoSchema = z.object({
+   displayCount: z.number().int().nonnegative(),
+   cjkCharacters: z.number().int().nonnegative(),
+@@ -263,6 +265,7 @@ export const ImportCommitResultSchema = z.discriminatedUnion('status', [
+ ]);
+ export const ArticleListResponseSchema = z.array(ArticleSummaryDtoSchema);
+ export const SearchResponseSchema = z.array(SearchResultDtoSchema);
++export type AppLocale = z.infer<typeof AppLocaleSchema>;
+ export type DesktopCommand = z.infer<typeof DesktopCommandSchema>;
+ 
+ export type StartupMilestone = z.infer<typeof StartupMilestoneSchema>;
+diff --git a/packages/renderer-ui/src/browse.test.ts b/packages/renderer-ui/src/browse.test.ts
+index a1f8300..2fdd102 100644
+--- a/packages/renderer-ui/src/browse.test.ts
++++ b/packages/renderer-ui/src/browse.test.ts
+@@ -43,4 +43,9 @@ describe('archive browse model', () => {
+     ).toEqual(['alpha', 'gamma']);
+     expect(filterArticlesByBrowse(articles, 'all', '')).toEqual(articles);
+   });
++  it('localizes timeline labels for English without changing stable keys', () => {
++    const model = buildArchiveBrowseModel(articles, 'en');
++    expect(model.timeline[0]).toMatchObject({ key: '2026-02', label: 'February 2026' });
++  });
++
+ });
+diff --git a/packages/renderer-ui/src/browse.ts b/packages/renderer-ui/src/browse.ts
+index 5590bbf..2775027 100644
+--- a/packages/renderer-ui/src/browse.ts
++++ b/packages/renderer-ui/src/browse.ts
+@@ -1,3 +1,5 @@
++import type { AppLocale } from '@research-observatory/platform-contracts';
++
+ export type BrowseMode = 'all' | 'category' | 'tag' | 'timeline';
+ 
+ export interface BrowsableArticle {
+@@ -27,19 +29,26 @@ export function articleMonthKey(date: string): string {
+   return match ? `${match[1]}-${match[2]}` : 'unknown';
+ }
+ 
+-function monthLabel(key: string): string {
+-  if (key === 'unknown') return '日期不明';
++function monthLabel(key: string, locale: AppLocale): string {
++  if (key === 'unknown') return locale === 'en' ? 'Unknown date' : '日期不明';
+   const [year, month] = key.split('-').map(Number);
+-  return `${year} 年 ${month} 月`;
++  return locale === 'en'
++    ? new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'long', timeZone: 'UTC' }).format(
++        new Date(Date.UTC(year, month - 1, 1)),
++      )
++    : `${year} 年 ${month} 月`;
+ }
+ 
+-function alphabeticalFacets(counts: Map<string, number>): BrowseFacet[] {
++function alphabeticalFacets(counts: Map<string, number>, locale: AppLocale): BrowseFacet[] {
+   return [...counts]
+     .map(([key, count]) => ({ key, label: key, count }))
+-    .sort((a, b) => a.label.localeCompare(b.label));
++    .sort((a, b) => a.label.localeCompare(b.label, locale === 'en' ? 'en' : 'zh-Hant'));
+ }
+ 
+-export function buildArchiveBrowseModel(articles: readonly BrowsableArticle[]): ArchiveBrowseModel {
++export function buildArchiveBrowseModel(
++  articles: readonly BrowsableArticle[],
++  locale: AppLocale = 'zh-TW',
++): ArchiveBrowseModel {
+   const categories = new Map<string, number>();
+   const tags = new Map<string, number>();
+   const timeline = new Map<string, number>();
+@@ -51,10 +60,10 @@ export function buildArchiveBrowseModel(articles: readonly BrowsableArticle[]):
+   }
+ 
+   return {
+-    categories: alphabeticalFacets(categories),
+-    tags: alphabeticalFacets(tags),
++    categories: alphabeticalFacets(categories, locale),
++    tags: alphabeticalFacets(tags, locale),
+     timeline: [...timeline]
+-      .map(([key, count]) => ({ key, label: monthLabel(key), count }))
++      .map(([key, count]) => ({ key, label: monthLabel(key, locale), count }))
+       .sort((a, b) => {
+         if (a.key === 'unknown') return 1;
+         if (b.key === 'unknown') return -1;
+diff --git a/packages/renderer-ui/src/index.test.ts b/packages/renderer-ui/src/index.test.ts
+index 0667480..d8c56de 100644
+--- a/packages/renderer-ui/src/index.test.ts
++++ b/packages/renderer-ui/src/index.test.ts
+@@ -56,4 +56,11 @@ describe('footnotes', () => {
+     expect(html).not.toContain('<script>');
+     expect(html).toContain('<section class="footnotes" aria-label="註腳">');
+   });
++  it('localizes footnote accessibility labels in English', () => {
++    const html = renderMarkdown('Text[^1].\n\n[^1]: Note.', 'en');
++    expect(html).toContain('aria-label="Footnote 1"');
++    expect(html).toContain('aria-label="Footnotes"');
++    expect(html).toContain('Return to reference 1 for footnote 1');
++  });
++
+ });
+diff --git a/packages/renderer-ui/src/index.ts b/packages/renderer-ui/src/index.ts
+index 800dc84..f018b2d 100644
+--- a/packages/renderer-ui/src/index.ts
++++ b/packages/renderer-ui/src/index.ts
