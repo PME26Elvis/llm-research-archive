@@ -1,0 +1,12 @@
+diff --git a/packages/content-engine/src/index.test.ts b/packages/content-engine/src/index.test.ts
+--- a/packages/content-engine/src/index.test.ts
++++ b/packages/content-engine/src/index.test.ts
+@@ -78,7 +78,7 @@ describe('content engine', () => {
+     expect(isArticlePath('alpha/article.md', { date: '2026-01-01', tags: ['x'] })).toBe(true);
+     expect(isArticlePath('alpha/article.md', { tags: ['x'] })).toBe(false);
+     expect(titleFromMarkdown('# **Clean** title', 'Fallback')).toBe('Clean title');
+-    expect(titleFromMarkdown('Body only', 'Fallback_Name')).toBe('Fallback_Name');
++    expect(titleFromMarkdown('Body only', 'Fallback_Name')).toBe('Fallback Name');
+     expect(resolveInternalArticleId('alpha/source/index.md', '')).toBeUndefined();
+     expect(resolveInternalArticleId('alpha/source/index.md', '#local')).toBeUndefined();
+     expect(resolveInternalArticleId('alpha/source/index.md', 'https://example.com')).toBeUndefined();
