@@ -11,6 +11,10 @@ on:
         description: Blank creates next free version; exact SemVer can promote a matching draft
         required: false
         default: ''
+      release_notes:
+        description: Optional changes; separate items with commas, semicolons, newlines, or Markdown bullets
+        required: false
+        default: ''
       channel:
         description: Release channel
         required: true
@@ -24,10 +28,6 @@ on:
         required: true
         type: boolean
         default: false
-      release_notes:
-        description: Optional highlights separated by commas, semicolons, new lines, or Markdown bullets
-        required: false
-        default: ''
 
 permissions:
   contents: read
@@ -40,6 +40,6 @@ jobs:
     with:
       target_ref: ${{ inputs.target_ref }}
       requested_version: ${{ inputs.requested_version }}
+      release_notes: ${{ inputs.release_notes }}
       channel: ${{ inputs.channel }}
       publish: ${{ inputs.publish }}
-      release_notes: ${{ inputs.release_notes }}
