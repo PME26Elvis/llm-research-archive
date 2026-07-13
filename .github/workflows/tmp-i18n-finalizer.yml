@@ -43,6 +43,16 @@ jobs:
             test -f "$part" || { echo "missing patch part: $part" >&2; exit 1; }
           done
           cat "${parts[@]}" > /tmp/bilingual-feature.diff
+          python - <<'PY'
+          from pathlib import Path
+          patch = Path('/tmp/bilingual-feature.diff')
+          text = patch.read_text()
+          bad = 'function SettingsDialog({ preferences, onChange, onClose }: SettingsDialogProps) {'
+          good = 'function SettingsDialog({ preferences, onChange, onClose }: SettingsDialogProps)'
+          if text.count(bad) != 2:
+              raise SystemExit(f'expected exactly two transferred hunk-header suffixes, found {text.count(bad)}')
+          patch.write_text(text.replace(bad, good))
+          PY
           actual=$(sha256sum /tmp/bilingual-feature.diff | awk '{print $1}')
           test "$actual" = "$expected" || { echo "patch digest $actual != $expected" >&2; exit 1; }
           cd repo
