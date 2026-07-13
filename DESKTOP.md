@@ -17,9 +17,10 @@
 - 分類瀏覽、全文搜尋、Command Palette 與鍵盤操作。
 - Markdown、Mermaid、syntax highlighting、footnotes 與安全 sanitization。
 - 可調整三欄版面、導覽歷史、閱讀偏好與視窗狀態持久化。
+- 可切換的系統語言／繁體中文／English 介面，包含 renderer、原生 Electron 選單與檔案對話框，並在重新啟動後保留。
 - 原生檔案／資料夾選擇與四階段 Import Wizard。
 - Deterministic import plans、typed IPC、main-process filesystem authority、atomic publication、conflict rollback 與明確來源刪除。
-- Electron Forge Windows／Linux／macOS packaging、release manifest、packaged smoke、collision-free version selection 與可驗證的 draft／stable release pipeline。
+- Electron Forge Windows／Linux／macOS packaging、release manifest、packaged smoke、collision-free version selection、結構化 Markdown release highlights 與可驗證的 draft／stable release pipeline。
 
 ## 架構概覽
 
@@ -38,6 +39,7 @@ flowchart TB
 
 - Renderer 不取得 unrestricted filesystem authority。
 - 完整 import plans、absolute paths、staging 與 source-removal authority 留在 main process。
+- 語言偏好由 renderer 版本化持久化；main process 僅透過 validated locale IPC 更新原生選單與對話框。
 - Domain／content／search 邏輯保持 platform-neutral，Electron 僅是 adapter。
 - `main/docs` 是文章唯一來源，經驗證後同步到 `app-main/docs`。
 
@@ -86,15 +88,16 @@ Desktop Release 的入口放在 default branch，避免使用者需要先切換 
 1. Repository → **Actions** → **Desktop Release**。
 2. `target_ref` 使用預設的 `app-main`，或指定 tag／commit。
 3. `requested_version` 預設留白；workflow 會掃描 tags、drafts 與 published releases，自動使用 package version 或下一個可用 patch。
-4. 初次驗證使用 `channel=prerelease`、`publish=false`，先建立 draft。
-5. 檢查 Windows、Linux、macOS arm64／x64 assets。
-6. 要發布同一 draft 時，在 `requested_version` 填入 draft 的精確版本、保持相同 `target_ref`，再設 `publish=true`。
+4. `release_notes` 可填逗號、分號、換行或 Markdown bullets 分隔的 feature／fix 摘要；pipeline 會轉成去重且有界的 Markdown 清單。
+5. 初次驗證使用 `channel=prerelease`、`publish=false`，先建立 draft。
+6. 檢查 release description、Windows、Linux、macOS arm64／x64 assets。
+7. 要發布同一 draft 時，在 `requested_version` 填入 draft 的精確版本、保持相同 `target_ref`，再設 `publish=true`；`release_notes` 可同步更新。
 
 不需要手動輸入 tag；tag 會以 `v<resolved-version>` 自動建立。留白會把 draft 也視為已占用，因此再次留白會建立下一個 patch。明確填入既有 draft version 時，preflight 會先確認 draft 指向相同 target SHA，再允許刷新或晉升；已發布版本與 Git tag 仍不可覆寫。
 
 > macOS packages 使用 ad-hoc signing，尚未 Apple-notarized。第一次開啟時可能需要在 Finder 右鍵選擇 **Open**。
 
-詳細欄位、自動版本規則與 artifact 行為請見 [`docs/desktop-release.md`](docs/desktop-release.md)。
+詳細欄位、自動版本規則、release highlights 與 artifact 行為請見 [`docs/desktop-release.md`](docs/desktop-release.md)。
 
 ## 內容同步
 
