@@ -13,6 +13,16 @@ describe('normalizeMermaidSource', () => {
     );
   });
 
+  it('quotes punctuation-heavy legacy flowchart labels without changing special shapes', () => {
+    expect(
+      normalizeMermaidSource(
+        'flowchart TD\n  A[資料/程式碼可否出網?] --> B{互動? 或 批次/CI?}\n  B --> C[32B Int4（需控context）/ Mixtral(視量化)]\n  C --> D[(database)]',
+      ),
+    ).toBe(
+      'flowchart TD\n  A["資料/程式碼可否出網?"] --> B{"互動? 或 批次/CI?"}\n  B --> C["32B Int4（需控context）/ Mixtral(視量化)"]\n  C --> D[(database)]',
+    );
+  });
+
   it('rejects an empty diagram before invoking Mermaid', () => {
     expect(() => normalizeMermaidSource(' \r\n ')).toThrow(/source is empty/);
   });
