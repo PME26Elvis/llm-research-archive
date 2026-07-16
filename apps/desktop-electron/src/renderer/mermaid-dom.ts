@@ -13,6 +13,7 @@ export interface MermaidLabels {
 interface MermaidMountOptions {
   render?: typeof renderMermaidSvg;
   labels?: MermaidLabels;
+  onError?: (error: unknown) => void;
 }
 
 const defaultLabels: MermaidLabels = {
@@ -28,6 +29,19 @@ let diagramSequence = 0;
 
 function resolvedTheme(): MermaidTheme {
   return document.documentElement.dataset.theme === 'light' ? 'light' : 'dark';
+}
+
+function isMermaidCodeBlock(code: HTMLElement): boolean {
+  return (
+    [...code.classList].some((className) => /^(?:language|lang)-mermaid$/i.test(className)) ||
+    code.dataset.language?.toLocaleLowerCase() === 'mermaid'
+  );
+}
+
+function isNearViewport(element: HTMLElement, margin = 320): boolean {
+  const rect = element.getBoundingClientRect();
+  const viewportHeight = document.documentElement.clientHeight || window.innerHeight;
+  return rect.bottom >= -margin && rect.top <= viewportHeight + margin;
 }
 
 function createMermaidFigure(
@@ -70,6 +84,7 @@ async function renderFigure(
   figure: HTMLElement,
   render: typeof renderMermaidSvg,
   labels: MermaidLabels,
+  onError?: (error: unknown) => void,
 ): Promise<void> {
   if (figure.dataset.mermaidState !== 'pending') return;
   const source = figure.dataset.mermaidSource || '';
@@ -79,6 +94,7 @@ async function renderFigure(
   if (!canvas || !status || !sourceDetails) return;
 
   const version = Number(figure.dataset.mermaidRenderVersion ?? 0) + 1;
+  const theme = resolvedTheme();
   figure.dataset.mermaidRenderVersion = String(version);
   figure.dataset.mermaidState = 'rendering';
   status.setAttribute('role', 'status');
@@ -86,20 +102,28 @@ async function renderFigure(
   const id = `research-observatory-mermaid-${++diagramSequence}`;
 
   try {
-    const svg = await render(id, source, labels.diagram, undefined, resolvedTheme());
+    const svg = await render(id, source, labels.diagram, undefined, theme);
     if (!figure.isConnected || Number(figure.dataset.mermaidRenderVersion) !== version) return;
+    if (theme !== resolvedTheme()) {
+      figure.dataset.mermaidState = 'pending';
+      canvas.replaceChildren();
+      void renderFigure(figure, render, labels, onError);
+      return;
+    }
     canvas.innerHTML = svg;
     figure.dataset.mermaidState = 'rendered';
-    figure.dataset.mermaidTheme = resolvedTheme();
+    figure.dataset.mermaidTheme = theme;
+    status.setAttribute('role', 'status');
     status.textContent = labels.done;
     sourceDetails.open = false;
-  } catch {
+  } catch (error) {
     if (!figure.isConnected || Number(figure.dataset.mermaidRenderVersion) !== version) return;
     canvas.replaceChildren();
     figure.dataset.mermaidState = 'error';
     status.setAttribute('role', 'alert');
     status.textContent = labels.failed;
     sourceDetails.open = true;
+    onError?.(error);
   }
 }
 
@@ -130,7 +154,8 @@ export function mountMermaidBlocks(
     figures.push(figure);
   }
 
-  for (const code of reader.querySelectorAll<HTMLElement>('pre > code.language-mermaid')) {
+  for (const code of reader.querySelectorAll<HTMLElement>('pre > code')) {
+    if (!isMermaidCodeBlock(code)) continue;
     const pre = code.parentElement;
     if (!(pre instanceof HTMLPreElement) || pre.closest('.mermaid-diagram')) continue;
     figures.push(createMermaidFigure(pre, code.textContent || '', labels));
@@ -138,22 +163,48 @@ export function mountMermaidBlocks(
 
   if (!figures.length) return () => undefined;
 
+  let disposed = false;
   let observer: IntersectionObserver | undefined;
+  let animationFrame = 0;
+
+  const renderPendingFigure = (figure: HTMLElement) => {
+    if (figure.dataset.mermaidState !== 'pending') return;
+    observer?.unobserve(figure);
+    void renderFigure(figure, render, labels, options.onError);
+  };
+
+  const renderNearViewport = () => {
+    animationFrame = 0;
+    if (disposed) return;
+    for (const figure of figures) {
+      if (figure.dataset.mermaidState === 'pending' && isNearViewport(figure)) {
+        renderPendingFigure(figure);
+      }
+    }
+  };
+
+  const scheduleViewportCheck = () => {
+    if (disposed || animationFrame) return;
+    animationFrame = window.requestAnimationFrame(renderNearViewport);
+  };
+
   if (typeof IntersectionObserver === 'undefined') {
-    for (const figure of figures) void renderFigure(figure, render, labels);
+    for (const figure of figures) renderPendingFigure(figure);
   } else {
     observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
           if (!entry.isIntersecting) continue;
-          observer?.unobserve(entry.target);
-          void renderFigure(entry.target as HTMLElement, render, labels);
+          renderPendingFigure(entry.target as HTMLElement);
         }
       },
       { rootMargin: '320px 0px' },
     );
 
     for (const figure of figures) observer.observe(figure);
+    document.addEventListener('scroll', scheduleViewportCheck, true);
+    window.addEventListener('resize', scheduleViewportCheck);
+    scheduleViewportCheck();
   }
 
   const onThemeChange = () => {
@@ -162,13 +213,22 @@ export function mountMermaidBlocks(
       if (figure.dataset.mermaidTheme === resolvedTheme()) continue;
       figure.dataset.mermaidState = 'pending';
       figure.querySelector<HTMLElement>('[data-mermaid-canvas]')?.replaceChildren();
-      void renderFigure(figure, render, labels);
+      void renderFigure(figure, render, labels, options.onError);
     }
   };
   document.addEventListener('observatory-theme-change', onThemeChange);
 
   return () => {
+    disposed = true;
     observer?.disconnect();
+    if (animationFrame) window.cancelAnimationFrame(animationFrame);
+    document.removeEventListener('scroll', scheduleViewportCheck, true);
+    window.removeEventListener('resize', scheduleViewportCheck);
     document.removeEventListener('observatory-theme-change', onThemeChange);
+    for (const figure of figures) {
+      figure.dataset.mermaidRenderVersion = String(
+        Number(figure.dataset.mermaidRenderVersion ?? 0) + 1,
+      );
+    }
   };
 }
