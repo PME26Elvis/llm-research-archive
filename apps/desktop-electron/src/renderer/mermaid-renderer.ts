@@ -4,6 +4,7 @@ export type MermaidTheme = 'light' | 'dark';
 
 export interface MermaidApi {
   initialize(config: Record<string, unknown>): void;
+  parse?(source: string): Promise<unknown>;
   render(id: string, source: string): Promise<{ svg: string }>;
 }
 
@@ -13,6 +14,8 @@ const allowedSvgTags = [
   'defs',
   'style',
   'marker',
+  'symbol',
+  'switch',
   'path',
   'rect',
   'circle',
@@ -70,15 +73,26 @@ const allowedSvgAttributes = [
   'font-size',
   'font-family',
   'font-weight',
+  'font-style',
+  'text-decoration',
+  'letter-spacing',
+  'word-spacing',
   'fill',
   'fill-opacity',
+  'fill-rule',
   'stroke',
   'stroke-width',
   'stroke-opacity',
   'stroke-dasharray',
   'stroke-linecap',
   'stroke-linejoin',
+  'stroke-miterlimit',
+  'clip-rule',
   'opacity',
+  'color',
+  'shape-rendering',
+  'vector-effect',
+  'pointer-events',
   'marker-start',
   'marker-mid',
   'marker-end',
@@ -109,6 +123,12 @@ function safeSvgAttribute(name: string, value: string): boolean {
 
 function safeLabel(label: string): string {
   return label.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+export function normalizeMermaidSource(source: string): string {
+  const normalized = source.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n').trim();
+  if (!normalized) throw new Error('Mermaid source is empty');
+  return normalized;
 }
 
 export function sanitizeMermaidSvg(svg: string, label = 'Mermaid 圖表'): string {
@@ -175,8 +195,10 @@ async function renderWithTheme(
   label: string,
   theme: MermaidTheme,
 ): Promise<string> {
+  const normalizedSource = normalizeMermaidSource(source);
   configureMermaid(renderer, theme);
-  const { svg } = await renderer.render(id, source);
+  await renderer.parse?.(normalizedSource);
+  const { svg } = await renderer.render(id, normalizedSource);
   return sanitizeMermaidSvg(svg, label);
 }
 
