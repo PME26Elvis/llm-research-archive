@@ -19,11 +19,11 @@ jobs:
       target_ref: app-main
       requested_version: '0.1.4'
       release_notes: |
-        Repair Mermaid rendering for BOM, CRLF, punctuation-heavy legacy flowcharts, and nested scroll layouts
-        Validate every bundled Mermaid fence in real Electron alongside flowchart, sequence, state, class, ER, invalid-source, and sanitizer coverage
-        Preserve strict offline Mermaid security while improving SVG compatibility, theme rerendering, and stale-render cleanup
-        Add the complete proposed Astro frontend refactor specification, ADR-0020, phased migration plan, acceptance gates, and rollback strategy
-        Synchronize desktop architecture, testing strategy, Mermaid ADR, and roadmap documentation
+        Repair Mermaid rendering for BOM and CRLF plus punctuation-heavy legacy flowcharts and nested scroll layouts
+        Validate every bundled Mermaid fence in real Electron across flowchart sequence state class ER invalid-source and sanitizer coverage
+        Preserve strict offline Mermaid security while improving SVG compatibility theme rerendering and stale-render cleanup
+        Add the complete proposed Astro frontend refactor specification with ADR-0020 phased migration acceptance gates and rollback strategy
+        Synchronize desktop architecture testing strategy Mermaid ADR and roadmap documentation
       channel: prerelease
       publish: true
 
