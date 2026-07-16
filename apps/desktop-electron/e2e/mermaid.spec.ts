@@ -69,7 +69,8 @@ test('renders supported Mermaid syntax near the viewport and preserves invalid s
     },
     {
       label: 'sequence diagram',
-      source: 'sequenceDiagram\n  participant U as User\n  participant A as Archive\n  U->>A: Open article\n  A-->>U: Render content',
+      source:
+        'sequenceDiagram\n  participant U as User\n  participant A as Archive\n  U->>A: Open article\n  A-->>U: Render content',
     },
     {
       label: 'state diagram',
