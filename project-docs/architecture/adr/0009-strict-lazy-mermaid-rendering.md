@@ -1,7 +1,7 @@
 ---
 status: accepted
 owner: repository-maintainer
-last-verified: 2026-07-11
+last-verified: 2026-07-17
 related-adrs:
   - ADR-0001
   - ADR-0004
@@ -30,13 +30,19 @@ The renderer adapter must:
 
 - call Mermaid with `startOnLoad: false` and `securityLevel: 'strict'`;
 - disable flowchart HTML labels;
-- render only fenced `language-mermaid` blocks;
+- detect fenced Mermaid classes case-insensitively without treating ordinary code as a diagram;
+- normalize a leading BOM, CRLF line endings, and surrounding fence whitespace before parsing;
+- reject empty source and pre-parse valid source before rendering;
 - defer loading and rendering until a diagram approaches the viewport;
+- use both `IntersectionObserver` and a bounded viewport fallback so nested/late scroll containers cannot leave visible diagrams permanently pending;
+- serialize Mermaid configuration and render calls because the library configuration is process-global;
 - pass generated SVG through a second repository-owned allowlist sanitizer;
+- preserve verified diagram geometry and styling attributes required by supported Mermaid families;
 - discard scripts, embedded documents, event handlers, external URLs, and non-fragment references;
 - expose the final SVG as an image with an accessible name;
 - retain the original Mermaid source in a disclosure element;
 - show a recoverable error and open the source disclosure when rendering fails;
+- invalidate stale async work when an article unmounts or the theme changes;
 - respect reduced-motion preferences in diagram styling;
 - introduce no IPC, preload capability, navigation permission, or network request.
 
@@ -49,16 +55,21 @@ The renderer adapter must:
 - Dynamic import prevents the Mermaid runtime from joining the initial renderer chunk.
 - Strict mode and repository sanitization provide defense in depth.
 - Invalid diagrams do not crash the reader or hide their source.
+- BOM/CRLF content and multiple Mermaid diagram families receive real runtime coverage.
+- A corpus-driven E2E test prevents newly added repository diagrams from silently rendering as permanent code fallbacks.
 
 ### Costs
 
 - The packaged application and dependency graph become larger.
-- Mermaid upgrades require explicit review, unit security tests, Electron E2E, and both native package-smoke jobs.
+- Mermaid upgrades require explicit review, unit security tests, Electron E2E, and all native package-smoke jobs.
 - New diagram types may require extending the SVG allowlist when verified safe.
+- Corpus E2E grows with the number and complexity of checked-in diagrams.
+- The lazy-render fallback adds bounded scroll/resize observation that must be cleaned up on article changes.
 
 ## Verification
 
 - `apps/desktop-electron/src/renderer/mermaid-renderer.test.ts`
 - `apps/desktop-electron/e2e/mermaid.spec.ts`
 - `apps/desktop-electron/tests/security.spec.ts`
-- Windows and Linux packaged smoke jobs in `.github/workflows/desktop-ci.yml`
+- bundled Markdown Mermaid-corpus journey in Electron E2E
+- Windows, Linux, macOS arm64, and macOS x64 package-smoke jobs in `.github/workflows/desktop-ci.yml`
