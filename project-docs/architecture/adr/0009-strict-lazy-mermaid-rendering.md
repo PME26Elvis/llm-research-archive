@@ -46,8 +46,6 @@ The renderer adapter must:
 - respect reduced-motion preferences in diagram styling;
 - introduce no IPC, preload capability, navigation permission, or network request.
 
-Renderer errors are recorded through the existing local diagnostics channel without including private article content.
-
 ## Consequences
 
 ### Benefits
