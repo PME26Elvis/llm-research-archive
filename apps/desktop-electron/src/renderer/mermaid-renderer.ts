@@ -126,7 +126,10 @@ function safeLabel(label: string): string {
 }
 
 export function normalizeMermaidSource(source: string): string {
-  const normalized = source.replace(/^\uFEFF/, '').replace(/\r\n?/g, '\n').trim();
+  const normalized = source
+    .replace(/^\uFEFF/, '')
+    .replace(/\r\n?/g, '\n')
+    .trim();
   if (!normalized) throw new Error('Mermaid source is empty');
   return normalized;
 }
