@@ -1,15 +1,35 @@
 import { describe, expect, it, vi } from 'vitest';
-import { renderMermaidSvg, sanitizeMermaidSvg, type MermaidApi } from './mermaid-renderer';
+import {
+  normalizeMermaidSource,
+  renderMermaidSvg,
+  sanitizeMermaidSvg,
+  type MermaidApi,
+} from './mermaid-renderer';
+
+describe('normalizeMermaidSource', () => {
+  it('removes a BOM, normalizes line endings, and trims fenced source', () => {
+    expect(normalizeMermaidSource('\uFEFFflowchart TD\r\n  A --> B\r\n')).toBe(
+      'flowchart TD\n  A --> B',
+    );
+  });
+
+  it('rejects an empty diagram before invoking Mermaid', () => {
+    expect(() => normalizeMermaidSource(' \r\n ')).toThrow(/source is empty/);
+  });
+});
 
 describe('sanitizeMermaidSvg', () => {
-  it('preserves safe diagram geometry and fragment marker references', () => {
+  it('preserves safe diagram geometry, styling, and fragment marker references', () => {
     const svg = sanitizeMermaidSvg(
-      '<svg viewBox="0 0 10 10"><defs><marker id="arrow"><path d="M0 0 L10 5 L0 10 Z"></path></marker></defs><path d="M0 0 L10 10" marker-end="url(#arrow)"></path><text x="1" y="2">安全</text></svg>',
+      '<svg viewBox="0 0 10 10"><defs><marker id="arrow"><path d="M0 0 L10 5 L0 10 Z"></path></marker></defs><path d="M0 0 L10 10" marker-end="url(#arrow)" fill-rule="evenodd" vector-effect="non-scaling-stroke"></path><text x="1" y="2" font-style="italic">安全</text></svg>',
       '流程圖',
     );
 
     expect(svg).toContain('viewBox="0 0 10 10"');
     expect(svg).toContain('marker-end="url(#arrow)"');
+    expect(svg).toContain('fill-rule="evenodd"');
+    expect(svg).toContain('vector-effect="non-scaling-stroke"');
+    expect(svg).toContain('font-style="italic"');
     expect(svg).toContain('role="img"');
     expect(svg).toContain('aria-label="流程圖"');
     expect(svg).toContain('安全');
@@ -30,19 +50,22 @@ describe('sanitizeMermaidSvg', () => {
 });
 
 describe('renderMermaidSvg', () => {
-  it('configures the requested theme, renders, and sanitizes the result', async () => {
+  it('normalizes, parses, configures, renders, and sanitizes the requested theme', async () => {
     const initialize = vi.fn();
+    const parse = vi.fn(async () => ({ diagramType: 'flowchart-v2' }));
     const render = vi.fn(async () => ({
       svg: '<svg><text>Start</text><script>alert(1)</script></svg>',
     }));
-    const api: MermaidApi = { initialize, render };
+    const api: MermaidApi = { initialize, parse, render };
 
     await expect(
-      renderMermaidSvg('diagram-1', 'graph TD\nA-->B', '測試圖', api, 'light'),
+      renderMermaidSvg('diagram-1', '\uFEFFgraph TD\r\nA-->B\r\n', '測試圖', api, 'light'),
     ).resolves.toBe('<svg role="img" aria-label="測試圖"><text>Start</text></svg>');
     expect(initialize).toHaveBeenCalledWith(
       expect.objectContaining({ securityLevel: 'strict', theme: 'default' }),
     );
+    expect(parse).toHaveBeenCalledWith('graph TD\nA-->B');
     expect(render).toHaveBeenCalledWith('diagram-1', 'graph TD\nA-->B');
+    expect(parse.mock.invocationCallOrder[0]).toBeLessThan(render.mock.invocationCallOrder[0]);
   });
 });
