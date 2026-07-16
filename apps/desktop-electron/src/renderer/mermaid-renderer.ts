@@ -125,13 +125,27 @@ function safeLabel(label: string): string {
   return label.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 }
 
+function quoteLegacyFlowchartLabels(source: string): string {
+  if (!/^(?:flowchart|graph)\b/im.test(source)) return source;
+
+  return source.replace(
+    /(\b[A-Za-z_][\w-]*)(\[(?!["'(\[\{\/\\])([^\]\n]+)\]|\{(?!["'\{])([^}\n]+)\})/g,
+    (match, id: string, _shape: string, squareLabel?: string, diamondLabel?: string) => {
+      const label = squareLabel ?? diamondLabel;
+      if (!label || !/[?()（）/:~≥+：、]/.test(label)) return match;
+      const escaped = label.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+      return squareLabel === undefined ? `${id}{"${escaped}"}` : `${id}["${escaped}"]`;
+    },
+  );
+}
+
 export function normalizeMermaidSource(source: string): string {
   const normalized = source
     .replace(/^\uFEFF/, '')
     .replace(/\r\n?/g, '\n')
     .trim();
   if (!normalized) throw new Error('Mermaid source is empty');
-  return normalized;
+  return quoteLegacyFlowchartLabels(normalized);
 }
 
 export function sanitizeMermaidSvg(svg: string, label = 'Mermaid 圖表'): string {
