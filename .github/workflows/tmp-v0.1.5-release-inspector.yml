@@ -24,7 +24,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          run_id=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow "Temporary Astro dual-renderer prerelease publisher" --limit 1 --json databaseId --jq '.[0].databaseId')
+          run_id=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow "Temporary Astro dual-renderer prerelease publisher retry" --limit 1 --json databaseId --jq '.[0].databaseId')
           gh run view "$run_id" --repo "$GITHUB_REPOSITORY" --json databaseId,status,conclusion,headSha,createdAt,updatedAt,url > .v0.1.5-release-inspector.json
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
