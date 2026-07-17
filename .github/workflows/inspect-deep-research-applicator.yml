@@ -13,7 +13,7 @@ jobs:
   inspect:
     runs-on: ubuntu-latest
     steps:
-      - name: Query applicator runs and failed job log
+      - name: Query latest applicator runs
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -25,11 +25,6 @@ jobs:
           jq '{total_count, workflow_runs: [.workflow_runs[] | {id, name, status, conclusion, head_sha, event, run_number, run_attempt, created_at, updated_at, html_url}]}' applicator-runs.json \
             | tee applicator-runs-summary.json
 
-          gh api \
-            "repos/${GITHUB_REPOSITORY}/actions/jobs/87935493051/logs" \
-            > applicator-job.log
-          tail -n 220 applicator-job.log
-
       - name: Upload applicator inspection
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
@@ -37,6 +32,5 @@ jobs:
           path: |
             applicator-runs.json
             applicator-runs-summary.json
-            applicator-job.log
           if-no-files-found: error
           retention-days: 7
