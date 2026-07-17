@@ -13,14 +13,14 @@ jobs:
   inspect:
     runs-on: ubuntu-latest
     steps:
-      - name: Capture macOS arm64 package-smoke failure
+      - name: Capture latest macOS arm64 package-smoke failure
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          gh api "repos/${GITHUB_REPOSITORY}/actions/jobs/87940417971/logs" > package-smoke-arm64.log
-          tail -n 200 package-smoke-arm64.log
+          gh api "repos/${GITHUB_REPOSITORY}/actions/jobs/87942990197/logs" > package-smoke-arm64.log
+          tail -n 220 package-smoke-arm64.log
 
       - name: Upload package-smoke inspection
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
