@@ -1,0 +1,36 @@
+name: Inspect Deep Research applicator
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/inspect-deep-research-applicator.yml
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Query v0.1.6 publisher runs
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh api \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/tmp-v0.1.5-astro-dual-renderer-release.yml/runs?branch=main&per_page=10" \
+            > publisher-runs.json
+          jq '{total_count, workflow_runs: [.workflow_runs[] | {id, name, status, conclusion, head_sha, event, run_number, run_attempt, created_at, updated_at, html_url}]}' publisher-runs.json \
+            | tee publisher-runs-summary.json
+
+      - name: Upload publisher inspection
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: deep-research-applicator-inspection
+          path: |
+            publisher-runs.json
+            publisher-runs-summary.json
+          if-no-files-found: error
+          retention-days: 7
