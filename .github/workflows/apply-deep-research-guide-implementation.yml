@@ -74,6 +74,11 @@ jobs:
           git -C target apply --check "$GITHUB_WORKSPACE/implementation.patch"
           git -C target apply "$GITHUB_WORKSPACE/implementation.patch"
           git -C target diff --check
+          git -C target add --all
+          git -C target diff --cached --binary \
+            | sha256sum \
+            | cut -d' ' -f1 \
+            > "$GITHUB_WORKSPACE/applied-diff.sha256"
 
       - name: Install Node dependencies
         working-directory: target
@@ -91,15 +96,20 @@ jobs:
         working-directory: target
         run: npm run verify
 
-      - name: Confirm deterministic clean implementation
+      - name: Confirm deterministic implementation
         working-directory: target
         shell: bash
         run: |
           set -euo pipefail
           git diff --check
+          git add --all
+          expected="$(cat "$GITHUB_WORKSPACE/applied-diff.sha256")"
+          actual="$(git diff --cached --binary | sha256sum | cut -d' ' -f1)"
           git status --short
-          test -z "$(git status --short)" || {
-            echo 'Verification changed tracked or untracked repository files.' >&2
+          test "$actual" = "$expected" || {
+            echo 'Verification changed the staged implementation payload.' >&2
+            echo "expected: $expected" >&2
+            echo "actual:   $actual" >&2
             exit 1
           }
 
@@ -110,6 +120,5 @@ jobs:
           set -euo pipefail
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add --all
           git commit -m 'Implement neutral Deep Research Guide across both renderer entries'
           git push origin HEAD:agent/spec-deep-research-guide
