@@ -1,0 +1,7 @@
+{
+  "error": {
+    "code": "ESBOMPROBLEMS",
+    "summary": "invalid: esbuild@0.21.5, ^0.27.0 || ^0.28.0 required by vite@8.1.5",
+    "detail": ""
+  }
+}
