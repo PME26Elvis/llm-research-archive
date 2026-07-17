@@ -1,0 +1,115 @@
+name: Apply Deep Research Guide implementation
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/apply-deep-research-guide-implementation.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-and-verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out target implementation branch
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: agent/spec-deep-research-guide
+          path: target
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check out retained payload branch
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: ops/apply-deep-research-guide-implementation
+          path: payload-source
+          fetch-depth: 1
+
+      - name: Reconstruct and verify implementation patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected_head='9eff260c1d1a86273bd51c5c13e31498219a7a21'
+          actual_head="$(git -C target rev-parse HEAD)"
+          test "$actual_head" = "$expected_head"
+
+          payload_dir='payload-source/.ops/deep-research-guide'
+          cat \
+            "$payload_dir/payload-001.txt" \
+            "$payload_dir/payload-002.txt" \
+            "$payload_dir/payload-003.txt" \
+            "$payload_dir/payload-004a.txt" \
+            "$payload_dir/payload-004b0.txt" \
+            "$payload_dir/payload-004b1.txt" \
+            "$payload_dir/payload-005.txt" \
+            "$payload_dir/payload-006.txt" \
+            "$payload_dir/payload-007.txt" \
+            "$payload_dir/payload-008a.txt" \
+            "$payload_dir/payload-008b.txt" \
+            "$payload_dir/payload-009.txt" \
+            "$payload_dir/payload-010.txt" \
+            "$payload_dir/payload-011.txt" \
+            "$payload_dir/payload-012.txt" \
+            "$payload_dir/payload-013.txt" \
+            > implementation.patch.gz.b64
+
+          printf '%s  %s\n' \
+            '8c98cc9f11d67a938714e6471d1037c48b345a1927c20fa6f1f476645cde2353' \
+            'implementation.patch.gz.b64' | sha256sum --check --strict
+
+          base64 --decode implementation.patch.gz.b64 > implementation.patch.gz
+          printf '%s  %s\n' \
+            '5d7c950c96c7c8a4f2e7f244b05606af2ede09d88b01c272724bb0583dd44c17' \
+            'implementation.patch.gz' | sha256sum --check --strict
+
+          gzip --decompress --stdout implementation.patch.gz > implementation.patch
+          printf '%s  %s\n' \
+            'd445a5fcbbeac646c80c6284d787d917c9c8e0a9fc753933fa5335e4b63be08e' \
+            'implementation.patch' | sha256sum --check --strict
+
+          git -C target apply --check "$GITHUB_WORKSPACE/implementation.patch"
+          git -C target apply "$GITHUB_WORKSPACE/implementation.patch"
+          git -C target diff --check
+
+      - name: Install Node dependencies
+        working-directory: target
+        run: npm ci
+
+      - name: Install documentation dependencies
+        working-directory: target
+        run: python -m pip install --disable-pip-version-check -r requirements.txt
+
+      - name: Strict public documentation build
+        working-directory: target
+        run: mkdocs build --strict
+
+      - name: Complete repository verification
+        working-directory: target
+        run: npm run verify
+
+      - name: Confirm deterministic clean implementation
+        working-directory: target
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git status --short
+          test -z "$(git status --short)" || {
+            echo 'Verification changed tracked or untracked repository files.' >&2
+            exit 1
+          }
+
+      - name: Commit and push verified implementation
+        working-directory: target
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add --all
+          git commit -m 'Implement neutral Deep Research Guide across both renderer entries'
+          git push origin HEAD:agent/spec-deep-research-guide
