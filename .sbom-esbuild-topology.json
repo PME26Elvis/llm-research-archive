@@ -1,0 +1,8 @@
+{
+  "runId": 29559658151,
+  "result": "success",
+  "verifiedCommitSha": "aa72e65e29f6ad392e8006bfcfea3986db91d978",
+  "triggerSha": "b35e2624b3e474c440c918747436cd9c1bf25e9e",
+  "targetBranch": "agent/fix-sbom-esbuild-topology",
+  "recordedAt": "2026-07-17T06:20:00.207Z"
+}
