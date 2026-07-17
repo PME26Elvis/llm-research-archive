@@ -89,8 +89,11 @@ test('about modal shows build information without exposing Node globals', async 
 }) => {
   const { page } = await launchElectron();
   await expect(page.getByTestId('app-ready')).toBeVisible({ timeout: 30000 });
-  await expect(page.getByRole('button', { name: '關於' })).toBeVisible();
-  await page.getByRole('button', { name: '關於' }).click();
+  const aboutButton = page
+    .getByTestId('navigation-pane')
+    .getByRole('button', { name: '關於', exact: true });
+  await expect(aboutButton).toBeVisible();
+  await aboutButton.click();
   await expect(page.getByRole('dialog', { name: /關於 Research Observatory/ })).toBeVisible();
   await expect(page.getByTestId('about-version')).toHaveText(
     require('../../../package.json').version,
