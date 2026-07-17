@@ -65,7 +65,15 @@ export function validateAstroOutput(outputRoot = 'apps/desktop-astro/dist') {
   if (/\b(?:src|href|component-url|renderer-url)=["']\/(?!\/)/i.test(html)) {
     throw new Error('Astro output contains root-absolute assets that cannot load from file:');
   }
-  if (/https?:\/\//i.test(html)) throw new Error('Astro output contains a remote runtime URL');
+  const remoteRuntimePatterns = [
+    /\b(?:src|component-url|renderer-url)=["']https?:\/\//i,
+    /<link\s+[^>]*href=["']https?:\/\//i,
+    /url\(\s*["']?https?:\/\//i,
+    /\b(?:fetch|import)\(\s*["']https?:\/\//i,
+  ];
+  if (remoteRuntimePatterns.some((pattern) => pattern.test(html))) {
+    throw new Error('Astro output contains a remote runtime URL');
+  }
 
   const emittedJavaScript = walk(root).filter((file) => /\.(?:js|mjs)$/i.test(file));
   const preloadHelpers = emittedJavaScript.filter((file) =>

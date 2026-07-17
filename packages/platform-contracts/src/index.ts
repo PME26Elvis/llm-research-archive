@@ -133,6 +133,8 @@ export const DesktopCommandSchema = z.enum([
   'workspace.open',
   'import.open',
   'observatory.open',
+  'guide.open',
+  'guide.archive',
 ]);
 export const WorkspaceInfoSchema = z.object({
   kind: z.enum(['bundled', 'local']),

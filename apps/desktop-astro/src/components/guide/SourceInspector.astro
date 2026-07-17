@@ -1,0 +1,57 @@
+---
+import type { DeepResearchGuide } from '@research-observatory/deep-research-guide';
+interface Props {
+  guide: DeepResearchGuide;
+}
+const { guide } = Astro.props;
+const section = guide.sections.find((item) => item.id === 'guide.sources')!;
+---
+
+<aside class="guide-evidence" aria-label={section.title}>
+  <div class="guide-evidence-sticky">
+    <p class="guide-section-kicker">{section.label}</p>
+    <h2>{section.title}</h2>
+    <p>{guide.ui.researchCutoff}: <strong>{guide.researchCutoff}</strong></p>
+    <p>{guide.ui.sourceCount.replace('{count}', String(guide.sources.length))}</p>
+    <div class="guide-source-inspector" aria-live="polite">
+      {
+        guide.sources.map((source, index) => (
+          <article data-guide-source-detail={source.id} hidden={index !== 0}>
+            <p class="guide-source-provider">{source.provider}</p>
+            <h3>{source.title}</h3>
+            <dl>
+              <>
+                <dt>{guide.ui.published}</dt>
+                <dd>{source.publicationDate ?? guide.ui.notStated}</dd>
+              </>
+              <>
+                <dt>{guide.ui.accessed}</dt>
+                <dd>{source.accessedDate}</dd>
+              </>
+              <>
+                <dt>{guide.ui.authority}</dt>
+                <dd>{source.authority}</dd>
+              </>
+            </dl>
+            <h4>{guide.ui.claimScope}</h4>
+            <ul>
+              {source.claimScope.map((claim) => (
+                <li>{claim}</li>
+              ))}
+            </ul>
+            {source.editorialNote && <p class="guide-editorial-note">{source.editorialNote}</p>}
+            <a href={source.url} data-guide-external>
+              {guide.ui.openOfficialSource}
+            </a>
+          </article>
+        ))
+      }
+    </div>
+    <details class="guide-editorial-rules">
+      <summary>{guide.ui.editorialMethod}</summary>
+      <ul>{guide.editorialRules.map((rule) => <li>{rule}</li>)}</ul>
+      <p><strong>{guide.negativeFinding.provider}:</strong> {guide.negativeFinding.finding}</p>
+      <p>{guide.negativeFinding.handlingRule}</p>
+    </details>
+  </div>
+</aside>

@@ -1,5 +1,5 @@
 ---
-status: proposed-canonical-content
+status: canonical
 owner: repository-maintainer
 language: zh-Hant
 research-cutoff: 2026-07-17

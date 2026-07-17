@@ -53,6 +53,17 @@ const COMMAND_DEFINITIONS: DesktopCommandDefinition[] = [
     shortcut: 'Ctrl+Shift+O',
   },
   {
+    id: 'guide.open',
+    labelKey: 'command.guide',
+    keywords: ['guide', 'deep research', 'help', '說明', '深度研究'],
+    shortcut: 'Ctrl+Shift+G',
+  },
+  {
+    id: 'guide.archive',
+    labelKey: 'command.guideArchive',
+    keywords: ['archive', 'provenance', 'report', '保存', '來源', '報告'],
+  },
+  {
     id: 'about.open',
     labelKey: 'command.about',
     keywords: ['about', 'version', 'build', '關於', '版本'],

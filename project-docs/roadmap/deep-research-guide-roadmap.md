@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 owner: repository-maintainer
 last-verified: 2026-07-17
 related-adrs:
@@ -13,7 +13,7 @@ related-adrs:
 
 Ship one source-backed explanation of the Deep Research product category in both desktop renderer entries. Astro and Classic use framework-appropriate presentation while consuming the same canonical content package, source register, section IDs, and content digest.
 
-This proposal remains separate from the completed requirement baseline until implementation requirements and evidence are added to traceability.
+The program is implemented and promoted into FR-034 through FR-036 and NFR-028 through NFR-029 with repository-owned acceptance evidence.
 
 ## Stage 1 — documentation truth
 
@@ -99,3 +99,8 @@ Publish first as a prerelease. Release notes must include the guide version and 
 ## Completion rule
 
 The program is complete only when both entries expose the Guide, report the same canonical digest, work offline, preserve workspace state, open official sources through safe navigation, pass accessibility evidence, and ship in all four supported packages.
+
+
+## Completion evidence
+
+Stages 1 through 5 are complete in the implementation branch. Stage 6 is complete only after the final PR head passes repository `verify`, Electron E2E, and the four native package-smoke jobs and the resulting merge is published as a prerelease. The canonical package version is `1.0.0` with research cutoff `2026-07-17`.

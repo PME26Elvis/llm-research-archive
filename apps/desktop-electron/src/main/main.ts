@@ -269,7 +269,19 @@ function installApplicationMenu(win: BrowserWindow, locale: UiLocale = currentLo
     },
     {
       label: mainTranslate(locale, 'help'),
-      submenu: [{ label: mainTranslate(locale, 'about'), click: () => send('about.open') }],
+      submenu: [
+        {
+          label: mainTranslate(locale, 'guide'),
+          accelerator: 'CmdOrCtrl+Shift+G',
+          click: () => send('guide.open'),
+        },
+        {
+          label: mainTranslate(locale, 'guideArchive'),
+          click: () => send('guide.archive'),
+        },
+        { type: 'separator' },
+        { label: mainTranslate(locale, 'about'), click: () => send('about.open') },
+      ],
     },
   ];
   Menu.setApplicationMenu(Menu.buildFromTemplate(template));

@@ -10,6 +10,14 @@ const commandPalette = fs.readFileSync(
   'apps/desktop-electron/src/renderer/command-palette.tsx',
   'utf8',
 );
+const deepResearchGuide = fs.readFileSync(
+  'apps/desktop-electron/src/renderer/guide/deep-research-guide-dialog.tsx',
+  'utf8',
+);
+const astroGuide = fs.readFileSync(
+  'apps/desktop-astro/src/components/guide/DeepResearchGuide.astro',
+  'utf8',
+);
 
 function parseVariables(selector) {
   const escaped = selector.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -87,6 +95,24 @@ const sourceChecks = [
   ['Observatory nonvisual tables', (observatory.match(/<table>/g) ?? []).length >= 2],
   ['Observatory focus trap', observatory.includes("event.key !== 'Tab'")],
   ['Command Palette focus trap', commandPalette.includes("event.key === 'Tab'")],
+  [
+    'Classic Deep Research Guide dialog semantics',
+    deepResearchGuide.includes('role="dialog"') &&
+      deepResearchGuide.includes('aria-modal="true"') &&
+      deepResearchGuide.includes('app.inert = true'),
+  ],
+  ['Classic Deep Research Guide focus trap', deepResearchGuide.includes("event.key !== 'Tab'")],
+  [
+    'Astro Deep Research Guide dialog semantics',
+    astroGuide.includes('role="dialog"') &&
+      astroGuide.includes('aria-modal="true"') &&
+      astroGuide.includes('appRoot.inert = true'),
+  ],
+  ['Astro Deep Research Guide focus trap', astroGuide.includes("event.key !== 'Tab'")],
+  [
+    'Guide timeline ordered-list fallback',
+    deepResearchGuide.includes('<ol className="guide-timeline">'),
+  ],
 ];
 const failedChecks = sourceChecks.filter(([, passed]) => !passed).map(([name]) => name);
 if (failedChecks.length)

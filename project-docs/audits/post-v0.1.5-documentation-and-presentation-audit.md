@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 owner: repository-maintainer
 last-verified: 2026-07-17
 related-adrs:
@@ -11,7 +11,7 @@ related-adrs:
 
 ## 1. Purpose
 
-This audit identifies documentation and presentation work that should follow the v0.1.5 Astro dual-renderer release. It separates verified drift from future implementation work so that the repository does not rewrite already-correct architecture records or mark unimplemented product surfaces as complete.
+This accepted audit records the documentation and presentation work completed after the v0.1.5 Astro dual-renderer release. It separates verified drift from future implementation work so that the repository does not rewrite already-correct architecture records or mark unimplemented product surfaces as complete.
 
 The audit has two goals:
 
@@ -194,3 +194,8 @@ This planning work does not:
 - turn the guide into an advertising carousel;
 - retire the Classic entry;
 - create a separate content store for Astro.
+
+
+## 10. Implementation outcome
+
+The audit findings are implemented. README and the MkDocs landing page now identify the archive as a preservation surface for long-form LLM research output; the public About / Deep Research guide is navigable; ADR-0021, product requirements, architecture, IPC, security, testing, accessibility, traceability, acceptance evidence, roadmap, and release guidance are synchronized. Both packaged renderer entries expose the same bilingual canonical guide through header, native Help, onboarding, empty-state, and provenance entry points.

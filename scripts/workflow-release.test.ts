@@ -46,6 +46,19 @@ describe('desktop release workflow safety', () => {
   });
 
 
+
+  it('validates the public MkDocs site before release packaging', () => {
+    expect(workflow).toContain(
+      'actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065',
+    );
+    const publicDocs = namedStep('Public documentation');
+    expect(publicDocs).toContain('python -m pip install -r requirements.txt');
+    expect(publicDocs).toContain('python -m mkdocs build --strict');
+    expect(workflow.indexOf('- name: Public documentation')).toBeLessThan(
+      workflow.indexOf('- run: npm run verify'),
+    );
+  });
+
   it('accepts structured change items and renders them into the GitHub release body', () => {
     expect(workflow).toContain("release_notes: { type: string, required: false, default: '' }");
     expect(workflow.match(/node scripts\/release-notes\.mjs \/tmp\/release-notes\.md/g)).toHaveLength(2);

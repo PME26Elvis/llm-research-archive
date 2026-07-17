@@ -1,6 +1,8 @@
 # llm-research-archive
 
-長文研究筆記庫，使用 **MkDocs Material** 建成可搜尋、可分類、可部署的靜態網站。內容目前涵蓋 LLM / AI、碳排與能源、Computer Science，以及跨主題時間軸；網站設定語系為繁體中文（zh-TW）。
+這是一個用來**保存、整理、呈現與查核長篇 LLM 研究成果**的中立 archive，其中包括 ChatGPT deep research、Gemini Deep Research、Grok DeepSearch、Claude Research，以及其他搜尋／推理工作流產出的報告。它同時收錄人工整理與跨主題研究內容；保存不等於背書，也不保證原報告或引用必然正確。
+
+公開網站以 **MkDocs Material** 提供搜尋、分類與時間軸；Research Observatory Desktop 則以同一份 canonical Markdown 提供離線閱讀、搜尋、匯入、診斷，以及 Astro／Classic 雙 entry。完整概念、歷史時間線、供應商命名與官方來源請見 [`docs/about/deep-research/index.md`](docs/about/deep-research/index.md)。
 
 ## 專案特色
 
@@ -16,6 +18,7 @@
 | 分類 | 路徑 | 說明 |
 | --- | --- | --- |
 | 首頁 | `docs/index.md` | 網站入口、快速連結與閱讀體驗說明。 |
+| About / Deep Research | `docs/about/` | Archive 定位、Deep Research 類別、歷史時間線、供應商命名與官方來源。 |
 | LLM | `docs/llm/` | 大型語言模型、agentic AI、算力、benchmark 與本地開發效能研究。 |
 | Carbon | `docs/carbon/` | 碳排、能源、再生能源容量與政策資料整理。 |
 | CS | `docs/cs/` | 電腦科學、資料結構、演算法與分類法相關長文。 |
@@ -25,6 +28,7 @@
 
 ## 目前文章
 
+- `docs/about/deep-research/`：Deep Research 類功能的中立定義、歷史時間線、供應商比較與官方來源。
 - `docs/llm/agentic-ai-constrained-environments-analysis-2024-2026/`：Agentic AI 在高度受限環境下的規劃與反思機制分析。
 - `docs/llm/local-llm-dev-performance-report/`：本地開源大型語言模型在實務軟體開發中的效能與部署價值研究。
 - `docs/llm/why-tech-giants-need-more-compute-report/`：科技業龍頭為何認為 AI 算力仍然不足的原因、證據與趨勢分析。
@@ -38,6 +42,7 @@
 .
 ├── docs/                         # MkDocs 內容根目錄
 │   ├── index.md                  # 網站首頁
+│   ├── about/deep-research/index.md # Deep Research 中立說明與來源
 │   ├── article-publishing-workflow.md
 │   ├── word-counts.md            # build 時由 hook 更新
 │   ├── tags.md
@@ -215,6 +220,8 @@ This branch contains the TypeScript/Electron desktop implementation with **two r
 - **Classic React/Vite workspace** — `apps/desktop-electron/src/renderer/` remains packaged as the stable compatibility entry. Users can switch between implementations from the app header or native View menu; the selection persists locally and failed switches recover to the previous entry.
 
 Both entries share Electron main/preload, canonical Markdown, Content Engine, Search Engine, application services, import transactions, localization, diagnostics, and release authority. They are not separate products and do not duplicate user data.
+
+Both entries also expose a first-class **Deep Research Guide** from the header and native Help menu. Astro uses a static-first Guide workspace; Classic uses an accessible Help Center overlay. Both consume `packages/deep-research-guide/`, report the same versioned content digest, work offline, and preserve provider history without renderer-specific prose forks.
 
 Use `npm ci`, then `npm run verify` for formatting, Astro output validation, type checks, coverage, architecture, accessibility, dependency, performance, build, and per-renderer footprint gates. Desktop CI additionally runs the complete Electron suite against Astro by default, explicitly switches to Classic and back, and performs native Windows x64, Linux x64, macOS arm64, and macOS x64 make, packaged smoke, and installed-footprint checks.
 

@@ -1,0 +1,10 @@
+{
+  "name": "@research-observatory/deep-research-guide",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "zod": "^3.23.8"
+  }
+}

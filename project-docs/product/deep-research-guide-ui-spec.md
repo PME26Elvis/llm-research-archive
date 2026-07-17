@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 owner: repository-maintainer
 last-verified: 2026-07-17
 related-adrs:
@@ -304,3 +304,17 @@ Windows x64, Linux x64, macOS arm64, and macOS x64 must open the guide in both e
 - Optional F1 shortcut after cross-platform conflict review.
 
 None of these decisions may change the one-content-authority rule.
+
+
+## 15. Implementation outcome
+
+The specification is implemented with the following resolved prototype decisions:
+
+- Astro uses a shell-owned static-first Guide surface; no second local route or server is introduced.
+- Classic uses the repository-owned accessible overlay primitive rather than native `<dialog>`.
+- The evidence inspector remains a third column at wide widths and collapses inline below 1040 px.
+- Version 1.0.0 ships complete Traditional Chinese and English bodies, not bilingual chrome over one untranslated body.
+- The public Markdown guide is committed and validated against the shared package/source register rather than generated only inside CI.
+- `Ctrl+Shift+G` is the cross-platform Guide shortcut; F1 remains unassigned.
+
+Implementation evidence is owned by `packages/deep-research-guide`, `apps/desktop-astro/src/components/guide`, `apps/desktop-electron/src/renderer/guide`, `apps/desktop-electron/e2e/deep-research-guide.spec.ts`, `scripts/validate-deep-research-guide.mjs`, and `scripts/packaged-smoke.mjs`.

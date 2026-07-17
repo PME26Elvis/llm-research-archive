@@ -15,6 +15,8 @@ const messages = {
     palette: '指令面板',
     observatory: 'Observatory 摘要',
     help: '說明',
+    guide: 'Deep Research 是什麼？',
+    guideArchive: '這個 archive 保存什麼',
     about: '關於 Research Observatory',
     workspaceDialog: '選擇 Research Observatory 工作區',
     workspaceRejected: '無法開啟工作區；請確認資料夾包含可讀取的 Markdown 文章且未使用符號連結。',
@@ -36,6 +38,8 @@ const messages = {
     palette: 'Command palette',
     observatory: 'Observatory summary',
     help: 'Help',
+    guide: 'What is Deep Research?',
+    guideArchive: 'What does this archive preserve?',
     about: 'About Research Observatory',
     workspaceDialog: 'Choose a Research Observatory workspace',
     workspaceRejected:

@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 owner: repository-maintainer
 last-verified: 2026-07-17
 related-adrs:
@@ -105,18 +105,18 @@ Semantic parity is required; pixel parity is not.
 - No automatic provider identification from article prose.
 - No claim that source-backed reports are guaranteed correct.
 
-## Implementation evidence required before acceptance
+## Implementation evidence
 
-- Shared package schema and source-integrity tests.
-- Neutrality/editorial validator.
-- Deterministic content digest.
-- Astro and Classic DOMs reporting the same digest and record counts.
-- Header, native Help, onboarding, and contextual entry journeys.
-- Workspace and scroll restoration evidence.
-- Safe external-link tests.
-- Keyboard, reduced-motion, narrow-window, and screen-reader review.
-- Windows x64, Linux x64, macOS arm64, and macOS x64 packaged smoke.
-- README, website, roadmap, product requirements, architecture, security, testing, traceability, acceptance evidence, and release notes synchronized before public release.
+- `packages/deep-research-guide/src/index.test.ts` covers schema, source integrity, locale parity, stable serialization, and digest behavior.
+- `scripts/validate-deep-research-guide.mjs` enforces official-source resolution, HTTPS evidence, attributed vendor claims, research cutoff, public-document markers, and the DeepSeek negative finding.
+- `packages/deep-research-guide/src/digest.ts` produces deterministic locale digests over canonical content.
+- Astro and Classic expose guide version, active-locale digest, provider count, timeline count, and source count; Electron E2E and packaged smoke compare them.
+- `apps/desktop-electron/e2e/deep-research-guide.spec.ts` covers header, native Help, onboarding, empty-state/provenance access, locale switching, and both renderer surfaces.
+- The same E2E journey proves article selection and invoker focus restoration across open/close and renderer switching.
+- Astro output validation allows only HTTPS evidence anchors while Electron retains safe external navigation; E2E checks the source links without permitting embedded remote runtime assets.
+- `scripts/validate-accessibility.mjs` and E2E cover dialog semantics, inert background, focus trapping, ordered-list timeline fallback, responsive layouts, and reduced-motion CSS.
+- `scripts/packaged-smoke.mjs` opens both guide implementations and compares canonical metadata on Windows x64, Linux x64, macOS arm64, and macOS x64.
+- README, public website, roadmap, FR-034 through FR-036, NFR-028 through NFR-029, architecture, IPC, security, testing, accessibility, traceability, acceptance evidence, and release guidance are synchronized.
 
 ## Related specifications
 

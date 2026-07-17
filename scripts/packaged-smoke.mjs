@@ -39,10 +39,50 @@ try {
   if ((await page.locator('[data-astro-entry="research-observatory"]').count()) !== 1) {
     throw new Error('packaged Astro entry marker is missing');
   }
+  const guideContract = page.locator('[data-testid="deep-research-guide-contract"]');
+  if ((await guideContract.getAttribute('data-guide-version')) !== '1.0.0') {
+    throw new Error('packaged Deep Research Guide version is invalid');
+  }
+  if ((await guideContract.getAttribute('data-guide-provider-count')) !== '5') {
+    throw new Error('packaged Deep Research Guide provider contract is invalid');
+  }
+  if ((await guideContract.getAttribute('data-guide-timeline-count')) !== '15') {
+    throw new Error('packaged Deep Research Guide timeline contract is invalid');
+  }
+  if ((await guideContract.getAttribute('data-guide-source-count')) !== '15') {
+    throw new Error('packaged Deep Research Guide source contract is invalid');
+  }
+  const astroGuideDigest = await guideContract.getAttribute('data-guide-digest');
+  if (!/^drg1-[a-f0-9]{8}$/.test(astroGuideDigest ?? '')) {
+    throw new Error(`packaged Deep Research Guide digest is invalid: ${astroGuideDigest}`);
+  }
+  await page.getByTestId('open-deep-research-guide').click();
+  await page.waitForSelector('[data-astro-guide]:not([hidden])', { timeout: 30000 });
+  await page.waitForSelector(
+    '[data-astro-guide]:not([hidden]) [data-guide-section="guide.timeline"]',
+    { timeout: 30000 },
+  );
+  await page.getByRole('button', { name: '關閉說明' }).click();
   await page.getByRole('button', { name: /Classic/ }).click();
   await page.waitForSelector('[data-testid="app-ready"][data-renderer-implementation="classic"]', {
     timeout: 30000,
   });
+  if (
+    (await page.getByTestId('deep-research-guide-contract').getAttribute('data-guide-digest')) !==
+    astroGuideDigest
+  ) {
+    throw new Error('Astro and Classic Deep Research Guide digests differ');
+  }
+  await page.getByTestId('open-deep-research-guide').click();
+  await page.waitForSelector('[data-testid="classic-deep-research-guide"]', { timeout: 30000 });
+  if (
+    (await page
+      .getByTestId('classic-deep-research-guide')
+      .getAttribute('data-guide-source-count')) !== '15'
+  ) {
+    throw new Error('packaged Classic Deep Research Guide source contract is invalid');
+  }
+  await page.getByRole('button', { name: '關閉說明' }).click();
   await page.getByRole('button', { name: /Astro/ }).click();
   await page.waitForSelector('[data-testid="app-ready"][data-renderer-implementation="astro"]', {
     timeout: 30000,

@@ -10,6 +10,8 @@ describe('DesktopCommandSchema', () => {
     expect(DesktopCommandSchema.parse('import.open')).toBe('import.open');
     expect(DesktopCommandSchema.parse('about.open')).toBe('about.open');
     expect(DesktopCommandSchema.parse('observatory.open')).toBe('observatory.open');
+    expect(DesktopCommandSchema.parse('guide.open')).toBe('guide.open');
+    expect(DesktopCommandSchema.parse('guide.archive')).toBe('guide.archive');
   });
 
   it('rejects arbitrary command strings', () => {

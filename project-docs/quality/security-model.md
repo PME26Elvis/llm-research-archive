@@ -9,6 +9,7 @@ related-adrs:
   - ADR-0018
   - ADR-0019
   - ADR-0020
+  - ADR-0021
 ---
 
 # Security Model
@@ -27,3 +28,10 @@ Language preferences remain local renderer state. The preload validates resolved
 ## Dual-renderer boundary
 
 Astro and Classic are local renderer adapters, not independent trust domains. Both load only through main-owned allowlisted URLs and the same context-isolated preload. Renderer selection accepts only the `astro` or `classic` schema values, persists no arbitrary path or URL, and does not expose a generic reload or navigation capability. Astro build output is validated for local relative assets, absence of remote runtime URLs, required shell markers, and hash-authorized inline hydration scripts. A failed switch is recorded locally and returns to the previous entry.
+
+
+## Deep Research Guide boundary
+
+Guide content is bundled, immutable at runtime, schema-validated, and free of remote executable assets. `scripts/validate-deep-research-guide.mjs` rejects non-HTTPS official source URLs, unresolved source IDs, locale-shape divergence, unsupported provider naming, and loss of the DeepSeek negative finding. Astro production validation permits HTTPS evidence anchors but still rejects remote scripts, styles, frames, fonts, images, imports, fetches, and CSS URLs. Classic uses the same safe external-link bridge. Neither renderer fetches vendor content at runtime.
+
+Vendor quality statements remain explicitly attributed; unavailable dates or model bindings remain unknown. The guide does not expose chain-of-thought, rank providers, infer article provenance, or elevate citation presence into a correctness guarantee.

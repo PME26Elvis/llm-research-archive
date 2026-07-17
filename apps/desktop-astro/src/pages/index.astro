@@ -2,12 +2,14 @@
 import ObservatoryLayout from '../layouts/ObservatoryLayout.astro';
 import RendererIdentity from '../components/RendererIdentity.astro';
 import WorkspaceBootShell from '../components/WorkspaceBootShell.astro';
+import DeepResearchGuide from '../components/guide/DeepResearchGuide.astro';
 import ObservatoryIsland from '../islands/ObservatoryIsland';
 ---
 
 <ObservatoryLayout>
   <RendererIdentity />
   <WorkspaceBootShell />
+  <DeepResearchGuide />
   <div id="astro-app-root" data-astro-entry="research-observatory">
     <ObservatoryIsland client:only="react" />
   </div>

@@ -1254,3 +1254,535 @@ body.resizing-sidebar {
     padding: 1rem;
   }
 }
+
+/* Deep Research Guide: Classic Help Center overlay */
+.guide-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1500;
+  display: grid;
+  place-items: stretch;
+  padding: clamp(0.35rem, 1.5vw, 1rem);
+  background: var(--modal-backdrop);
+  backdrop-filter: blur(8px);
+}
+
+.guide-dialog {
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  background: var(--surface-body);
+  box-shadow: 0 24px 80px var(--modal-shadow);
+}
+
+.guide-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.2rem;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-panel) 92%, transparent);
+}
+
+.guide-dialog-header h2 {
+  margin: 0.2rem 0;
+  font-size: clamp(1.35rem, 2.2vw, 2.1rem);
+}
+
+.guide-dialog-header p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.guide-dialog-header button {
+  width: auto;
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.guide-dialog-disclaimer {
+  margin: 0;
+  padding: 0.65rem 1.2rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-muted);
+  background: color-mix(in srgb, var(--accent) 8%, var(--surface-panel));
+  font-size: 0.84rem;
+}
+
+.guide-dialog-layout {
+  display: grid;
+  grid-template-columns: minmax(11rem, 0.72fr) minmax(28rem, 2.5fr) minmax(17rem, 1fr);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.guide-dialog-nav,
+.guide-dialog-content,
+.guide-dialog-evidence {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+.guide-dialog-nav {
+  display: grid;
+  grid-auto-rows: max-content;
+  gap: 0.3rem;
+  padding: 0.85rem;
+  border-right: 1px solid var(--border);
+  background: var(--surface-panel);
+}
+
+.guide-dialog-nav > p {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.guide-dialog-nav button {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  gap: 0.5rem;
+  margin: 0;
+  border-color: transparent;
+  background: transparent;
+}
+
+.guide-dialog-nav button[aria-current='true'] {
+  border-color: var(--accent);
+  background: var(--surface-selected);
+}
+
+.guide-dialog-nav button span {
+  color: var(--text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.guide-dialog-content {
+  scroll-behavior: smooth;
+  padding: 0 1.5rem 4rem;
+}
+
+.guide-dialog-content > section {
+  padding: 1.35rem 0 2.4rem;
+  scroll-margin-top: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.guide-dialog-content > section:last-child {
+  border-bottom: 0;
+}
+
+.guide-dialog-content h3 {
+  margin: 0.35rem 0 0.55rem;
+  font-size: clamp(1.15rem, 1.6vw, 1.65rem);
+}
+
+.guide-dialog-content h4 {
+  margin: 0.25rem 0 0.4rem;
+}
+
+.guide-dialog-content p,
+.guide-dialog-content li,
+.guide-dialog-evidence p,
+.guide-dialog-evidence li,
+.guide-dialog-evidence dd {
+  line-height: 1.65;
+}
+
+.guide-section-kicker {
+  margin: 0;
+  color: var(--accent);
+  font:
+    700 0.68rem/1.4 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.guide-lead {
+  font-size: 1.08rem;
+}
+
+.guide-naming-grid,
+.guide-distinction-grid,
+.guide-archive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.guide-dialog article {
+  flex: initial;
+  min-height: initial;
+  max-width: none;
+  padding: 0.85rem;
+  overflow: visible;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-panel);
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.guide-naming-grid article p,
+.guide-naming-grid article h4 {
+  margin: 0;
+}
+
+.guide-naming-grid small,
+.guide-model-context,
+.guide-naming-note,
+.guide-editorial-note {
+  color: var(--text-muted);
+}
+
+.guide-workflow,
+.guide-timeline,
+.guide-checklist {
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.guide-workflow {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.guide-workflow li {
+  display: grid;
+  grid-template-columns: 2.25rem minmax(0, 1fr);
+  gap: 0.7rem;
+}
+
+.guide-workflow li > span {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  color: var(--accent);
+  background: var(--surface-selected);
+  font-family: ui-monospace, monospace;
+}
+
+.guide-workflow h4,
+.guide-workflow p {
+  margin: 0;
+}
+
+.guide-timeline {
+  position: relative;
+  display: grid;
+  gap: 1rem;
+}
+
+.guide-timeline::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 6rem;
+  width: 1px;
+  background: color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+.guide-timeline > li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 5.2rem minmax(0, 1fr);
+  gap: 1.45rem;
+}
+
+.guide-timeline > li::before {
+  content: '';
+  position: absolute;
+  top: 0.55rem;
+  left: 5.7rem;
+  width: 0.58rem;
+  height: 0.58rem;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  background: var(--surface-body);
+}
+
+.guide-timeline time {
+  color: var(--text-muted);
+  font-family: ui-monospace, monospace;
+  font-size: 0.78rem;
+}
+
+.guide-timeline-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.guide-timeline-heading h4 {
+  margin: 0;
+}
+
+.guide-timeline-heading span {
+  flex: 0 0 auto;
+  padding: 0.18rem 0.45rem;
+  border-radius: 999px;
+  color: var(--text-muted);
+  background: var(--surface-control);
+  font-size: 0.68rem;
+}
+
+.guide-source-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.65rem;
+}
+
+.guide-source-links button {
+  width: auto;
+  margin: 0;
+  padding: 0.38rem 0.5rem;
+  color: var(--accent);
+  font-size: 0.72rem;
+}
+
+.guide-provider-list {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.guide-provider-list details {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-panel);
+}
+
+.guide-provider-list summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem;
+  cursor: pointer;
+}
+
+.guide-provider-body {
+  padding: 0 0.9rem 0.9rem;
+}
+
+.guide-provider-body dl,
+.guide-dialog-evidence dl {
+  display: grid;
+  grid-template-columns: minmax(6rem, auto) minmax(0, 1fr);
+  gap: 0.35rem 0.75rem;
+}
+
+.guide-provider-body dt,
+.guide-dialog-evidence dt {
+  color: var(--text-muted);
+}
+
+.guide-provider-body dd,
+.guide-dialog-evidence dd {
+  margin: 0;
+}
+
+.guide-comparison-scroll {
+  margin-top: 1rem;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.guide-comparison {
+  width: 100%;
+  min-width: 58rem;
+  font-size: 0.78rem;
+}
+
+.guide-comparison th,
+.guide-comparison td {
+  vertical-align: top;
+  text-align: left;
+}
+
+.guide-comparison thead th,
+.guide-comparison tbody th {
+  background: var(--surface-panel);
+}
+
+.guide-checklist {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: 0.65rem;
+  counter-reset: guide-check;
+}
+
+.guide-checklist li {
+  position: relative;
+  min-height: 3.2rem;
+  padding: 0.65rem 0.65rem 0.65rem 2.55rem;
+  border-left: 2px solid var(--accent);
+  background: var(--surface-panel);
+  counter-increment: guide-check;
+}
+
+.guide-checklist li::before {
+  content: counter(guide-check, decimal-leading-zero);
+  position: absolute;
+  left: 0.55rem;
+  color: var(--accent);
+  font-family: ui-monospace, monospace;
+}
+
+.guide-dialog-evidence {
+  grid-column: auto;
+  padding: 0.85rem;
+  border-left: 1px solid var(--border);
+  border-right: 0;
+  background: var(--surface-panel);
+}
+
+.guide-dialog-evidence article {
+  position: sticky;
+  top: 0;
+  padding: 0.9rem;
+  background: var(--surface-control);
+}
+
+.guide-dialog-evidence button {
+  width: auto;
+}
+
+.guide-source-provider {
+  margin: 0;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.guide-dialog-evidence h3 {
+  margin-top: 0.25rem;
+  font-size: 1rem;
+}
+
+.guide-intro-card {
+  margin: 0.75rem 0;
+  padding: 0.8rem;
+  border: 1px solid color-mix(in srgb, var(--accent) 55%, var(--border));
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent) 9%, var(--surface-panel));
+}
+
+.guide-intro-card h2,
+.guide-intro-card p {
+  margin: 0 0 0.45rem;
+}
+
+.guide-intro-card h2 {
+  font-size: 1rem;
+}
+
+.guide-intro-actions {
+  display: flex;
+  gap: 0.45rem;
+}
+
+.guide-intro-actions button {
+  margin: 0;
+}
+
+.guide-context-button {
+  width: auto;
+  margin-left: 0.35rem;
+  padding: 0.25rem 0.45rem;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 1100px) {
+  .guide-dialog-layout {
+    grid-template-columns: minmax(10.5rem, 0.7fr) minmax(0, 2.3fr);
+  }
+  .guide-dialog-evidence {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .guide-dialog-backdrop {
+    padding: 0;
+  }
+  .guide-dialog {
+    border: 0;
+    border-radius: 0;
+  }
+  .guide-dialog-header {
+    align-items: center;
+    padding: 0.75rem;
+  }
+  .guide-dialog-header > div > p:last-child,
+  .guide-dialog-disclaimer {
+    display: none;
+  }
+  .guide-dialog-layout {
+    display: block;
+    overflow: auto;
+  }
+  .guide-dialog-nav {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    display: flex;
+    width: max-content;
+    min-width: 100%;
+    overflow-x: auto;
+    padding: 0.45rem;
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .guide-dialog-nav > p {
+    display: none;
+  }
+  .guide-dialog-nav button {
+    width: auto;
+    white-space: nowrap;
+  }
+  .guide-dialog-content {
+    overflow: visible;
+    padding: 0 0.8rem 3rem;
+  }
+  .guide-timeline::before {
+    left: 0.25rem;
+  }
+  .guide-timeline > li {
+    grid-template-columns: 1fr;
+    gap: 0.2rem;
+    padding-left: 1.15rem;
+  }
+  .guide-timeline > li::before {
+    left: 0;
+  }
+  .guide-timeline-heading,
+  .guide-provider-list summary {
+    display: grid;
+  }
+  .guide-checklist {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .guide-dialog-content {
+    scroll-behavior: auto;
+  }
+}
