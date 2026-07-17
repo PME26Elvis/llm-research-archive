@@ -27,14 +27,13 @@ test('source Electron app searches and opens the known Chinese article securely'
   await expect(page.locator('article header h2')).toHaveText(title);
   await expect(page.getByTestId('article-meta')).toContainText('2026-03-20');
   await expect(page.getByTestId('reader')).not.toContainText('<script>');
-  const clickAllowed = await page.evaluate(() => {
+  await page.evaluate(() => {
     const a = document.createElement('a');
     a.href = 'http://example.com';
     a.textContent = 'bad';
     document.querySelector('article')?.append(a);
-    return a.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
   });
-  expect(clickAllowed).toBe(false);
+  await page.getByRole('link', { name: 'bad' }).click();
   await expect(page.getByRole('alert')).toContainText('已阻擋不安全連結');
   await expect(page.getByTestId('app-ready')).toBeVisible();
   await expect(page.locator('article header h2')).toHaveText(title);
