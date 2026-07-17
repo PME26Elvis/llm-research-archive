@@ -41,7 +41,7 @@ Research Observatory uses layered verification. A feature is complete only when 
 
 ## Electron E2E isolation and diagnostics
 
-Playwright uses one Electron worker. The shared `electron-test.ts` fixture owns launch, stdout/stderr and renderer error capture, trace collection, screenshots, shutdown, and temporary workspace cleanup. Failures upload `playwright-e2e.log`, `playwright-report/`, and `test-results/` for 14 days.
+Playwright uses one Electron worker. The shared `electron-test.ts` fixture owns launch, stdout/stderr and renderer error capture, trace collection, screenshots, shutdown, and temporary workspace cleanup. Failures upload `playwright-e2e.log`, `playwright-report/`, and `test-results/` for 14 days. Unsafe-link coverage dispatches a cancelable browser click and asserts cancellation, the renderer warning, and continued application state instead of observing a transient navigation URL.
 
 ## Coverage rule
 
