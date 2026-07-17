@@ -97,7 +97,10 @@ try {
   if (await page.evaluate(() => Reflect.has(window, 'require') || Reflect.has(window, 'process'))) {
     throw new Error('renderer exposes Node globals');
   }
-  await page.getByRole('button', { name: '關於' }).click();
+  await page
+    .getByTestId('navigation-pane')
+    .getByRole('button', { name: '關於', exact: true })
+    .click();
   await page.waitForSelector('[role="dialog"]');
   const commit = await page.locator('[data-testid="about-commit"]').innerText();
   const version = await page.locator('[data-testid="about-version"]').innerText();
