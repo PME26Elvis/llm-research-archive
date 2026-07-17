@@ -1,0 +1,48 @@
+---
+import type { DeepResearchGuide } from '@research-observatory/deep-research-guide';
+interface Props {
+  guide: DeepResearchGuide;
+}
+const { guide } = Astro.props;
+const section = guide.sections.find((item) => item.id === 'guide.timeline')!;
+const attribution = {
+  'verified-fact': guide.ui.verifiedFact,
+  'vendor-claim': guide.ui.providerClaim,
+  'repository-synthesis': guide.ui.repositorySynthesis,
+};
+---
+
+<section
+  id={`${'guide.timeline'}-${guide.locale}`}
+  class="guide-section"
+  data-guide-section="guide.timeline"
+  tabindex="-1"
+>
+  <p class="guide-section-kicker">{section.label}</p>
+  <h2>{section.title}</h2>
+  <p>{section.intro}</p>
+  <ol class="guide-timeline">
+    {
+      guide.timeline.map((event) => (
+        <li data-provider={event.providerId}>
+          <time datetime={event.date}>{event.date}</time>
+          <div>
+            <div class="guide-timeline-heading">
+              <h3>{event.title}</h3>
+              <span data-attribution={event.attribution}>{attribution[event.attribution]}</span>
+            </div>
+            <p class="guide-model-context">{event.modelContext}</p>
+            <p>{event.summary}</p>
+            <div class="guide-source-links">
+              {event.sourceIds.map((sourceId) => (
+                <button type="button" data-guide-source-select={sourceId}>
+                  {guide.ui.source}: {sourceId}
+                </button>
+              ))}
+            </div>
+          </div>
+        </li>
+      ))
+    }
+  </ol>
+</section>

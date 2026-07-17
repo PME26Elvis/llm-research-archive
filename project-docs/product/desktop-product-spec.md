@@ -220,6 +220,24 @@ Status: `implemented`. Verification: `scripts/release-notes.test.ts`, `scripts/w
 
 Status: `implemented`. Verification: `packages/platform-contracts/src/renderer-implementation.test.ts`, `apps/desktop-electron/src/main/renderer-state.test.ts`, `scripts/astro-output.test.ts`, `apps/desktop-electron/e2e/renderer-implementations.spec.ts`, and `scripts/packaged-smoke.mjs`. One Electron application packages the default Astro workspace and the Classic React/Vite compatibility workspace. Users can switch through renderer chrome or the native View menu; the finite typed selection persists atomically, shares all backend state, and recovers to the previous entry if loading fails.
 
+## FR-034
+
+**Name:** First-class Deep Research Guide.
+
+Status: `implemented`. Verification: `apps/desktop-electron/e2e/deep-research-guide.spec.ts`, `packages/platform-contracts/src/desktop-command.test.ts`, and `scripts/packaged-smoke.mjs`. Both retained renderer entries expose a top-level Guide action plus native Help commands for the category overview and archive meaning. The bundled guide explains terminology, workflow, provider histories, timeline, comparison, limitations, archive purpose, verification, and official sources without replacing the current workspace.
+
+## FR-035
+
+**Name:** Canonical guide content parity.
+
+Status: `implemented`. Verification: `packages/deep-research-guide/src/index.test.ts`, `scripts/validate-deep-research-guide.mjs`, `apps/desktop-electron/e2e/deep-research-guide.spec.ts`, and `scripts/packaged-smoke.mjs`. A shared typed package owns versioned Traditional Chinese and English content, provider profiles, timeline events, comparison fields, source records, research cutoff, and deterministic locale digests. Astro and Classic expose identical record counts and the same digest for the active locale.
+
+## FR-036
+
+**Name:** Guide onboarding and contextual access.
+
+Status: `implemented`. Verification: `apps/desktop-electron/e2e/deep-research-guide.spec.ts`. A versioned non-blocking first-launch introduction, empty-library link, and article-provenance link explain what the archive preserves. Dismissal does not remove permanent header or native-menu access.
+
 ## NFR-001
 
 **Name:** Offline-first operation.
@@ -382,3 +400,14 @@ Status: `implemented`. Verification: `apps/desktop-electron/tests/security.spec.
 **Name:** Renderer parity and rollback.
 
 Status: `implemented`. Verification: `scripts/validate-astro-output.mjs`, `apps/desktop-electron/tests/security.spec.ts`, `apps/desktop-electron/e2e/renderer-implementations.spec.ts`, `scripts/verify-footprint.mjs`, and `scripts/packaged-smoke.mjs`. Astro static output contains only local runtime assets and a generated hash-based CSP. Existing Electron journeys execute against Astro by default, explicit tests open Classic and return to Astro, each implementation has an independent initial-JavaScript budget, and Classic remains packaged as the rollback entry.
+## NFR-028
+
+**Name:** Offline neutral guide security.
+
+Status: `implemented`. Verification: `scripts/validate-deep-research-guide.mjs`, `scripts/validate-astro-output.mjs`, `scripts/astro-output.test.ts`, and `apps/desktop-electron/e2e/deep-research-guide.spec.ts`. Guide content and source metadata are packaged locally, official claims remain attributed, unknown facts remain explicit, DeepSeek naming asymmetry is preserved, and no renderer performs a runtime vendor fetch. HTTPS evidence links use the existing safe external-navigation boundary; remote scripts, images, fonts, frames, and styles remain prohibited.
+
+## NFR-029
+
+**Name:** Accessible state-preserving guide.
+
+Status: `implemented`. Verification: `scripts/validate-accessibility.mjs`, `apps/desktop-electron/e2e/deep-research-guide.spec.ts`, and `scripts/packaged-smoke.mjs`. The guide is keyboard operable at narrow and wide layouts, provides ordered-list timeline and table alternatives, respects reduced motion, traps and restores focus when modal, and returns users to their unchanged article, search, renderer, locale, and scroll context.

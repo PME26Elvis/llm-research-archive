@@ -8,6 +8,8 @@ related-adrs:
   - ADR-0017
   - ADR-0018
   - ADR-0019
+  - ADR-0020
+  - ADR-0021
 ---
 
 # Desktop Requirement Catalog
@@ -49,6 +51,24 @@ A single Electron package contains an Astro workspace and a Classic React/Vite w
 
 Evidence: `packages/platform-contracts/src/renderer-implementation.test.ts`, `apps/desktop-electron/src/main/renderer-state.test.ts`, `scripts/astro-output.test.ts`, `apps/desktop-electron/e2e/renderer-implementations.spec.ts`, and `scripts/packaged-smoke.mjs`.
 
+### FR-034 — First-class Deep Research Guide
+
+Both renderer entries expose a top-level bilingual Guide, native Help commands, and contextual education without replacing or resetting the research workspace. The guide explains category definition, workflow, distinctions, dated history, vendor terminology, neutral comparison, archive purpose, verification, and official sources.
+
+Evidence: `apps/desktop-electron/e2e/deep-research-guide.spec.ts`, `packages/platform-contracts/src/desktop-command.test.ts`, and `scripts/packaged-smoke.mjs`.
+
+### FR-035 — Canonical guide content parity
+
+One shared package owns the guide's two locale documents, stable IDs, provider records, 15 timeline events, 15 official source records, comparison fields, research cutoff, and deterministic digests. Astro and Classic may present the content differently but must expose identical structural counts and active-locale digest.
+
+Evidence: `packages/deep-research-guide/src/index.test.ts`, `scripts/validate-deep-research-guide.mjs`, `apps/desktop-electron/e2e/deep-research-guide.spec.ts`, and `scripts/packaged-smoke.mjs`.
+
+### FR-036 — Guide onboarding and contextual access
+
+A versioned dismissible first-run card, empty-state link, and article-provenance link explain what the archive preserves while permanent header and native-menu access remain available.
+
+Evidence: `apps/desktop-electron/e2e/deep-research-guide.spec.ts`.
+
 ## Implemented non-functional requirements
 
 ### NFR-010 — Enforced coverage thresholds
@@ -88,8 +108,16 @@ Preference persistence stays renderer-owned. Main receives only a schema-validat
 
 Both renderer entries use the same context-isolated preload and typed contracts. Astro static output must contain only local runtime assets and a generated hash-based CSP. Current functional journeys run against Astro by default, explicit E2E and packaged smoke exercise Classic, and each entry retains an independent initial-JavaScript budget. Classic remains available as a packaged rollback path.
 
+### NFR-028 — Offline neutral guide security
+
+The guide is bundled locally, uses official HTTPS source records, attributes vendor claims, preserves explicit unknowns and the DeepSeek naming asymmetry, and performs no runtime vendor fetch. Evidence links use the existing safe external-navigation boundary.
+
+### NFR-029 — Accessible state-preserving guide
+
+Astro and Classic provide responsive semantic layouts, ordered timeline fallback, keyboard operation, reduced-motion support, inert modal background where applicable, focus restoration, and preservation of article/search/locale/renderer context.
+
 ## Completed delivery sequence
 
-PRs #27–#29 implemented the safe import domain, atomic transaction, Desktop Import Wizard, and complete E2E journey. PR #58 implemented the search index, startup telemetry, local diagnostics, revision/word-count presentation, and accessible Observatory. PR #73 converged coverage, accessibility, dependency, benchmark, renderer, package-footprint, and release gates. PR #91 added bilingual interface settings, native localization, and structured release descriptions. The dual-renderer implementation adds FR-033 and NFR-027; all traceable requirements are implemented.
+PRs #27–#29 implemented the safe import domain, atomic transaction, Desktop Import Wizard, and complete E2E journey. PR #58 implemented the search index, startup telemetry, local diagnostics, revision/word-count presentation, and accessible Observatory. PR #73 converged coverage, accessibility, dependency, benchmark, renderer, package-footprint, and release gates. PR #91 added bilingual interface settings, native localization, and structured release descriptions. The dual-renderer implementation added FR-033 and NFR-027. The Deep Research Guide program adds FR-034 through FR-036 and NFR-028 through NFR-029; all traceable requirements are implemented.
 
 Future work is proposal-only and is maintained in `project-docs/roadmap/desktop-roadmap.md`; it does not create a new planned requirement until approved with stable IDs and acceptance evidence.

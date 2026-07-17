@@ -61,7 +61,8 @@ describe('content engine', () => {
 
   it('scans only dated formal articles with H1 titles', () => {
     const articles = scanArchive('docs');
-    expect(articles).toHaveLength(6);
+    expect(articles).toHaveLength(7);
+    expect(articles.some((article) => article.id === 'about/deep-research')).toBe(true);
     expect(articles.some((a) => a.sourcePath === 'index.md')).toBe(false);
     expect(articles.every((a) => a.date && a.title !== a.slug)).toBe(true);
   });
@@ -70,7 +71,8 @@ describe('content engine', () => {
     const a = createManifest('docs');
     const b = createManifest('docs');
     expect(a.contentHash).toBe(b.contentHash);
-    expect(a.articles.length).toBe(6);
+    expect(a.articles.length).toBe(7);
+    expect(a.articles.some((article) => article.id === 'about/deep-research')).toBe(true);
   });
 
   it('handles article path, title, and internal link edge cases deterministically', () => {

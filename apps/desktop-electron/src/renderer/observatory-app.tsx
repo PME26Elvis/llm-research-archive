@@ -1,5 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
+  GUIDE_VERSION,
+  getDeepResearchGuide,
+  getGuideDigest,
+  type GuideSectionId,
+} from '@research-observatory/deep-research-guide';
+import {
   buildArchiveBrowseModel,
   filterArticlesByBrowse,
   renderMarkdown,
@@ -30,6 +36,7 @@ import { copyText } from './copy-code';
 import { mountFootnoteNavigation } from './footnotes';
 import { mountMermaidBlocks } from './mermaid-dom';
 import { ImportWizard } from './import-wizard';
+import { DeepResearchGuideDialog } from './guide/deep-research-guide-dialog';
 import { ObservatoryModal } from './observatory-modal';
 import {
   canNavigateBack,
@@ -287,11 +294,18 @@ export function ObservatoryApp({
   const [workspace, setWorkspace] = useState<WorkspaceInfoDto | null>(null);
   const [importWizardOpen, setImportWizardOpen] = useState(false);
   const [observatoryOpen, setObservatoryOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
+  const [guideSection, setGuideSection] = useState<GuideSectionId>('guide.overview');
+  const [guideIntroVisible, setGuideIntroVisible] = useState(
+    () => window.localStorage.getItem('research-observatory.guide-intro') !== GUIDE_VERSION,
+  );
   const [diagnostics, setDiagnostics] = useState<ArchiveDiagnosticsDto | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const aboutButtonRef = useRef<HTMLButtonElement>(null);
   const importButtonRef = useRef<HTMLButtonElement>(null);
   const observatoryButtonRef = useRef<HTMLButtonElement>(null);
+  const guideButtonRef = useRef<HTMLButtonElement>(null);
+  const guideReturnFocusRef = useRef<HTMLElement | null>(null);
   const interactiveMarkedRef = useRef(false);
   const readerRef = useRef<HTMLElement>(null);
   const lightboxTriggerRef = useRef<HTMLImageElement | null>(null);
@@ -305,6 +319,7 @@ export function ObservatoryApp({
     ],
     [t],
   );
+  const guide = useMemo(() => getDeepResearchGuide(locale), [locale]);
   const browseModel = useMemo(() => buildArchiveBrowseModel(articles), [articles]);
   const filteredArticles = useMemo(
     () => filterArticlesByBrowse(articles, browseMode, selectedFacet),
@@ -446,6 +461,33 @@ export function ObservatoryApp({
     if (result.message) setError(result.message);
   }
 
+  function openGuide(sectionId: GuideSectionId = 'guide.overview') {
+    guideReturnFocusRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : guideButtonRef.current;
+    setGuideSection(sectionId);
+    if (implementation === 'astro') {
+      window.dispatchEvent(
+        new CustomEvent('research-observatory:guide-open', { detail: { sectionId } }),
+      );
+      return;
+    }
+    setGuideOpen(true);
+  }
+
+  function closeGuide() {
+    setGuideOpen(false);
+    const returnFocus = guideReturnFocusRef.current ?? guideButtonRef.current;
+    guideReturnFocusRef.current = null;
+    requestAnimationFrame(() => returnFocus?.focus());
+  }
+
+  function dismissGuideIntro() {
+    window.localStorage.setItem('research-observatory.guide-intro', GUIDE_VERSION);
+    setGuideIntroVisible(false);
+  }
+
   function executeDesktopCommand(command: DesktopCommand) {
     if (command === 'palette.open') {
       setCommandPaletteOpen(true);
@@ -464,6 +506,10 @@ export function ObservatoryApp({
       void openAbout();
     } else if (command === 'observatory.open') {
       setObservatoryOpen(true);
+    } else if (command === 'guide.open') {
+      openGuide('guide.overview');
+    } else if (command === 'guide.archive') {
+      openGuide('guide.archive');
     }
   }
 
@@ -480,6 +526,9 @@ export function ObservatoryApp({
       } else if (event.shiftKey && key === 'o') {
         event.preventDefault();
         desktopCommandRef.current('observatory.open');
+      } else if (event.shiftKey && key === 'g') {
+        event.preventDefault();
+        desktopCommandRef.current('guide.open');
       } else if (event.shiftKey) return;
       else if (key === 'k') {
         event.preventDefault();
@@ -773,6 +822,14 @@ export function ObservatoryApp({
               <h1>Research Observatory</h1>
               <div className="app-header-actions">
                 <RendererImplementationControl implementation={implementation} />
+                <button
+                  ref={guideButtonRef}
+                  type="button"
+                  data-testid="open-deep-research-guide"
+                  onClick={() => openGuide('guide.overview')}
+                >
+                  {guide.ui.open}
+                </button>
                 <ReaderSettings />
                 <button
                   ref={observatoryButtonRef}
@@ -786,6 +843,20 @@ export function ObservatoryApp({
                 </button>
               </div>
             </div>
+            {guideIntroVisible && (
+              <section className="guide-intro-card" data-testid="guide-intro-card">
+                <h2>{guide.ui.firstLaunchTitle}</h2>
+                <p>{guide.ui.firstLaunchBody}</p>
+                <div className="guide-intro-actions">
+                  <button type="button" onClick={() => openGuide('guide.overview')}>
+                    {guide.ui.firstLaunchOpen}
+                  </button>
+                  <button type="button" onClick={dismissGuideIntro}>
+                    {guide.ui.firstLaunchDismiss}
+                  </button>
+                </div>
+              </section>
+            )}
             {workspace && (
               <section className="workspace-panel" aria-label={t('workspace.current')}>
                 <div>
@@ -999,6 +1070,13 @@ export function ObservatoryApp({
                   })}{' '}
                   · {selected.tags.join(locale === 'zh-TW' ? '、' : ', ')}
                 </p>
+                <button
+                  type="button"
+                  className="guide-context-button"
+                  onClick={() => openGuide('guide.archive')}
+                >
+                  {guide.ui.aboutArchive}
+                </button>
               </header>
               <section
                 ref={readerRef}
@@ -1009,10 +1087,35 @@ export function ObservatoryApp({
               />
             </>
           ) : (
-            <p>{t('reader.selectArticle')}</p>
+            <div className="reader-empty-state">
+              <p>{t('reader.selectArticle')}</p>
+              <button
+                type="button"
+                className="guide-context-button"
+                onClick={() => openGuide('guide.archive')}
+              >
+                {guide.ui.aboutArchive}
+              </button>
+            </div>
           )}
         </article>
       </ResizableLayout>
+      <span
+        hidden
+        data-testid="deep-research-guide-contract"
+        data-guide-version={GUIDE_VERSION}
+        data-guide-digest={getGuideDigest(locale)}
+        data-guide-provider-count={guide.providers.length}
+        data-guide-timeline-count={guide.timeline.length}
+        data-guide-source-count={guide.sources.length}
+      />
+      {implementation === 'classic' && guideOpen && (
+        <DeepResearchGuideDialog
+          locale={locale}
+          initialSection={guideSection}
+          onClose={closeGuide}
+        />
+      )}
       <CommandPalette
         open={commandPaletteOpen}
         onClose={() => setCommandPaletteOpen(false)}

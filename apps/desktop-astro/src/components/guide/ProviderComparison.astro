@@ -1,0 +1,43 @@
+---
+import type { DeepResearchGuide } from '@research-observatory/deep-research-guide';
+interface Props {
+  guide: DeepResearchGuide;
+}
+const { guide } = Astro.props;
+const section = guide.sections.find((item) => item.id === 'guide.comparison')!;
+const providers = guide.providers;
+---
+
+<section
+  id={`${'guide.comparison'}-${guide.locale}`}
+  class="guide-section"
+  data-guide-section="guide.comparison"
+  tabindex="-1"
+>
+  <p class="guide-section-kicker">{section.label}</p>
+  <h2>{section.title}</h2>
+  <p>{section.intro}</p>
+  <div class="guide-comparison-scroll" tabindex="0" aria-label={section.title}>
+    <table class="guide-comparison">
+      <thead
+        ><tr
+          ><th scope="col">{guide.ui.field}</th>{
+            providers.map((provider) => <th scope="col">{provider.productName}</th>)
+          }</tr
+        ></thead
+      >
+      <tbody>
+        {
+          guide.comparison.map((row) => (
+            <tr>
+              <th scope="row">{row.label}</th>
+              {providers.map((provider) => (
+                <td>{row.values[provider.id]}</td>
+              ))}
+            </tr>
+          ))
+        }
+      </tbody>
+    </table>
+  </div>
+</section>

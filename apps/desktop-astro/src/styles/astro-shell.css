@@ -231,3 +231,559 @@ body:has([data-testid='app-ready']) .astro-boot-shell {
     transition: none;
   }
 }
+
+/* Deep Research Guide: static-first Astro surface */
+.astro-guide-surface[hidden] {
+  display: none !important;
+}
+
+.astro-guide-surface {
+  position: fixed;
+  inset: 0;
+  z-index: 1400;
+  min-width: 0;
+  color: var(--text, #edf2ff);
+  background:
+    radial-gradient(
+      circle at 88% 5%,
+      color-mix(in srgb, var(--accent, #78a6ff) 16%, transparent),
+      transparent 30rem
+    ),
+    color-mix(in srgb, var(--background, #0b0f18) 97%, #060913);
+}
+
+body.astro-guide-open {
+  overflow: hidden;
+}
+
+.astro-guide-locale {
+  display: none;
+  height: 100%;
+  grid-template-rows: auto auto minmax(0, 1fr);
+}
+
+html[lang='en'] .astro-guide-locale[data-guide-locale='en'],
+html:not([lang='en']) .astro-guide-locale[data-guide-locale='zh-TW'] {
+  display: grid;
+}
+
+.astro-guide-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 1.25rem clamp(1rem, 3vw, 2.4rem) 0.95rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border, #2b3342) 72%, transparent);
+  background: color-mix(in srgb, var(--surface, #111827) 90%, transparent);
+  backdrop-filter: blur(18px);
+}
+
+.astro-guide-header h1 {
+  margin: 0.25rem 0;
+  font-size: clamp(1.55rem, 2.6vw, 2.45rem);
+  letter-spacing: -0.035em;
+}
+
+.astro-guide-header p {
+  max-width: 72rem;
+  margin: 0;
+  color: var(--muted, #98a6bf);
+}
+
+.astro-guide-close {
+  flex: 0 0 auto;
+  min-height: 2.5rem;
+  padding: 0.55rem 0.9rem;
+  border: 1px solid color-mix(in srgb, var(--border, #2b3342) 80%, transparent);
+  border-radius: 0.75rem;
+  color: inherit;
+  background: color-mix(in srgb, var(--surface-raised, #182235) 86%, transparent);
+  cursor: pointer;
+}
+
+.astro-guide-close:hover,
+.astro-guide-close:focus-visible,
+.guide-rail button:hover,
+.guide-rail button:focus-visible,
+.guide-source-links button:hover,
+.guide-source-links button:focus-visible,
+.guide-evidence a:hover,
+.guide-evidence a:focus-visible {
+  border-color: var(--accent, #78a6ff);
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent, #78a6ff) 22%, transparent);
+}
+
+.astro-guide-disclaimer {
+  margin: 0;
+  padding: 0.7rem clamp(1rem, 3vw, 2.4rem);
+  color: color-mix(in srgb, var(--text, #edf2ff) 82%, var(--muted, #98a6bf));
+  background: color-mix(in srgb, var(--accent, #78a6ff) 8%, var(--surface, #111827));
+  border-bottom: 1px solid color-mix(in srgb, var(--border, #2b3342) 65%, transparent);
+  font-size: 0.83rem;
+}
+
+.astro-guide-layout {
+  display: grid;
+  grid-template-columns: minmax(11.5rem, 0.72fr) minmax(28rem, 2.5fr) minmax(17rem, 1fr);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.guide-rail,
+.astro-guide-canvas,
+.guide-evidence {
+  min-width: 0;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+
+.guide-rail {
+  padding: 1.1rem 0.8rem 2rem;
+  border-right: 1px solid color-mix(in srgb, var(--border, #2b3342) 72%, transparent);
+  background: color-mix(in srgb, var(--surface, #111827) 68%, transparent);
+}
+
+.guide-rail-eyebrow,
+.guide-section-kicker {
+  margin: 0;
+  color: var(--accent, #78a6ff);
+  font:
+    700 0.67rem/1.4 ui-monospace,
+    SFMono-Regular,
+    Menlo,
+    Consolas,
+    monospace;
+  letter-spacing: 0.105em;
+  text-transform: uppercase;
+}
+
+.guide-rail ol,
+.guide-timeline,
+.guide-workflow,
+.guide-checklist {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.guide-rail ol {
+  display: grid;
+  gap: 0.35rem;
+  margin-top: 1rem;
+}
+
+.guide-rail button {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr);
+  gap: 0.55rem;
+  width: 100%;
+  padding: 0.62rem;
+  border: 1px solid transparent;
+  border-radius: 0.7rem;
+  color: var(--text, #edf2ff);
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
+}
+
+.guide-rail button[aria-current='true'] {
+  border-color: color-mix(in srgb, var(--accent, #78a6ff) 40%, transparent);
+  background: color-mix(in srgb, var(--accent, #78a6ff) 13%, transparent);
+}
+
+.guide-rail button span {
+  color: var(--muted, #98a6bf);
+  font-family: ui-monospace, monospace;
+}
+
+.astro-guide-canvas {
+  scroll-behavior: smooth;
+  padding: 1.2rem clamp(1rem, 2.5vw, 2.7rem) 5rem;
+  background: color-mix(in srgb, var(--background, #0b0f18) 88%, transparent);
+}
+
+.guide-section {
+  max-width: 78rem;
+  margin: 0 auto;
+  padding: 1.4rem 0 2.7rem;
+  scroll-margin-top: 1.2rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border, #2b3342) 68%, transparent);
+}
+
+.guide-section:last-child {
+  border-bottom: 0;
+}
+
+.guide-section h2 {
+  margin: 0.4rem 0 0.55rem;
+  font-size: clamp(1.25rem, 2vw, 1.9rem);
+  letter-spacing: -0.025em;
+}
+
+.guide-section h3 {
+  margin: 0.25rem 0 0.4rem;
+}
+
+.guide-section p,
+.guide-section li,
+.guide-evidence p,
+.guide-evidence li,
+.guide-evidence dd {
+  line-height: 1.72;
+}
+
+.guide-lead {
+  max-width: 74ch;
+  font-size: clamp(1.05rem, 1.55vw, 1.3rem);
+}
+
+.guide-naming-grid,
+.guide-distinction-grid,
+.guide-archive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.guide-naming-grid article,
+.guide-distinction-grid article,
+.guide-archive-grid article,
+.guide-provider-list details,
+.guide-source-inspector article {
+  border: 1px solid color-mix(in srgb, var(--border, #2b3342) 78%, transparent);
+  border-radius: 0.9rem;
+  background: color-mix(in srgb, var(--surface, #111827) 82%, transparent);
+  box-shadow: 0 0.8rem 2.4rem rgb(0 0 0 / 12%);
+}
+
+.guide-naming-grid article,
+.guide-distinction-grid article,
+.guide-archive-grid article {
+  padding: 0.95rem;
+}
+
+.guide-naming-grid article p,
+.guide-naming-grid article h3 {
+  margin: 0;
+}
+
+.guide-naming-grid small {
+  display: block;
+  margin-top: 0.45rem;
+  color: var(--muted, #98a6bf);
+}
+
+.guide-workflow {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 1rem;
+  counter-reset: guide-step;
+}
+
+.guide-workflow li {
+  display: grid;
+  grid-template-columns: 2.4rem minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: start;
+}
+
+.guide-workflow li > span {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  color: var(--accent, #78a6ff);
+  background: color-mix(in srgb, var(--accent, #78a6ff) 14%, transparent);
+  font-family: ui-monospace, monospace;
+}
+
+.guide-workflow p,
+.guide-workflow h3 {
+  margin: 0;
+}
+
+.guide-timeline {
+  position: relative;
+  display: grid;
+  gap: 1rem;
+  margin-top: 1.2rem;
+}
+
+.guide-timeline::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 6.5rem;
+  width: 1px;
+  background: color-mix(in srgb, var(--accent, #78a6ff) 35%, var(--border, #2b3342));
+}
+
+.guide-timeline > li {
+  position: relative;
+  display: grid;
+  grid-template-columns: 5.7rem minmax(0, 1fr);
+  gap: 1.5rem;
+}
+
+.guide-timeline > li::before {
+  content: '';
+  position: absolute;
+  top: 0.55rem;
+  left: 6.19rem;
+  width: 0.62rem;
+  height: 0.62rem;
+  border: 2px solid var(--accent, #78a6ff);
+  border-radius: 50%;
+  background: var(--background, #0b0f18);
+}
+
+.guide-timeline time {
+  color: var(--muted, #98a6bf);
+  font-family: ui-monospace, monospace;
+  font-size: 0.78rem;
+}
+
+.guide-timeline-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.guide-timeline-heading h3 {
+  margin: 0;
+}
+
+.guide-timeline-heading span {
+  flex: 0 0 auto;
+  padding: 0.2rem 0.45rem;
+  border-radius: 999px;
+  color: var(--muted, #98a6bf);
+  background: color-mix(in srgb, var(--surface-raised, #182235) 88%, transparent);
+  font-size: 0.66rem;
+}
+
+.guide-model-context,
+.guide-naming-note,
+.guide-editorial-note {
+  color: var(--muted, #98a6bf);
+}
+
+.guide-source-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.7rem;
+}
+
+.guide-source-links button,
+.guide-evidence a {
+  padding: 0.4rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--border, #2b3342) 78%, transparent);
+  border-radius: 0.55rem;
+  color: var(--accent, #78a6ff);
+  background: color-mix(in srgb, var(--surface, #111827) 70%, transparent);
+  font-size: 0.72rem;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.guide-provider-list {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 1rem;
+}
+
+.guide-provider-list summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.85rem 1rem;
+  cursor: pointer;
+}
+
+.guide-provider-body {
+  padding: 0 1rem 1rem;
+}
+
+.guide-provider-body dl,
+.guide-source-inspector dl {
+  display: grid;
+  grid-template-columns: minmax(6rem, auto) minmax(0, 1fr);
+  gap: 0.35rem 0.8rem;
+}
+
+.guide-provider-body dt,
+.guide-source-inspector dt {
+  color: var(--muted, #98a6bf);
+}
+
+.guide-provider-body dd,
+.guide-source-inspector dd {
+  margin: 0;
+}
+
+.guide-comparison-scroll {
+  margin-top: 1rem;
+  overflow: auto;
+  border: 1px solid color-mix(in srgb, var(--border, #2b3342) 78%, transparent);
+  border-radius: 0.85rem;
+}
+
+.guide-comparison {
+  width: 100%;
+  min-width: 58rem;
+  border-collapse: collapse;
+  font-size: 0.79rem;
+}
+
+.guide-comparison th,
+.guide-comparison td {
+  padding: 0.68rem;
+  border: 1px solid color-mix(in srgb, var(--border, #2b3342) 58%, transparent);
+  vertical-align: top;
+  text-align: left;
+}
+
+.guide-comparison thead th,
+.guide-comparison tbody th {
+  background: color-mix(in srgb, var(--surface, #111827) 88%, transparent);
+}
+
+.guide-checklist {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: 0.65rem;
+  margin-top: 1rem;
+  counter-reset: verify;
+}
+
+.guide-checklist li {
+  position: relative;
+  min-height: 3.5rem;
+  padding: 0.75rem 0.75rem 0.75rem 2.7rem;
+  border-left: 2px solid color-mix(in srgb, var(--accent, #78a6ff) 56%, transparent);
+  background: color-mix(in srgb, var(--surface, #111827) 64%, transparent);
+  counter-increment: verify;
+}
+
+.guide-checklist li::before {
+  content: counter(verify, decimal-leading-zero);
+  position: absolute;
+  left: 0.65rem;
+  color: var(--accent, #78a6ff);
+  font-family: ui-monospace, monospace;
+}
+
+.guide-evidence {
+  border-left: 1px solid color-mix(in srgb, var(--border, #2b3342) 72%, transparent);
+  background: color-mix(in srgb, var(--surface, #111827) 76%, transparent);
+}
+
+.guide-evidence-sticky {
+  padding: 1.1rem;
+}
+
+.guide-source-inspector article {
+  padding: 0.9rem;
+}
+
+.guide-source-inspector article[hidden] {
+  display: none;
+}
+
+.guide-source-provider {
+  margin-bottom: 0;
+  color: var(--accent, #78a6ff);
+  font-weight: 700;
+}
+
+.guide-source-inspector h3 {
+  margin-top: 0.25rem;
+  font-size: 1rem;
+}
+
+.guide-editorial-rules {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  border-top: 1px solid color-mix(in srgb, var(--border, #2b3342) 65%, transparent);
+}
+
+@media (max-width: 1100px) {
+  .astro-guide-layout {
+    grid-template-columns: minmax(11rem, 0.7fr) minmax(0, 2.3fr);
+  }
+  .guide-evidence {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .astro-guide-header {
+    align-items: center;
+    padding: 0.85rem;
+  }
+  .astro-guide-header > div > p:last-child,
+  .astro-guide-disclaimer {
+    display: none;
+  }
+  .astro-guide-layout {
+    display: block;
+    overflow: auto;
+  }
+  .guide-rail {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    overflow-x: auto;
+    padding: 0.55rem;
+    border-right: 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--border, #2b3342) 72%, transparent);
+  }
+  .guide-rail-eyebrow {
+    display: none;
+  }
+  .guide-rail ol {
+    display: flex;
+    width: max-content;
+    margin-top: 0;
+  }
+  .guide-rail button {
+    grid-template-columns: auto 1fr;
+    white-space: nowrap;
+  }
+  .astro-guide-canvas {
+    overflow: visible;
+    padding: 0.75rem 0.9rem 4rem;
+  }
+  .guide-timeline::before {
+    left: 0.3rem;
+  }
+  .guide-timeline > li {
+    grid-template-columns: 1fr;
+    padding-left: 1.2rem;
+    gap: 0.25rem;
+  }
+  .guide-timeline > li::before {
+    left: 0;
+  }
+  .guide-timeline-heading {
+    display: block;
+  }
+  .guide-provider-list summary {
+    display: grid;
+  }
+  .guide-checklist {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .astro-guide-canvas {
+    scroll-behavior: auto;
+  }
+}

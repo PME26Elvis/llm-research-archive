@@ -4,6 +4,7 @@ const r = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 export default defineConfig({
   resolve: {
     alias: {
+      '@research-observatory/deep-research-guide': r('./packages/deep-research-guide/src/index.ts'),
       '@research-observatory/domain': r('./packages/domain/src/index.ts'),
       '@research-observatory/content-engine': r('./packages/content-engine/src/index.ts'),
       '@research-observatory/search-engine': r('./packages/search-engine/src/index.ts'),

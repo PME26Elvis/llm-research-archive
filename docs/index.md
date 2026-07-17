@@ -15,6 +15,7 @@
 [進入研究時間軸](timeline/index.md){ .md-button }
 [啟動 LLM 觀測艙](llm/index.md){ .md-button }
 [查看字數儀表板](word-counts.md){ .md-button }
+[Deep Research 是什麼？](about/deep-research/){ .md-button }
 
 <div class="notes-chip-row" markdown>
 <span class="notes-chip">Heavy Observatory</span>
@@ -34,6 +35,15 @@
 <div class="mission-stat"><strong>4</strong><span>主題星系</span></div>
 <div class="mission-stat"><strong>∞</strong><span>可延展研究線</span></div>
 </section>
+
+
+## 這個 Archive 保存什麼？
+
+本 repo 的核心用途之一，是保存長篇 LLM 研究成果，包括 Gemini **Deep Research**、ChatGPT **deep research**、Grok **DeepSearch**、Claude **Research**，以及 DeepSeek 等平台把搜尋、推理與工具能力組合後產出的相近研究內容。
+
+這些名稱不是同一套標準，背後模型與功能也會更新。本站因此保留報告、日期、結構與可用來源，同時明確區分官方事實、供應商宣稱與本 repo 的中立整理；保存不代表內容已被獨立驗證。
+
+[查看完整歷史時間線與官方來源](about/deep-research/){ .md-button .md-button--primary }
 
 ## 研究星系入口
 

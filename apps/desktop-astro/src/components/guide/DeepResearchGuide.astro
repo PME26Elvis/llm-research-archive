@@ -1,0 +1,190 @@
+---
+import {
+  getDeepResearchGuide,
+  getGuideDigest,
+  GUIDE_VERSION,
+} from '@research-observatory/deep-research-guide';
+import GuideRail from './GuideRail.astro';
+import GuideOverview from './GuideOverview.astro';
+import ResearchWorkflow from './ResearchWorkflow.astro';
+import ResearchTimeline from './ResearchTimeline.astro';
+import ProviderProfiles from './ProviderProfiles.astro';
+import ProviderComparison from './ProviderComparison.astro';
+import ArchiveMeaning from './ArchiveMeaning.astro';
+import VerificationChecklist from './VerificationChecklist.astro';
+import SourceInspector from './SourceInspector.astro';
+
+const guides = [getDeepResearchGuide('zh-TW'), getDeepResearchGuide('en')];
+---
+
+<div
+  class="astro-guide-surface"
+  data-astro-guide
+  data-guide-version={GUIDE_VERSION}
+  data-guide-digest-zh={getGuideDigest('zh-TW')}
+  data-guide-digest-en={getGuideDigest('en')}
+  data-guide-provider-count={guides[0].providers.length}
+  data-guide-timeline-count={guides[0].timeline.length}
+  data-guide-source-count={guides[0].sources.length}
+  role="dialog"
+  aria-modal="true"
+  aria-label="Deep Research Guide"
+  hidden
+>
+  {
+    guides.map((guide) => (
+      <div class="astro-guide-locale" data-guide-locale={guide.locale}>
+        <header class="astro-guide-header">
+          <div>
+            <p class="guide-section-kicker">Research Observatory Guide · v{guide.guideVersion}</p>
+            <h1>{guide.title}</h1>
+            <p>{guide.subtitle}</p>
+          </div>
+          <button type="button" class="astro-guide-close" data-guide-close>
+            {guide.ui.close}
+          </button>
+        </header>
+        <p class="astro-guide-disclaimer">{guide.disclaimer}</p>
+        <div class="astro-guide-layout">
+          <GuideRail guide={guide} />
+          <main class="astro-guide-canvas" data-guide-canvas>
+            <GuideOverview guide={guide} />
+            <ResearchWorkflow guide={guide} />
+            <ResearchTimeline guide={guide} />
+            <ProviderProfiles guide={guide} />
+            <ProviderComparison guide={guide} />
+            <ArchiveMeaning guide={guide} />
+            <VerificationChecklist guide={guide} />
+            <section
+              id={`${'guide.sources'}-${guide.locale}`}
+              class="guide-section guide-source-method"
+              data-guide-section="guide.sources"
+              tabindex="-1"
+            >
+              <p class="guide-section-kicker">{guide.sections[8].label}</p>
+              <h2>{guide.sections[8].title}</h2>
+              <p>{guide.sections[8].intro}</p>
+              <p>
+                <strong>{guide.ui.researchCutoff}:</strong> {guide.researchCutoff}
+              </p>
+              <p>{guide.negativeFinding.finding}</p>
+              <p>{guide.negativeFinding.handlingRule}</p>
+            </section>
+          </main>
+          <SourceInspector guide={guide} />
+        </div>
+      </div>
+    ))
+  }
+</div>
+
+<script>
+  const surface = document.querySelector<HTMLElement>('[data-astro-guide]');
+  if (surface) {
+    const appRoot = document.querySelector<HTMLElement>('#astro-app-root');
+    let returnFocus: HTMLElement | null = null;
+    const visibleLocale = () =>
+      surface.querySelector<HTMLElement>(
+        `[data-guide-locale="${document.documentElement.lang === 'en' ? 'en' : 'zh-TW'}"]`,
+      );
+    const close = () => {
+      surface.hidden = true;
+      document.body.classList.remove('astro-guide-open');
+      if (appRoot) appRoot.inert = false;
+      returnFocus?.focus();
+      returnFocus = null;
+    };
+    const selectSource = (sourceId: string) => {
+      const locale = visibleLocale();
+      if (!locale) return;
+      for (const detail of locale.querySelectorAll<HTMLElement>('[data-guide-source-detail]')) {
+        detail.hidden = detail.dataset.guideSourceDetail !== sourceId;
+      }
+      locale
+        .querySelector<HTMLElement>('.guide-evidence')
+        ?.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    const open = (sectionId = 'guide.overview') => {
+      returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      surface.hidden = false;
+      document.body.classList.add('astro-guide-open');
+      if (appRoot) appRoot.inert = true;
+      requestAnimationFrame(() => {
+        const locale = visibleLocale();
+        const target =
+          locale?.querySelector<HTMLElement>(`[data-guide-section="${CSS.escape(sectionId)}"]`) ??
+          locale?.querySelector<HTMLElement>('[data-guide-section="guide.overview"]');
+        target?.scrollIntoView({ block: 'start' });
+        locale?.querySelector<HTMLButtonElement>('[data-guide-close]')?.focus();
+      });
+    };
+    window.addEventListener('research-observatory:guide-open', ((
+      event: CustomEvent<{ sectionId?: string }>,
+    ) => {
+      open(event.detail?.sectionId);
+    }) as EventListener);
+    surface.addEventListener('click', (event) => {
+      const target = event.target as HTMLElement;
+      const closeButton = target.closest<HTMLElement>('[data-guide-close]');
+      if (closeButton) {
+        event.preventDefault();
+        close();
+        return;
+      }
+      const sectionButton = target.closest<HTMLButtonElement>('[data-guide-section-link]');
+      if (sectionButton) {
+        event.preventDefault();
+        const locale = visibleLocale();
+        const sectionId = sectionButton.dataset.guideSectionLink || 'guide.overview';
+        locale
+          ?.querySelector<HTMLElement>(`[data-guide-section="${CSS.escape(sectionId)}"]`)
+          ?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        for (const button of locale?.querySelectorAll<HTMLButtonElement>(
+          '[data-guide-section-link]',
+        ) ?? []) {
+          button.setAttribute('aria-current', String(button === sectionButton));
+        }
+        return;
+      }
+      const sourceButton = target.closest<HTMLButtonElement>('[data-guide-source-select]');
+      if (sourceButton) {
+        event.preventDefault();
+        selectSource(sourceButton.dataset.guideSourceSelect || '');
+        return;
+      }
+      const external = target.closest<HTMLAnchorElement>('a[data-guide-external]');
+      if (external) {
+        event.preventDefault();
+        const bridge = (
+          window as Window & { observatory?: { openExternal(url: string): Promise<void> } }
+        ).observatory;
+        if (external.href.startsWith('https://')) void bridge?.openExternal(external.href);
+      }
+    });
+    document.addEventListener('keydown', (event) => {
+      if (surface.hidden) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        close();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const locale = visibleLocale();
+      const focusable = Array.from(
+        locale?.querySelectorAll<HTMLElement>(
+          'button, a[href], summary, [tabindex]:not([tabindex="-1"])',
+        ) ?? [],
+      ).filter((element) => !element.hidden);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    });
+  }
+</script>

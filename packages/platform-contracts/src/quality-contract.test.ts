@@ -45,8 +45,10 @@ describe('quality and diagnostics contracts', () => {
     ).toThrow();
   });
 
-  it('exposes the Observatory native command', () => {
+  it('exposes Observatory and Deep Research Guide native commands', () => {
     expect(DesktopCommandSchema.parse('observatory.open')).toBe('observatory.open');
+    expect(DesktopCommandSchema.parse('guide.open')).toBe('guide.open');
+    expect(DesktopCommandSchema.parse('guide.archive')).toBe('guide.archive');
   });
 
   it('requires nonnegative startup measurements', () => {

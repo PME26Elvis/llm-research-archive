@@ -24,10 +24,11 @@ describe('ResearchObservatoryApp', () => {
   it('runs the bundled node-only core flow', () => {
     const app = new ResearchObservatoryApp('docs');
     const articles = app.listArticles();
-    expect(articles.length).toBe(6);
+    expect(articles.length).toBe(7);
+    expect(articles.some((article) => article.id === 'about/deep-research')).toBe(true);
     expect(app.search('AI').length).toBeGreaterThan(0);
     expect(app.getArticle(articles[0].id).markdown.length).toBeGreaterThan(100);
-    expect(app.diagnostics().validArticles).toBe(6);
+    expect(app.diagnostics().validArticles).toBe(7);
   });
 
   it('reloads a different archive, rebuilds search, manifest, and diagnostics', () => {

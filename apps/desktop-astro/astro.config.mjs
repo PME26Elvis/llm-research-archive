@@ -29,6 +29,9 @@ export default defineConfig({
   vite: {
     resolve: {
       alias: {
+        '@research-observatory/deep-research-guide': root(
+          'packages/deep-research-guide/src/index.ts',
+        ),
         '@research-observatory/domain': root('packages/domain/src/index.ts'),
         '@research-observatory/content-engine': root('packages/content-engine/src/index.ts'),
         '@research-observatory/search-engine': root('packages/search-engine/src/index.ts'),

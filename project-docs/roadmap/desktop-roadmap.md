@@ -7,13 +7,14 @@ related-adrs:
   - ADR-0018
   - ADR-0019
   - ADR-0020
+  - ADR-0021
 ---
 
 # Desktop Roadmap
 
 ## Current baseline
 
-The offline desktop reader, safe importer, local workspaces, serialized search, Observatory, revision/word-count views, accessibility, startup telemetry, local diagnostics, four-platform packages, draft-first release pipeline, switchable Traditional Chinese/English UI, localized native menus/dialogs, structured Markdown release descriptions, strict corpus-tested Mermaid rendering, and dual Astro/Classic renderer entries are implemented. Every current FR/NFR in the Product Spec is implemented and enforced by traceability and CI.
+The offline desktop reader, safe importer, local workspaces, serialized search, Observatory, revision/word-count views, accessibility, startup telemetry, local diagnostics, four-platform packages, draft-first release pipeline, switchable Traditional Chinese/English UI, localized native menus/dialogs, structured Markdown release descriptions, strict corpus-tested Mermaid rendering, dual Astro/Classic renderer entries, and the bilingual offline Deep Research Guide are implemented. Every current FR/NFR in the Product Spec is implemented and enforced by traceability and CI.
 
 ## Completed Astro frontend program
 
@@ -29,6 +30,11 @@ ADR-0020 and `project-docs/migration/astro-frontend-refactor-spec.md` are implem
 8. Per-entry renderer footprints remain independently budgeted.
 
 The two entries are implementations of the same product, not separate products, accounts, content stores, or release channels.
+
+
+## Completed Deep Research Guide program
+
+ADR-0021 and `project-docs/product/deep-research-guide-ui-spec.md` are implemented. A shared typed package supplies complete Traditional Chinese and English definitions, workflow, timeline, five provider profiles, neutral comparison, archive meaning, verification guidance, 15 official sources, and deterministic locale digests. Astro presents a static-first Guide workspace; Classic presents an accessible full-height Help Center overlay. Header, native Help, onboarding, empty-state, and article-provenance entry points preserve workspace state. FR-034 through FR-036 and NFR-028 through NFR-029 bind schema, neutrality, accessibility, Electron parity, and four-platform packaged evidence.
 
 ## Other proposed next-phase work
 

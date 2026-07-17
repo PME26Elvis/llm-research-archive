@@ -25,3 +25,8 @@ related-adrs:
 The installed-package ceiling is deliberately permissive. It protects against accidental multi-gigabyte growth and release-asset failure, but package minimization is not a product goal for this small offline project. Repository-only roots and obvious secret/key material remain forbidden regardless of size.
 
 Current dual-renderer baselines: Classic initial JavaScript is approximately 232 KiB gzip and Astro initial JavaScript is approximately 224 KiB gzip. The budget is evaluated independently so the shared package cannot hide a regression in either entry. The previous convergence baselines remain overall coverage 91.49/87.89, Content Engine 91.41/90.02, 10k query p95 2.21 ms, 10k filter p95 0.48 ms, and renderer synchronous maximum 7.14 ms.
+
+
+## Guide budget treatment
+
+The static Guide adds no separate runtime server, polling loop, vendor fetch, or always-running search index. Astro pre-renders the guide and hydrates no framework island for its content; Classic loads the shared object inside the existing renderer bundle. Both remain inside the existing independent 2 MiB gzip initial-JavaScript ceilings. The Guide controller must not add unbounded DOM observers, animation loops, or synchronous work tied to corpus size.

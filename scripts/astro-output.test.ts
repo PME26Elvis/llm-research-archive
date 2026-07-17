@@ -48,6 +48,14 @@ describe('Astro static Electron output', () => {
   });
 
 
+  it('allows HTTPS evidence anchors while keeping runtime assets local', () => {
+    const root = fixture(
+      `${markers}<a href="https://example.com/official">Official source</a><script src="./_astro/entry.js"></script></body></html>`,
+    );
+    prepareAstroOutput(root);
+    expect(validateAstroOutput(root).scripts).toEqual(['./_astro/entry.js']);
+  });
+
   it('rejects a root-relative Vite preload helper', () => {
     const root = fixture(`${markers}<script src="./_astro/entry.js"></script></body></html>`);
     expect(() => validateAstroOutput(root)).toThrow(/root-relative Vite preload helper/);

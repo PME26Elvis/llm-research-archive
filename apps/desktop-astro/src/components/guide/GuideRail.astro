@@ -1,0 +1,27 @@
+---
+import type { DeepResearchGuide } from '@research-observatory/deep-research-guide';
+interface Props {
+  guide: DeepResearchGuide;
+}
+const { guide } = Astro.props;
+---
+
+<nav class="guide-rail" aria-label={guide.title}>
+  <p class="guide-rail-eyebrow">{guide.ui.researchCutoff}: {guide.researchCutoff}</p>
+  <ol>
+    {
+      guide.sections.map((section, index) => (
+        <li>
+          <button
+            type="button"
+            data-guide-section-link={section.id}
+            aria-current={index === 0 ? 'true' : undefined}
+          >
+            <span>{String(index + 1).padStart(2, '0')}</span>
+            {section.label}
+          </button>
+        </li>
+      ))
+    }
+  </ol>
+</nav>

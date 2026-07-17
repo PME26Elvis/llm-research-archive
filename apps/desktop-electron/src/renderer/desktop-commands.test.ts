@@ -25,6 +25,12 @@ describe('desktop command catalog', () => {
     expect(filterDesktopCommands('字數', 'en').map((command) => command.id)).toEqual([
       'observatory.open',
     ]);
+    expect(filterDesktopCommands('deep research', 'en').map((command) => command.id)).toEqual([
+      'guide.open',
+    ]);
+    expect(filterDesktopCommands('保存', 'zh-TW').map((command) => command.id)).toEqual([
+      'guide.archive',
+    ]);
   });
 
   it('returns no arbitrary action for an unknown query', () => {

@@ -71,3 +71,8 @@ related-adrs:
 | NFR-026 | Localization integrity and native authority | implemented | apps/desktop-electron/tests/security.spec.ts, apps/desktop-electron/src/main/main-i18n.test.ts, apps/desktop-electron/e2e/preferences.spec.ts |
 | FR-033 | Dual renderer entries | implemented | packages/platform-contracts/src/renderer-implementation.test.ts, apps/desktop-electron/src/main/renderer-state.test.ts, scripts/astro-output.test.ts, apps/desktop-electron/e2e/renderer-implementations.spec.ts, scripts/packaged-smoke.mjs |
 | NFR-027 | Renderer parity and rollback | implemented | scripts/validate-astro-output.mjs, apps/desktop-electron/tests/security.spec.ts, apps/desktop-electron/e2e/renderer-implementations.spec.ts, scripts/packaged-smoke.mjs |
+| FR-034 | First-class Deep Research Guide | implemented | apps/desktop-electron/e2e/deep-research-guide.spec.ts, packages/platform-contracts/src/desktop-command.test.ts, scripts/packaged-smoke.mjs |
+| FR-035 | Canonical guide content parity | implemented | packages/deep-research-guide/src/index.test.ts, scripts/validate-deep-research-guide.mjs, apps/desktop-electron/e2e/deep-research-guide.spec.ts, scripts/packaged-smoke.mjs |
+| FR-036 | Guide onboarding and contextual access | implemented | apps/desktop-electron/e2e/deep-research-guide.spec.ts |
+| NFR-028 | Offline neutral guide security | implemented | scripts/validate-deep-research-guide.mjs, scripts/validate-astro-output.mjs, scripts/astro-output.test.ts, apps/desktop-electron/e2e/deep-research-guide.spec.ts |
+| NFR-029 | Accessible state-preserving guide | implemented | scripts/validate-accessibility.mjs, apps/desktop-electron/e2e/deep-research-guide.spec.ts, scripts/packaged-smoke.mjs |

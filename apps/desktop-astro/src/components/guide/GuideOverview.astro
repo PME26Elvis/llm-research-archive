@@ -1,0 +1,31 @@
+---
+import type { DeepResearchGuide } from '@research-observatory/deep-research-guide';
+interface Props {
+  guide: DeepResearchGuide;
+}
+const { guide } = Astro.props;
+const section = guide.sections.find((item) => item.id === 'guide.overview')!;
+---
+
+<section
+  id={`${'guide.overview'}-${guide.locale}`}
+  class="guide-section guide-overview"
+  data-guide-section="guide.overview"
+  tabindex="-1"
+>
+  <p class="guide-section-kicker">{section.label}</p>
+  <h2>{section.title}</h2>
+  <p class="guide-lead">{guide.overview.definition}</p>
+  <p>{guide.overview.umbrellaNote}</p>
+  <div class="guide-naming-grid" role="list">
+    {
+      guide.overview.namingRows.map((row) => (
+        <article role="listitem" data-provider={row.providerId}>
+          <p>{row.provider}</p>
+          <h3>{row.productName}</h3>
+          <small>{row.exactBrand}</small>
+        </article>
+      ))
+    }
+  </div>
+</section>

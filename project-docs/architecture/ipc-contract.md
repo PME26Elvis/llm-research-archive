@@ -10,6 +10,7 @@ related-adrs:
   - ADR-0018
   - ADR-0019
   - ADR-0020
+  - ADR-0021
 ---
 
 # IPC Contract
@@ -26,3 +27,8 @@ Renderer never receives unrestricted filesystem paths or reusable write authorit
 ## Renderer implementation boundary
 
 `renderer:info` returns the active implementation, the Astro default, and the finite packaged set. `renderer:set` accepts only `RendererImplementationUpdateRequestSchema` with `astro` or `classic`. Main resolves those identifiers to repository-owned local entries, performs the load, persists the selection atomically only after success, rebuilds the native menu, and attempts recovery to the previous entry on failure. The renderer never supplies a URL, path, script, or arbitrary implementation name.
+
+
+## Guide command boundary
+
+The native Help menu and Command Palette use the existing finite `DesktopCommandSchema`. `guide.open` targets `guide.overview`; `guide.archive` targets `guide.archive`. Main never accepts prose, URL, provider name, source ID, or arbitrary section input from the native menu. The active renderer resolves these two allowlisted commands to local canonical sections. Official evidence links continue through the existing validated HTTPS external-link API.

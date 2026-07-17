@@ -14,7 +14,7 @@ The default branch exposes `.github/workflows/desktop-release.yml`; it calls the
 
 ## Verified sequence
 
-1. Preflight validates and renders bounded structured release notes, resolves the requested ref to an immutable SHA, selects a collision-free version, applies it to the temporary build workspace, and runs `npm run verify`.
+1. Preflight validates and renders bounded structured release notes, resolves the requested ref to an immutable SHA, selects a collision-free version, applies it to the temporary build workspace, installs the pinned public-documentation dependencies, runs `python -m mkdocs build --strict`, and then runs `npm run verify`.
 2. Native Windows x64, Linux x64, macOS arm64, and macOS x64 jobs build without release-write permission.
 3. Every native job starts the packaged executable, verifies Astro is the default, switches to Classic and back, and enforces the 2 GiB package hard ceiling plus sensitive-file policy.
 4. Aggregate creates the exact binary set, `SHA256SUMS.txt`, `release-manifest.json`, and CycloneDX `sbom.cdx.json`.
@@ -25,7 +25,7 @@ Published versions are immutable. Blank `requested_version` chooses the package 
 
 GitHub permits each release asset to be under 2 GiB. The repository's installed-package ceiling is also 2 GiB, while release-asset validation independently rejects zero-byte, missing, extra, duplicate, or mismatched artifacts.
 
-The earlier dry run `29113199684` proved draft-first Windows/Linux release behavior. Current Desktop CI and reusable release jobs additionally cover macOS arm64/x64, enforced coverage, accessibility, dependency audit, search benchmarks, renderer footprint, and native installed footprint.
+The earlier dry run `29113199684` proved draft-first Windows/Linux release behavior. Current Desktop CI and reusable release jobs additionally cover strict MkDocs public-site generation, macOS arm64/x64, enforced coverage, accessibility, dependency audit, search benchmarks, renderer footprint, and native installed footprint.
 
 
 ## Renderer entries in release artifacts
@@ -35,3 +35,8 @@ Each native artifact contains one Electron application with two local renderer e
 ## Structured release descriptions
 
 `release_notes` accepts a concise comma-, semicolon-, or newline-separated list; pasted Markdown bullets are also accepted. The renderer trims bullet prefixes, removes duplicates, limits input to 20 items / 200 characters per item / 2400 total characters, and writes a `## What's changed` list followed by the standard verification section. The same generated notes file is used when creating a draft or refreshing a matching existing draft, so GitHub Releases do not fall back to an opaque one-line description.
+
+
+## Deep Research Guide release evidence
+
+A release that changes canonical Guide content must include the Guide version and research cutoff in its change list. The release quality job runs `validate:guide`; native package smoke opens both Guide implementations and compares canonical metadata. Guide source records are part of the application source and SBOM-governed build, while external vendor pages are not vendored into release assets. Version 1.0.0 uses research cutoff 2026-07-17.

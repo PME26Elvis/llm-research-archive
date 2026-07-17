@@ -14,7 +14,8 @@
       "@research-observatory/search-engine": ["packages/search-engine/src/index.ts"],
       "@research-observatory/application": ["packages/application/src/index.ts"],
       "@research-observatory/platform-contracts": ["packages/platform-contracts/src/index.ts"],
-      "@research-observatory/renderer-ui": ["packages/renderer-ui/src/index.ts"]
+      "@research-observatory/renderer-ui": ["packages/renderer-ui/src/index.ts"],
+      "@research-observatory/deep-research-guide": ["packages/deep-research-guide/src/index.ts"]
     },
     "types": ["node", "vitest/globals"],
     "jsx": "react-jsx",

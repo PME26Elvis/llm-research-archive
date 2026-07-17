@@ -35,7 +35,7 @@
     "make:macos:x64": "npm run content:manifest && npm run build:astro && electron-forge make --platform darwin --arch x64 && node scripts/release-assets.mjs macos-x64",
     "release:assets": "node scripts/release-assets.mjs all",
     "benchmark": "node --import tsx scripts/node-smoke.mjs --benchmark",
-    "verify": "npm run format:check && npm run lint && npm run typecheck && npm run validate:traceability && npm run validate:generated && npm run validate:release-assets && npm run test:coverage && npm run test:security && npm run test:compatibility && npm run validate:accessibility && npm run validate:dependencies && npm run benchmark:search && npm run build && npm run validate:footprint:renderer",
+    "verify": "npm run format:check && npm run lint && npm run typecheck && npm run validate:traceability && npm run validate:guide && npm run validate:generated && npm run validate:release-assets && npm run test:coverage && npm run test:security && npm run test:compatibility && npm run validate:accessibility && npm run validate:dependencies && npm run benchmark:search && npm run build && npm run validate:footprint:renderer",
     "smoke:packaged": "node scripts/packaged-smoke.mjs",
     "format:write": "prettier --plugin=prettier-plugin-astro --write \"{package.json,tsconfig*.json,vitest.config.ts,playwright.config.ts,scripts/**/*.{mjs,js},packages/**/*.{ts,json},apps/**/*.{ts,tsx,mjs,json,html,astro,css},project-docs/quality/*.json,.github/workflows/desktop-*.yml}\"",
     "validate:generated": "node scripts/validate-generated-clean.mjs",
@@ -49,7 +49,8 @@
     "dev:classic": "node scripts/start-renderer.mjs classic",
     "build:astro": "astro build --root apps/desktop-astro && node scripts/prepare-astro-output.mjs && node scripts/validate-astro-output.mjs",
     "typecheck:astro": "astro check --root apps/desktop-astro",
-    "validate:astro-output": "node scripts/validate-astro-output.mjs"
+    "validate:astro-output": "node scripts/validate-astro-output.mjs",
+    "validate:guide": "node --import tsx scripts/validate-deep-research-guide.mjs"
   },
   "devDependencies": {
     "@electron/asar": "3.4.1",
