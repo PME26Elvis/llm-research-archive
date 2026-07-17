@@ -295,6 +295,7 @@ export function ObservatoryApp({
   const interactiveMarkedRef = useRef(false);
   const readerRef = useRef<HTMLElement>(null);
   const lightboxTriggerRef = useRef<HTMLImageElement | null>(null);
+  const desktopCommandRef = useRef<(command: DesktopCommand) => void>(() => undefined);
   const browseModes = useMemo(
     () => [
       { mode: 'all' as const, label: t('browse.all') },
@@ -378,10 +379,12 @@ export function ObservatoryApp({
   }
 
   function travelHistory(delta: -1 | 1) {
-    const next = moveNavigation(navigationHistory, delta);
-    if (next === navigationHistory) return;
-    setNavigationHistory(next);
-    void applyNavigation(currentNavigationLocation(next));
+    setNavigationHistory((history) => {
+      const next = moveNavigation(history, delta);
+      if (next === history) return history;
+      void applyNavigation(currentNavigationLocation(next));
+      return next;
+    });
   }
 
   async function refreshWorkspace(nextWorkspace?: WorkspaceInfoDto) {
@@ -464,27 +467,29 @@ export function ObservatoryApp({
     }
   }
 
+  desktopCommandRef.current = executeDesktopCommand;
+
   useEffect(() => {
-    window.observatory.onCommand(executeDesktopCommand);
+    window.observatory.onCommand((command) => desktopCommandRef.current(command));
     const onShortcut = (event: KeyboardEvent) => {
       if (!(event.ctrlKey || event.metaKey) || event.altKey) return;
       const key = event.key.toLocaleLowerCase();
       if (event.shiftKey && key === 'i') {
         event.preventDefault();
-        executeDesktopCommand('import.open');
+        desktopCommandRef.current('import.open');
       } else if (event.shiftKey && key === 'o') {
         event.preventDefault();
-        executeDesktopCommand('observatory.open');
+        desktopCommandRef.current('observatory.open');
       } else if (event.shiftKey) return;
       else if (key === 'k') {
         event.preventDefault();
-        executeDesktopCommand('palette.open');
+        desktopCommandRef.current('palette.open');
       } else if (key === 'f') {
         event.preventDefault();
-        executeDesktopCommand('search.focus');
+        desktopCommandRef.current('search.focus');
       } else if (key === 'o') {
         event.preventDefault();
-        executeDesktopCommand('workspace.open');
+        desktopCommandRef.current('workspace.open');
       }
     };
     document.addEventListener('keydown', onShortcut);
@@ -492,7 +497,7 @@ export function ObservatoryApp({
       document.removeEventListener('keydown', onShortcut);
       window.observatory.clearCommandHandler();
     };
-  }, [navigationHistory, selected, query, browseMode, selectedFacet]);
+  }, []);
 
   useEffect(() => {
     void window.observatory.markStartup('renderer-ready').catch(() => undefined);
@@ -504,15 +509,15 @@ export function ObservatoryApp({
       if (!event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
       if (event.key === 'ArrowLeft') {
         event.preventDefault();
-        travelHistory(-1);
+        desktopCommandRef.current('navigation.back');
       } else if (event.key === 'ArrowRight') {
         event.preventDefault();
-        travelHistory(1);
+        desktopCommandRef.current('navigation.forward');
       }
     };
     document.addEventListener('keydown', onNavigationKey);
     return () => document.removeEventListener('keydown', onNavigationKey);
-  }, [navigationHistory, selected, query, browseMode, selectedFacet]);
+  }, []);
 
   useEffect(() => {
     const q = query.trim();
@@ -954,7 +959,7 @@ export function ObservatoryApp({
         <article
           id="main-reader"
           tabIndex={-1}
-          onClick={onArticleClick}
+          onClickCapture={onArticleClick}
           onKeyDown={onArticleKeyDown}
         >
           <nav className="navigation-toolbar" aria-label={t('reader.history')}>

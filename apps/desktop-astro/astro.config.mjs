@@ -21,7 +21,9 @@ export default defineConfig({
         "object-src 'none'",
         "base-uri 'none'",
       ],
-      styleDirective: { resources: ["'self'", "'unsafe-inline'"] },
+      styleDirective: {
+        resources: ["'self'", { resource: "'unsafe-inline'", kind: 'attribute' }],
+      },
     },
   },
   vite: {

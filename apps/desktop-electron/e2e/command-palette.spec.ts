@@ -27,13 +27,23 @@ test('routes native commands through the typed preload channel and command palet
   await expect(page.getByRole('dialog', { name: '關於 Research Observatory' })).toBeVisible();
   await page.getByRole('button', { name: '關閉' }).click();
 
-  await page.getByTestId('article-list').getByRole('button').nth(0).click();
-  await page.getByTestId('article-list').getByRole('button').nth(1).click();
-  const currentTitle = await page.locator('article header h2').textContent();
+  const articleButtons = page.getByTestId('article-list').getByRole('button');
+  const firstTitle = await articleButtons
+    .nth(0)
+    .evaluate((button) => button.childNodes.item(0).textContent?.trim() ?? '');
+  const secondTitle = await articleButtons
+    .nth(1)
+    .evaluate((button) => button.childNodes.item(0).textContent?.trim() ?? '');
+  expect(firstTitle).not.toBe('');
+  expect(secondTitle).not.toBe(firstTitle);
+  await articleButtons.nth(0).click();
+  await expect(page.locator('article header h2')).toHaveText(firstTitle);
+  await articleButtons.nth(1).click();
+  await expect(page.locator('article header h2')).toHaveText(secondTitle);
   await app.evaluate(({ BrowserWindow }) => {
     BrowserWindow.getAllWindows()[0].webContents.send('app:command', 'navigation.back');
   });
-  await expect(page.locator('article header h2')).not.toHaveText(currentTitle ?? '');
+  await expect(page.locator('article header h2')).toHaveText(firstTitle);
 
   await app.evaluate(({ BrowserWindow }) => {
     BrowserWindow.getAllWindows()[0].webContents.send('app:command', 'unknown.command');

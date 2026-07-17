@@ -12,6 +12,13 @@ function walk(directory) {
   return files;
 }
 
+export function rewriteVitePreloadBase(source) {
+  return source.replace(
+    /return([`'\"])\/\1\+([A-Za-z_$][\w$]*)/g,
+    (_match, quote, variable) => `return${quote}../${quote}+${variable}`,
+  );
+}
+
 export function prepareAstroOutput(outputRoot = 'apps/desktop-astro/dist') {
   const root = path.resolve(outputRoot);
   const entry = path.join(root, 'index.html');
@@ -21,10 +28,13 @@ export function prepareAstroOutput(outputRoot = 'apps/desktop-astro/dist') {
     const original = fs.readFileSync(file, 'utf8');
     const relativePrefix = path.relative(path.dirname(file), root).replaceAll(path.sep, '/') || '.';
     const assetPrefix = `${relativePrefix}/_astro/`;
-    const updated = original
+    let updated = original
       .replaceAll('"/_astro/', `"${assetPrefix}`)
       .replaceAll("'/_astro/", `'${assetPrefix}`)
       .replaceAll('url(/_astro/', `url(${assetPrefix}`);
+    if (/^preload-helper\..+\.(?:js|mjs)$/i.test(path.basename(file))) {
+      updated = rewriteVitePreloadBase(updated);
+    }
     if (updated !== original) {
       fs.writeFileSync(file, updated);
       changed.push(path.relative(root, file).replaceAll(path.sep, '/'));
