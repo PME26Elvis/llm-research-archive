@@ -1,0 +1,8 @@
+{
+  "runId": 29552982303,
+  "result": "failure",
+  "verifiedCommitSha": null,
+  "triggerSha": "a5be715fdf40a840126d3b57fcd4b5445f771b5d",
+  "targetBranch": "agent/complete-astro-dual-renderer",
+  "recordedAt": "2026-07-17T03:41:20.941Z"
+}
