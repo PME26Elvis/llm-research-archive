@@ -1,0 +1,36 @@
+name: Temporary Astro source snapshot
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/tmp-astro-source-snapshot.yml
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout app-main
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: app-main
+          fetch-depth: 0
+      - name: Create source snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          git archive --format=zip --output=app-main-source.zip HEAD
+          git rev-parse HEAD > app-main-source.sha
+      - name: Upload source snapshot
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: app-main-source-${{ github.run_id }}
+          path: |
+            app-main-source.zip
+            app-main-source.sha
+          if-no-files-found: error
+          retention-days: 7
