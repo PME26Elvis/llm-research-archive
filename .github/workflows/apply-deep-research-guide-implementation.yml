@@ -69,13 +69,8 @@ jobs:
             'd445a5fcbbeac646c80c6284d787d917c9c8e0a9fc753933fa5335e4b63be08e' \
             'implementation.patch' | sha256sum --check --strict
 
-          apply_args=(
-            --exclude=.github/workflows/deploy.yml
-            --exclude=.github/workflows/desktop-ci.yml
-            --exclude=.github/workflows/desktop-release-reusable.yml
-          )
-          git -C target apply "${apply_args[@]}" --check "$GITHUB_WORKSPACE/implementation.patch"
-          git -C target apply "${apply_args[@]}" "$GITHUB_WORKSPACE/implementation.patch"
+          git -C target apply --check "$GITHUB_WORKSPACE/implementation.patch"
+          git -C target apply "$GITHUB_WORKSPACE/implementation.patch"
           git -C target diff --check
           git -C target add --all
           git -C target diff --cached --binary \
@@ -116,11 +111,15 @@ jobs:
             exit 1
           }
 
-      - name: Commit and push verified implementation
+      - name: Commit and push verified product implementation
         working-directory: target
         shell: bash
         run: |
           set -euo pipefail
+          git restore --staged --worktree \
+            .github/workflows/deploy.yml \
+            .github/workflows/desktop-ci.yml \
+            .github/workflows/desktop-release-reusable.yml
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git commit -m 'Implement neutral Deep Research Guide across both renderer entries'
