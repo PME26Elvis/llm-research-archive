@@ -34,3 +34,5 @@ jobs:
             applicator-runs-summary.json
           if-no-files-found: error
           retention-days: 7
+
+# Refresh after full-patch verification split.
