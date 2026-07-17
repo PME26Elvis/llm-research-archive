@@ -27,13 +27,50 @@ jobs:
           ref: ops/astro-dual-renderer-payload
           path: .payload
           fetch-depth: 1
-      - name: Reconstruct and apply implementation
+      - name: Validate payload part 00
+        run: echo '35abf375d3ef2313df6c4a299721de1c62f7cc7abb2ba8668806b02b6a3544c0  .payload/.astro-payload/00.part' | sha256sum --check
+      - name: Validate payload part 01
+        run: echo 'bb16cc66439f62e20a3c510f3cfcc191b90e6adf74c121d7533cf5817b279ef3  .payload/.astro-payload/01.part' | sha256sum --check
+      - name: Validate payload part 02
+        run: echo 'e7b439940416234a6495dbdf84c38867f2f85f310362e9192d369aaac3164999  .payload/.astro-payload/02.part' | sha256sum --check
+      - name: Validate payload part 03
+        run: echo '5db5d8175366d06f3b616b7b0d3ab359f4664edf5b83d37dbf212440019ae8e6  .payload/.astro-payload/03.part' | sha256sum --check
+      - name: Validate payload part 04
+        run: echo '720173b84053d486579ce58676441d02f95aff5884a849bd5a78c075810f49aa  .payload/.astro-payload/04.part' | sha256sum --check
+      - name: Validate payload part 05
+        run: echo '8bc82651d4c41c15aacf291b889d3557f6d9861187e03e6341b64d3eaabb71fe  .payload/.astro-payload/05.part' | sha256sum --check
+      - name: Validate payload part 06
+        run: echo 'ac75ba4c84364e7cf2f8b21984057202cde904eb046ca9793c1941462df7f51e  .payload/.astro-payload/06.part' | sha256sum --check
+      - name: Validate payload part 07
+        run: echo 'f5e08ac1b2bc8b845d078dece386fb48aa11192c5f856cb1ec9db088b505d124  .payload/.astro-payload/07.part' | sha256sum --check
+      - name: Validate payload part 08
+        run: echo '8bfa3151dcb8895b329329f249d97121a3ec7d3bd782e13cba6d384a76fd2b62  .payload/.astro-payload/08.part' | sha256sum --check
+      - name: Reconstruct encoded payload
         shell: bash
         run: |
           set -euo pipefail
-          cat .payload/.astro-payload/*.part | base64 --decode | gzip --decompress > /tmp/astro-dual-renderer.patch
+          cat .payload/.astro-payload/*.part > /tmp/astro-dual-renderer.patch.gz.b64
+          test "$(wc -c < /tmp/astro-dual-renderer.patch.gz.b64)" -eq 69852
+          echo 'a2556837e1c8a0619c680ca9734b7d09a6cb4baa846eac8a31c3860680080bc4  /tmp/astro-dual-renderer.patch.gz.b64' | sha256sum --check
+      - name: Decode compressed payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          base64 --decode /tmp/astro-dual-renderer.patch.gz.b64 > /tmp/astro-dual-renderer.patch.gz
+          gzip --test /tmp/astro-dual-renderer.patch.gz
+      - name: Verify reconstructed patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          gzip --decompress --stdout /tmp/astro-dual-renderer.patch.gz > /tmp/astro-dual-renderer.patch
+          test "$(wc -c < /tmp/astro-dual-renderer.patch)" -eq 214813
           echo 'e76dce77a5ec9e0b37554f994955a2b01c20af072b4336e768f85eb63ebe5000  /tmp/astro-dual-renderer.patch' | sha256sum --check
-          git apply --check /tmp/astro-dual-renderer.patch
+      - name: Validate patch applicability
+        run: git apply --check /tmp/astro-dual-renderer.patch
+      - name: Apply implementation
+        shell: bash
+        run: |
+          set -euo pipefail
           git apply /tmp/astro-dual-renderer.patch
           rm -rf .payload
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
