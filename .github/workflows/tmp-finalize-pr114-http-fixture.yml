@@ -1,0 +1,115 @@
+name: Temporary PR114 HTTP fixture finalizer
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/tmp-finalize-pr114-http-fixture.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    outputs:
+      commit_sha: ${{ steps.commit.outputs.commit_sha }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: agent/complete-astro-dual-renderer
+          fetch-depth: 0
+      - name: Use a renderer-owned HTTP fixture
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('apps/desktop-electron/e2e/source.spec.ts')
+          source = path.read_text()
+          injected = """  await page.evaluate(() => {
+            const a = document.createElement('a');
+            a.href = 'http://example.com';
+            a.textContent = 'bad';
+            document.querySelector('article')?.append(a);
+          });
+          await page.getByRole('link', { name: 'bad' }).click();
+          await expect(page.getByRole('alert')).toContainText('已阻擋不安全連結');
+          await expect(page.getByTestId('app-ready')).toBeVisible();
+          await expect(page.locator('article header h2')).toHaveText(title);
+          """
+          if injected not in source:
+              raise SystemExit('injected HTTP block not found')
+          source = source.replace(injected, '')
+          old_fixture = '[Broken](../missing/)\\n\\n[Bad](file:///etc/passwd)\\n'
+          new_fixture = '[Broken](../missing/)\\n\\n[Bad HTTP](http://example.com)\\n\\n[Bad](file:///etc/passwd)\\n'
+          if old_fixture not in source:
+              raise SystemExit('fixture insertion point not found')
+          source = source.replace(old_fixture, new_fixture)
+          anchor = """  await expect(page.getByRole('alert')).toContainText('找不到內部文章連結：../missing/');
+          await expect(page.locator('article header h2')).toHaveText('Source Article');
+          """
+          http_assertion = anchor + """  await page.getByRole('link', { name: 'Bad HTTP' }).click();
+          await expect(page.getByRole('alert')).toContainText('已阻擋不安全連結');
+          await expect(page).toHaveURL(before);
+          await expect(page.locator('article header h2')).toHaveText('Source Article');
+          """
+          if anchor not in source:
+              raise SystemExit('HTTP assertion insertion point not found')
+          source = source.replace(anchor, http_assertion)
+          path.write_text(source)
+          PY
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --registry=https://registry.npmjs.org/
+      - run: npm run format:write
+      - name: Commit deterministic fixture
+        id: commit
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add apps/desktop-electron/e2e/source.spec.ts
+          git commit -m 'Exercise unsafe HTTP policy through article content'
+          echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Execute complete repository quality gate
+        run: npm run verify
+      - name: Require clean verified tree
+        run: git diff --exit-code && test -z "$(git status --short)"
+      - name: Push verified finalizer
+        run: git push origin HEAD:agent/complete-astro-dual-renderer
+
+  receipt:
+    if: always()
+    needs: finalize
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: ops/pr114-http-fixture-receipt
+          fetch-depth: 0
+      - name: Record finalizer result
+        env:
+          RUN_ID: ${{ github.run_id }}
+          RESULT: ${{ needs.finalize.result }}
+          VERIFIED_SHA: ${{ needs.finalize.outputs.commit_sha }}
+          TRIGGER_SHA: ${{ github.sha }}
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          fs.writeFileSync('.pr114-http-fixture.json', `${JSON.stringify({
+            runId: Number(process.env.RUN_ID), result: process.env.RESULT,
+            verifiedCommitSha: process.env.VERIFIED_SHA || null,
+            triggerSha: process.env.TRIGGER_SHA,
+            targetBranch: 'agent/complete-astro-dual-renderer',
+            recordedAt: new Date().toISOString(),
+          }, null, 2)}\n`);
+          NODE
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .pr114-http-fixture.json
+          git commit -m "Record PR114 HTTP fixture ${RUN_ID}"
+          git pull --rebase origin ops/pr114-http-fixture-receipt
+          git push origin HEAD:ops/pr114-http-fixture-receipt
