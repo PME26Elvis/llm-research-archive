@@ -1,0 +1,47 @@
+name: Deep Research implementation source snapshot
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/deep-research-implementation-source.yml
+
+permissions:
+  contents: read
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out implementation branch
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: agent/spec-deep-research-guide
+          path: source
+          fetch-depth: 1
+
+      - name: Record source metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          git -C source rev-parse HEAD | tee source-commit.txt
+          git -C source status --short --branch
+
+      - name: Create source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          tar --exclude='.git' -czf deep-research-implementation-source.tar.gz -C source .
+          sha256sum deep-research-implementation-source.tar.gz | tee source-archive.sha256
+
+      - name: Upload source snapshot
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: deep-research-implementation-source
+          path: |
+            deep-research-implementation-source.tar.gz
+            source-archive.sha256
+            source-commit.txt
+          if-no-files-found: error
+          retention-days: 7
