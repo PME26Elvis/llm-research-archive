@@ -1,0 +1,46 @@
+name: Temporary PR114 source snapshot
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/tmp-pr114-source-snapshot.yml
+
+permissions:
+  contents: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: agent/complete-astro-dual-renderer
+          fetch-depth: 0
+      - name: Archive implementation branch
+        run: |
+          set -euo pipefail
+          git archive --format=zip --output=pr114-source.zip HEAD
+          git rev-parse HEAD > pr114-source.sha
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: pr114-source-${{ github.run_id }}
+          path: |
+            pr114-source.zip
+            pr114-source.sha
+          retention-days: 7
+      - name: Record snapshot run
+        run: |
+          set -euo pipefail
+          run_id="$GITHUB_RUN_ID"
+          target_sha=$(cat pr114-source.sha)
+          git fetch origin ops/pr114-source-receipt
+          git worktree add /tmp/receipt origin/ops/pr114-source-receipt
+          cd /tmp/receipt
+          printf '{\n  "runId": %s,\n  "targetSha": "%s",\n  "recordedAt": "%s"\n}\n' "$run_id" "$target_sha" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" > .pr114-source-receipt.json
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .pr114-source-receipt.json
+          git commit -m "Record PR114 source snapshot ${run_id}"
+          git push origin HEAD:ops/pr114-source-receipt
