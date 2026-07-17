@@ -42,6 +42,13 @@ The reusable release workflow accepts bounded human-authored change items, norma
 
 Evidence: `scripts/release-notes.test.ts`, `scripts/workflow-release.test.ts`, `scripts/validate-release-assets.mjs`, and `.github/workflows/desktop-release-reusable.yml`.
 
+
+### FR-033 — Dual renderer entries
+
+A single Electron package contains an Astro workspace and a Classic React/Vite workspace. Astro is the default. Users can switch through renderer chrome or the native View menu, and the choice persists without duplicating content, workspaces, or backend services. A failed switch returns to the previous implementation.
+
+Evidence: `packages/platform-contracts/src/renderer-implementation.test.ts`, `apps/desktop-electron/src/main/renderer-state.test.ts`, `scripts/astro-output.test.ts`, `apps/desktop-electron/e2e/renderer-implementations.spec.ts`, and `scripts/packaged-smoke.mjs`.
+
 ## Implemented non-functional requirements
 
 ### NFR-010 — Enforced coverage thresholds
@@ -76,8 +83,13 @@ Unexpected main, renderer, preference, search-index, workspace, and import failu
 
 Preference persistence stays renderer-owned. Main receives only a schema-validated `zh-TW` or `en` locale through the typed preload boundary and retains sole authority to rebuild native menus or open native dialogs. Unsupported or corrupt preference data falls back safely without expanding renderer privileges.
 
+
+### NFR-027 — Renderer parity and rollback
+
+Both renderer entries use the same context-isolated preload and typed contracts. Astro static output must contain only local runtime assets and a generated hash-based CSP. Current functional journeys run against Astro by default, explicit E2E and packaged smoke exercise Classic, and each entry retains an independent initial-JavaScript budget. Classic remains available as a packaged rollback path.
+
 ## Completed delivery sequence
 
-PRs #27–#29 implemented the safe import domain, atomic transaction, Desktop Import Wizard, and complete E2E journey. PR #58 implemented the search index, startup telemetry, local diagnostics, revision/word-count presentation, and accessible Observatory. PR #73 converged coverage, accessibility, dependency, benchmark, renderer, package-footprint, and release gates. PR #91 added bilingual interface settings, native localization, and structured release descriptions. All traceable requirements are now implemented.
+PRs #27–#29 implemented the safe import domain, atomic transaction, Desktop Import Wizard, and complete E2E journey. PR #58 implemented the search index, startup telemetry, local diagnostics, revision/word-count presentation, and accessible Observatory. PR #73 converged coverage, accessibility, dependency, benchmark, renderer, package-footprint, and release gates. PR #91 added bilingual interface settings, native localization, and structured release descriptions. The dual-renderer implementation adds FR-033 and NFR-027; all traceable requirements are implemented.
 
 Future work is proposal-only and is maintained in `project-docs/roadmap/desktop-roadmap.md`; it does not create a new planned requirement until approved with stable IDs and acceptance evidence.

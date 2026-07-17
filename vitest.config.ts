@@ -27,7 +27,7 @@ export default defineConfig({
       all: true,
       include: [
         'packages/*/src/**/*.ts',
-        'apps/desktop-electron/src/main/{asset-path,window-state,workspace-state,import-session,local-diagnostics,startup-telemetry}.ts',
+        'apps/desktop-electron/src/main/{asset-path,window-state,workspace-state,renderer-state,import-session,local-diagnostics,startup-telemetry}.ts',
         'apps/desktop-electron/src/renderer/{copy-code,desktop-commands,layout-preferences,mermaid-renderer,navigation-history,preferences,syntax-highlight}.ts',
       ],
       exclude: ['**/*.test.ts', '**/*.spec.ts', '**/index.d.ts'],

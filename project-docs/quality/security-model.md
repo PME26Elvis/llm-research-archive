@@ -8,6 +8,7 @@ related-adrs:
   - ADR-0017
   - ADR-0018
   - ADR-0019
+  - ADR-0020
 ---
 
 # Security Model
@@ -21,3 +22,8 @@ Local diagnostics are bounded, atomically persisted, and redacted for configured
 Dependency governance separates runtime and development tooling, inventories production packages, audits a production-only lockfile, and allows high/critical findings only through reviewed expiring exceptions. Packaged-output inspection rejects top-level repository internals and obvious credentials, secrets, private keys, or certificate-key files.
 
 Language preferences remain local renderer state. The preload validates resolved locales before IPC, main accepts only the two supported locale identifiers, and native menu/dialog construction remains main-owned. Translation keys never execute code, article content is not sent to a translation service, and language switching introduces no network access or expanded filesystem authority.
+
+
+## Dual-renderer boundary
+
+Astro and Classic are local renderer adapters, not independent trust domains. Both load only through main-owned allowlisted URLs and the same context-isolated preload. Renderer selection accepts only the `astro` or `classic` schema values, persists no arbitrary path or URL, and does not expose a generic reload or navigation capability. Astro build output is validated for local relative assets, absence of remote runtime URLs, required shell markers, and hash-authorized inline hydration scripts. A failed switch is recorded locally and returns to the previous entry.

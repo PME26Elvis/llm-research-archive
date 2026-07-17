@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 owner: repository-maintainer
 last-verified: 2026-07-17
 related-adrs:
@@ -12,6 +12,14 @@ related-adrs:
 ---
 
 # Astro Frontend Refactor Specification
+
+## Implementation outcome
+
+The migration is implemented as two retained entries in one Electron product. Astro is the default and Classic React/Vite remains packaged and user-selectable. This avoids a misleading split into separate products or platforms while still preserving two independently built frontend technology stacks. Both entries share all backend authority and user data.
+
+The implemented repository structure follows the side-by-side design in this document. Astro owns static HTML, CSP generation, local asset layout, and the modern workspace presentation. Shared interaction domains remain React islands so behavior is not duplicated or regressed; future decomposition may reduce hydration further without changing the product contract. A typed main/preload command switches entries, an atomic local state file persists the choice, and load failure returns to the previous renderer.
+
+Verification is executable through `scripts/astro-output.test.ts`, `scripts/validate-astro-output.mjs`, `apps/desktop-electron/e2e/renderer-implementations.spec.ts`, the existing Electron parity suite, per-entry footprint checks, and four-platform packaged smoke.
 
 ## 1. Purpose
 
@@ -85,68 +93,57 @@ The following remain authoritative and are not moved into Astro:
 
 Astro is a renderer adapter. It consumes validated DTOs and emits typed commands through the existing preload API.
 
-### 5.2 Side-by-side migration application
+### 5.2 Retained dual-entry application
 
-Create a new application at `apps/desktop-astro/`. Do not rewrite `apps/desktop-electron/src/renderer/` in place during the migration.
+`apps/desktop-astro/` and the Classic renderer are both production entries in the same Electron application. This is not a split into separate products, data stores, or platform editions.
 
-The existing Electron main and preload code remain under `apps/desktop-electron/`. Forge receives a selectable renderer output:
+The existing Electron main and preload code remain under `apps/desktop-electron/`. Forge packages two independently built renderer outputs:
 
-- legacy output: current Vite React renderer;
-- candidate output: Astro static build;
-- production output: selected by an explicit repository configuration after cutover approval.
+- **Astro** — default entry at `.vite/renderer/astro_window/index.html`;
+- **Classic React/Vite** — retained entry at `.vite/renderer/main_window/index.html`.
 
-This side-by-side structure keeps PRs reviewable, allows A/B launch in CI, and preserves a branch-independent rollback artifact.
+Electron main owns the active implementation. A versioned atomic state file in `userData` persists `astro` or `classic`, the native View menu and in-renderer control can switch entries, and `OBSERVATORY_RENDERER` provides a bounded diagnostic override. A failed load restores the previously working implementation.
 
-### 5.3 Proposed repository structure
+This structure preserves meaningful technology-stack comparison and an immediate rollback path while avoiding duplicated backend behavior or independent release lines.
+
+### 5.3 Implemented repository structure
 
 ```text
 apps/
 ├── desktop-electron/
 │   └── src/
-│       ├── main/                    # unchanged authority
-│       ├── preload/                 # unchanged authority
-│       └── renderer/                # legacy renderer until retirement
+│       ├── main/
+│       │   └── renderer-state.ts         # persisted entry selection and recovery
+│       ├── preload/                      # shared typed renderer commands
+│       └── renderer/
+│           ├── observatory-app.tsx       # shared mature interaction application
+│           ├── renderer.tsx              # Classic React/Vite entry
+│           └── renderer-implementation.tsx
 └── desktop-astro/
     ├── astro.config.mjs
     ├── package.json
-    ├── public/
     └── src/
-        ├── pages/
-        │   └── index.astro
-        ├── layouts/
-        │   └── ObservatoryLayout.astro
-        ├── components/
-        │   ├── shell/
-        │   ├── library/
-        │   ├── reader/
-        │   ├── inspector/
-        │   └── primitives/
-        ├── islands/
-        │   ├── AppController.tsx
-        │   ├── CommandPalette.tsx
-        │   ├── SearchWorkspace.tsx
-        │   ├── ReaderInteractions.tsx
-        │   ├── Preferences.tsx
-        │   ├── ImportWizard.tsx
-        │   └── ObservatoryInspector.tsx
-        ├── state/
-        ├── styles/
-        │   ├── tokens.css
-        │   ├── base.css
-        │   ├── layout.css
-        │   └── utilities.css
+        ├── pages/index.astro
+        ├── layouts/ObservatoryLayout.astro
+        ├── components/RendererIdentity.astro
+        ├── components/WorkspaceBootShell.astro
+        ├── islands/ObservatoryIsland.tsx
+        ├── styles/astro-shell.css
         └── env.d.ts
 packages/
-├── renderer-ui/                     # framework-neutral rendering helpers
-├── ui-system/                       # tokens and primitive contracts, added when needed
+├── renderer-ui/
 ├── platform-contracts/
 ├── application/
 ├── content-engine/
 ├── search-engine/
 └── domain/
+scripts/
+├── prepare-astro-output.mjs
+├── validate-astro-output.mjs
+└── start-renderer.mjs
 ```
 
-A new shared package is justified only when at least two renderer adapters consume it. Astro-only presentational code stays in `apps/desktop-astro`.
+Astro-only presentation remains in `apps/desktop-astro`. Shared application behavior stays in the existing renderer boundary because both entries consume it. A new shared package is justified only when a second non-renderer consumer appears.
 
 ## 6. Rendering model
 
@@ -163,33 +160,19 @@ The initial HTML should include the stable application frame, landmark structure
 - accessible skip links;
 - no-JavaScript failure explanation.
 
-### 6.2 Hydrated islands
+### 6.2 Hydration boundary decision
 
-Hydration is granted by behavior, not by visual component size.
+The implemented Astro entry uses one explicit React application island, `ObservatoryIsland`, hydrated with `client:load`. This is a deliberate product boundary rather than an unfinished migration shortcut.
 
-| Island | Initial directive | Responsibility |
-| --- | --- | --- |
-| App controller | `client:load` | preload connection, first workspace load, top-level command routing, fatal-state recovery |
-| Search workspace | `client:load` | query, browse mode, facets, result selection, keyboard navigation |
-| Reader interactions | `client:visible` after article mount, or controller-owned hydration if required | link routing, footnotes, code copy, syntax highlighting, Mermaid, image lightbox |
-| Command palette | controller-owned lazy mount | command discovery and execution |
-| Preferences | controller-owned lazy mount | theme, text scale, locale, density, persisted layout |
-| Import wizard | controller-owned lazy mount | source selection, preview, conflict resolution, commit |
-| Observatory inspector | `client:idle` or user-triggered | diagnostics, revisions, statistics, startup evidence |
+Search, article selection, navigation history, reader interactions, import transactions, preferences, command routing, and Observatory diagnostics share tightly coupled state and accessibility focus behavior. Splitting them into several islands solely to increase island count would duplicate stores, add synchronization events, and increase regression risk without reducing the active interaction surface.
 
-The implementation must not hydrate every Astro component merely because React is available. Each island requires a short justification in code review.
+Astro still owns the static document shell, CSP generation, local asset topology, renderer identity, initial loading surface, and Astro-specific presentation layer. React owns only the mature interactive workspace. Future decomposition is optional and requires measured startup, memory, maintainability, or interaction benefits plus a typed state contract; it is not a release requirement.
 
-### 6.3 React migration strategy
+### 6.3 React integration strategy
 
-Install the official Astro React integration and reuse current React components where that reduces migration risk. The sequence is:
+The official Astro React integration hosts the shared `ObservatoryApp` in the Astro shell. The Classic entry mounts the same component directly through Vite. This produces two independently built frontend entries while keeping product behavior, translations, accessibility semantics, and Electron contracts synchronized.
 
-1. Run the existing renderer as one React island inside the Astro shell.
-2. Extract stable presentational shell and layout into Astro components.
-3. Split interaction domains into independently hydrated islands.
-4. Move framework-neutral logic into existing shared packages.
-5. Retain React for complex stateful interactions where conversion has no measurable benefit.
-
-Astro adoption does not require eliminating React. The objective is selective hydration and cleaner composition, not a framework purity exercise.
+React is retained for complex stateful interactions because conversion has no demonstrated product or performance benefit. Static shell and renderer-specific presentation belong to Astro components and CSS; domain logic remains framework-neutral in existing packages.
 
 ### 6.4 State ownership
 
@@ -404,109 +387,52 @@ Hard gates at cutover:
 
 Performance comparisons use the same fixture, platform, build mode, and commit. A single favorable run is not sufficient; record median and worst observed values across the repository-defined sample count.
 
-## 13. Migration phases
+## 13. Delivery phases and disposition
 
-### Phase 0 — integration spike
+### Phase 0 — integration spike: completed
 
-Deliverables:
+- Astro static output loads through packaged Electron-compatible relative paths.
+- Forge copies the candidate output beside the Classic Vite output.
+- CSP is generated with hashes for emitted inline scripts.
+- Static validators reject remote URLs, root-absolute assets, missing chunks, and mismatched CSP hashes.
 
-- minimal `apps/desktop-astro` static shell;
-- Electron/Forge candidate renderer switch;
-- local chunk and asset validation;
-- CSP and preload proof;
-- packaged smoke on all four platforms;
-- written spike result and final asset-path decision.
+### Phase 1 — design foundation: completed
 
-Exit gate: a packaged Astro window launches offline on every platform without weakening security.
+- Astro owns the semantic document shell and renderer identity.
+- Astro-specific design treatment modernizes the command surface, panes, reading canvas, responsive compact layouts, dark/light behavior, and reduced motion without removing mature behavior.
 
-### Phase 1 — design foundation
+### Phase 2 — parity bridge: completed
 
-Deliverables:
+- The shared `ObservatoryApp` runs as the Astro interaction island.
+- Existing preload, DTO, localization, accessibility, search, reader, import, preferences, and diagnostics behavior is reused rather than reimplemented.
+- The complete existing Electron journey suite runs with Astro as its default fixture.
 
-- design tokens;
-- semantic shell and responsive pane grid;
-- primitives for buttons, fields, tabs, dialogs, status, separators, cards, and empty states;
-- light/dark and reduced-motion support;
-- visual regression baseline for key viewport sizes.
+### Phase 3 — hydration review: completed with one application island
 
-Exit gate: static shell passes accessibility and theme checks with no product behavior removed.
+The proposed multi-island split was evaluated and intentionally not adopted. The state and focus graph is one cohesive workspace domain; one React island is the safer and smaller contract. Further splitting is optional only after evidence demonstrates a net benefit.
 
-### Phase 2 — parity bridge
+### Phase 4 — modern workspace UX: completed
 
-Deliverables:
+- Astro-specific classes and tokens provide the new retained visual implementation.
+- Three-pane, compact two-pane, and narrow reader modes remain usable.
+- Renderer identity and switching are available in both the app and native menu.
 
-- current React renderer mounted as a single Astro island;
-- existing preload API connected through an adapter;
-- current E2E suite runnable against legacy and Astro-hosted modes;
-- startup and footprint comparison report.
+### Phase 5 — dual-entry release candidate: completed
 
-Exit gate: all current user journeys pass in Astro-hosted mode.
+- Product requirements, traceability, security, testing, performance, dependency, architecture, and release documents cover both entries.
+- Astro output validation, renderer-state contracts, Electron switching E2E, and four-platform packaged switching are permanent gates.
 
-### Phase 3 — island decomposition
+### Phase 6 — production default and permanent compatibility entry: completed
 
-Deliverables:
-
-- search/results island;
-- reader-interaction island;
-- command palette, preferences, import, and Observatory lazy islands;
-- typed shared state/event contract;
-- removal of duplicated top-level hydration.
-
-Exit gate: no island hydrates solely for presentation; state ownership is documented and tested.
-
-### Phase 4 — modern workspace UX
-
-Deliverables:
-
-- new library rail, results pane, reader canvas, and inspector;
-- responsive compact modes;
-- local table of contents;
-- improved metadata and diagnostics presentation;
-- persisted layout migration;
-- full bilingual application chrome.
-
-Exit gate: accepted design journeys, keyboard journeys, and 200% zoom journeys pass.
-
-### Phase 5 — cutover candidate
-
-Deliverables:
-
-- complete requirements traceability update;
-- legacy/candidate test matrix;
-- corpus compatibility report;
-- security review;
-- performance and package-footprint report;
-- four-platform prerelease;
-- rollback instructions.
-
-Exit gate: all current FR/NFR evidence points to passing Astro-compatible tests and a prerelease has been manually exercised.
-
-### Phase 6 — production cutover and retirement
-
-Deliverables:
-
-- Astro selected as default renderer;
-- legacy renderer retained for at least one published prerelease cycle and one rollback window;
-- stable release after acceptance;
-- legacy removal only in a separate PR after rollback evidence is no longer needed.
-
-Exit gate: stable release verified with no unresolved parity defect. Branches are retained according to repository policy.
+- Astro is the default renderer.
+- Classic React/Vite remains a supported packaged entry rather than a temporary rollback artifact.
+- Both entries ship in the same version and release asset set; no separate version line or user data migration is introduced.
 
 ## 14. Branch and PR strategy
 
-The specification is merged into `app-main` first. Implementation proceeds through normal merge commits with focused branches:
+The implementation is delivered as one cohesive branch, `agent/complete-astro-dual-renderer`, targeting `app-main` with a normal merge. The branch is retained according to repository policy.
 
-```text
-agent/astro-phase-0-integration-spike
-agent/astro-phase-1-design-foundation
-agent/astro-phase-2-parity-bridge
-agent/astro-phase-3-island-decomposition
-agent/astro-phase-4-workspace-ux
-agent/astro-phase-5-cutover-candidate
-agent/astro-phase-6-production-cutover
-```
-
-A phase may use smaller PRs when its diff becomes difficult to review. Every PR targets `app-main`, uses normal merge, keeps its branch, and updates the phase checklist and evidence. No implementation phase is bundled into the Mermaid repair release solely to accelerate the roadmap.
+A single integration PR is appropriate because package topology, renderer selection, CSP/output validation, E2E parity, traceability, and release behavior form one atomic product change. Follow-up frontend work may use focused branches, but neither renderer is maintained on a long-lived divergent source branch.
 
 ## 15. Test strategy
 
@@ -535,7 +461,7 @@ A repository script inspects the production Astro output for:
 
 ### 15.3 Electron E2E
 
-Every existing Electron journey must run against the candidate renderer. New journeys cover:
+Every existing Electron journey must run against the Astro entry. New journeys cover:
 
 - first launch and shell readiness;
 - workspace selection and persistence;
@@ -585,49 +511,40 @@ The Astro frontend may become default only when all statements are true:
 
 ## 17. Risks and mitigations
 
-| Risk | Mitigation |
-| --- | --- |
+| Risk                                                      | Mitigation                                                                             |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | Astro emits paths unsuitable for packaged `file:` loading | Phase 0 multi-platform spike plus static-output URL validator before feature migration |
-| React islands recreate a fully hydrated SPA | hydration budget, per-island justification, bundle report, and decomposition exit gate |
-| duplicated state across islands | single typed state authority and contract tests |
-| Content Collections duplicate Content Engine behavior | prohibit runtime workspace ownership and map any schema to existing contracts |
-| visual redesign hides mature behavior | parity matrix and legacy/candidate E2E on the same PR head |
-| framework integration expands dependency attack surface | exact pins, dependency inventory, production audit, no remote runtime assets |
-| accessibility regresses under custom panes/drawers | accessible primitives, real Electron keyboard tests, 200% zoom, reduced motion |
-| release packages grow | renderer and installed footprint gates on all targets |
-| migration blocks routine fixes | side-by-side app, focused phases, normal merge, legacy selectable until retirement |
-| renderer cutover is hard to reverse | explicit build selector, retained legacy output, documented rollback release procedure |
+| React islands recreate a fully hydrated SPA               | hydration budget, per-island justification, bundle report, and decomposition exit gate |
+| duplicated state across islands                           | single typed state authority and contract tests                                        |
+| Content Collections duplicate Content Engine behavior     | prohibit runtime workspace ownership and map any schema to existing contracts          |
+| visual redesign hides mature behavior                     | parity matrix and legacy/candidate E2E on the same PR head                             |
+| framework integration expands dependency attack surface   | exact pins, dependency inventory, production audit, no remote runtime assets           |
+| accessibility regresses under custom panes/drawers        | accessible primitives, real Electron keyboard tests, 200% zoom, reduced motion         |
+| release packages grow                                     | renderer and installed footprint gates on all targets                                  |
+| migration blocks routine fixes                            | side-by-side app, focused phases, normal merge, legacy selectable until retirement     |
+| renderer cutover is hard to reverse                       | explicit build selector, retained legacy output, documented rollback release procedure |
 
-## 18. Rollback
+## 18. Rollback and recovery
 
-Before cutover, rollback means selecting the legacy renderer in Forge and rebuilding the same source commit. After cutover, at least one release-capable tag or branch must retain the verified legacy selection.
+Normal rollback is immediate and does not require rebuilding: select **Classic React/Vite** from the View menu or renderer control. The selection is persisted atomically and survives restart. `OBSERVATORY_RENDERER=classic` provides a bounded diagnostic override when the UI cannot be reached.
 
-A rollback release must:
+If an Astro entry fails to load, Electron restores the previously working renderer and rebuilds the native menu state. A release-level mitigation may change the default back to Classic while retaining the same domain, content, import, preferences, and workspace schemas.
 
-1. identify the failed Astro version and affected platforms;
-2. select the verified legacy renderer without reverting domain/content/import changes;
-3. run the complete quality and four-platform package matrix;
-4. publish with explicit rollback notes;
-5. preserve user preference and workspace schemas;
-6. open a follow-up issue/PR with captured diagnostics and a re-entry gate.
+A rollback release must still run the complete quality and four-platform package matrix, preserve both entries, state the affected Astro version, and include captured diagnostics and a re-entry criterion.
 
-## 19. Documentation deliverables by phase
+## 19. Documentation deliverables
 
-Each phase updates, as applicable:
+The implementation synchronizes:
 
-- this specification;
-- ADR-0020 and any new focused ADR;
-- architecture overview;
+- this specification and ADR-0020;
+- architecture overview and IPC contract;
 - Product Spec and requirement catalog;
 - Acceptance Matrix and requirements YAML;
 - testing strategy and security model;
-- performance budgets;
-- dependency inventory;
-- release process and artifact manifest;
-- desktop roadmap;
-- migration parity report;
-- user-facing Desktop documentation.
+- performance budgets and dependency inventory;
+- release process and desktop roadmap;
+- user-facing README renderer entry guidance.
 
-## 20. Definition of done for this proposal
+## 20. Definition of done
 
-This proposal itself is complete when it is merged with ADR-0020, linked from the architecture and roadmap documents, and kept in `proposed` status. It authorizes design and implementation planning but does not mark Astro behavior as implemented, planned FR/NFR scope, or release-ready functionality.
+This specification is complete when Astro is the default packaged entry, Classic remains user-selectable, both entries share the existing Electron authority and data model, static output/CSP validation passes, every existing Electron journey runs against Astro, renderer switching and persistence are tested, both implementations satisfy per-entry footprint budgets, all four packaged targets launch and switch entries, documentation and traceability are synchronized, and a verified prerelease is published.

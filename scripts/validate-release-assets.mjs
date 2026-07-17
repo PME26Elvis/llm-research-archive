@@ -19,7 +19,7 @@ const releaseWorkflow = fs.readFileSync('.github/workflows/desktop-release-reusa
 if (!forge.includes('windowsSetupName()')) {
   throw new Error('Forge Squirrel setup filename must come from windowsSetupName()');
 }
-if (!forge.includes('platforms: ["win32", "linux", "darwin"]')) {
+if (!/platforms:\s*\[\s*['"]win32['"]\s*,\s*['"]linux['"]\s*,\s*['"]darwin['"]\s*\]/.test(forge)) {
   throw new Error('Forge ZIP maker must support win32, linux, and darwin');
 }
 const applyVersionCommand = 'run: node scripts/apply-release-version.mjs';

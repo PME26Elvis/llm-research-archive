@@ -27,15 +27,6 @@ test('source Electron app searches and opens the known Chinese article securely'
   await expect(page.locator('article header h2')).toHaveText(title);
   await expect(page.getByTestId('article-meta')).toContainText('2026-03-20');
   await expect(page.getByTestId('reader')).not.toContainText('<script>');
-  const before = page.url();
-  await page.evaluate(() => {
-    const a = document.createElement('a');
-    a.href = 'http://example.com';
-    a.textContent = 'bad';
-    document.querySelector('article')?.append(a);
-    a.click();
-  });
-  await expect(page).toHaveURL(before);
 });
 
 test('internal article links stay in app shell, support fragments, and block file links', async ({
@@ -46,7 +37,7 @@ test('internal article links stay in app shell, support fragments, and block fil
   fs.mkdirSync(path.join(root, 'alpha', 'target'), { recursive: true });
   fs.writeFileSync(
     path.join(root, 'alpha', 'source', 'index.md'),
-    `---\ndate: 2026-01-01\ntags: [test]\n---\n# Source Article\n\n## 同頁結論\n\nSame page body.\n\n[Go Target](../target/index.md#結論)\n\n[Go Duplicate](../target/index.md#模型-1)\n\n[Same Page](#同頁結論)\n\n[Missing Fragment](#%E0%A4%A)\n\n[Broken](../missing/)\n\n[Bad](file:///etc/passwd)\n`,
+    `---\ndate: 2026-01-01\ntags: [test]\n---\n# Source Article\n\n## 同頁結論\n\nSame page body.\n\n[Go Target](../target/index.md#結論)\n\n[Go Duplicate](../target/index.md#模型-1)\n\n[Same Page](#同頁結論)\n\n[Missing Fragment](#%E0%A4%A)\n\n[Broken](../missing/)\n\n[Bad HTTP](http://example.com)\n\n[Bad](file:///etc/passwd)\n`,
   );
   fs.writeFileSync(
     path.join(root, 'alpha', 'target', 'index.md'),
@@ -77,6 +68,10 @@ test('internal article links stay in app shell, support fragments, and block fil
   await page.getByRole('button', { name: /Source Article/ }).click();
   await page.getByRole('link', { name: 'Broken' }).click();
   await expect(page.getByRole('alert')).toContainText('找不到內部文章連結：../missing/');
+  await expect(page.locator('article header h2')).toHaveText('Source Article');
+  await page.getByRole('link', { name: 'Bad HTTP' }).click();
+  await expect(page.getByRole('alert')).toContainText('已阻擋不安全連結');
+  await expect(page).toHaveURL(before);
   await expect(page.locator('article header h2')).toHaveText('Source Article');
   await page.evaluate(() => {
     const a = document.createElement('a');

@@ -22,6 +22,11 @@ import { LocalDiagnostics } from './local-diagnostics';
 import { StartupTelemetry } from './startup-telemetry';
 import { mainTranslate } from './main-i18n';
 import {
+  DEFAULT_RENDERER_IMPLEMENTATION,
+  loadRendererImplementation,
+  saveRendererImplementation,
+} from './renderer-state';
+import {
   DEFAULT_WORKSPACE_STATE,
   loadWorkspaceState,
   saveWorkspaceState,
@@ -45,6 +50,9 @@ import {
   ImportPreviewResultSchema,
   ImportSourceSelectionRequestSchema,
   LocaleUpdateRequestSchema,
+  RendererImplementationInfoSchema,
+  RendererImplementationSchema,
+  RendererImplementationUpdateRequestSchema,
   RendererDiagnosticRequestSchema,
   StartupMilestoneSchema,
   WorkspaceInfoSchema,
@@ -52,6 +60,7 @@ import {
   type DesktopCommand,
   type WorkspaceInfoDto,
   type UiLocale,
+  type RendererImplementation,
 } from '@research-observatory/platform-contracts';
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string | undefined;
@@ -70,6 +79,7 @@ let workspaceRecoveryWarnings: string[] = [];
 let trustedRendererUrl = '';
 let trustedRendererOrigin = '';
 let currentLocale: UiLocale = 'zh-TW';
+let currentRenderer: RendererImplementation = DEFAULT_RENDERER_IMPLEMENTATION;
 function bundledContentRoot(): string {
   if (!app.isPackaged)
     return process.env.ARCHIVE_CONTENT_ROOT || path.resolve(__dirname, '../../docs');
@@ -134,10 +144,58 @@ function initializeWorkspace(): void {
 async function safeAssetPath(rawUrl: string): Promise<string | undefined> {
   return resolveSafeAssetPath(contentRoot(), rawUrl);
 }
-function expectedPackagedRendererUrl(): string {
-  return pathToFileURL(
-    path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`),
-  ).toString();
+function rendererStateFile(): string {
+  return path.join(app.getPath('userData'), 'renderer-state.json');
+}
+function packagedRendererPath(implementation: RendererImplementation): string {
+  const rendererName = implementation === 'astro' ? 'astro_window' : MAIN_WINDOW_VITE_NAME;
+  return path.join(__dirname, `../renderer/${rendererName}/index.html`);
+}
+function developmentAstroRendererPath(): string {
+  return path.resolve(__dirname, '../../apps/desktop-astro/dist/index.html');
+}
+function rendererUrl(implementation: RendererImplementation): string {
+  if (implementation === 'classic' && MAIN_WINDOW_VITE_DEV_SERVER_URL) {
+    return MAIN_WINDOW_VITE_DEV_SERVER_URL;
+  }
+  const filePath = app.isPackaged
+    ? packagedRendererPath(implementation)
+    : implementation === 'astro'
+      ? developmentAstroRendererPath()
+      : packagedRendererPath(implementation);
+  return pathToFileURL(filePath).toString();
+}
+async function loadRenderer(
+  win: BrowserWindow,
+  implementation: RendererImplementation,
+): Promise<void> {
+  const next = RendererImplementationSchema.parse(implementation);
+  const target = rendererUrl(next);
+  trustedRendererUrl = target;
+  trustedRendererOrigin = target.startsWith('file:') ? '' : new URL(target).origin;
+  if (target.startsWith('file:')) await win.loadFile(fileURLToPath(target));
+  else await win.loadURL(target);
+  currentRenderer = next;
+}
+async function selectRenderer(
+  win: BrowserWindow,
+  implementation: RendererImplementation,
+): Promise<void> {
+  const next = RendererImplementationSchema.parse(implementation);
+  if (next === currentRenderer) return;
+  const previous = currentRenderer;
+  try {
+    await loadRenderer(win, next);
+    saveRendererImplementation(rendererStateFile(), next);
+  } catch (error) {
+    localDiagnostics?.record('error', 'main', 'renderer-switch-failed', error);
+    await loadRenderer(win, previous).catch((recoveryError) => {
+      localDiagnostics?.record('error', 'main', 'renderer-recovery-failed', recoveryError);
+    });
+    throw error;
+  } finally {
+    installApplicationMenu(win, currentLocale);
+  }
 }
 function validateSender(sender: WebContents, frame?: WebFrameMain | null): void {
   if (frame && frame !== sender.mainFrame) throw new Error('invalid-ipc-subframe');
@@ -180,6 +238,24 @@ function installApplicationMenu(win: BrowserWindow, locale: UiLocale = currentLo
       label: mainTranslate(locale, 'view'),
       submenu: [
         {
+          label: mainTranslate(locale, 'implementation'),
+          submenu: [
+            {
+              label: mainTranslate(locale, 'implementationAstro'),
+              type: 'radio',
+              checked: currentRenderer === 'astro',
+              click: () => void selectRenderer(win, 'astro'),
+            },
+            {
+              label: mainTranslate(locale, 'implementationClassic'),
+              type: 'radio',
+              checked: currentRenderer === 'classic',
+              click: () => void selectRenderer(win, 'classic'),
+            },
+          ],
+        },
+        { type: 'separator' },
+        {
           label: mainTranslate(locale, 'palette'),
           accelerator: 'CmdOrCtrl+K',
           click: () => send('palette.open'),
@@ -201,6 +277,7 @@ function installApplicationMenu(win: BrowserWindow, locale: UiLocale = currentLo
 
 function createWindow() {
   initializeWorkspace();
+  currentRenderer = loadRendererImplementation(rendererStateFile());
   session.defaultSession.setPermissionRequestHandler((_wc, _permission, callback) =>
     callback(false),
   );
@@ -266,15 +343,17 @@ function createWindow() {
     if (url !== trustedRendererUrl) event.preventDefault();
   });
   if (app.isPackaged) win.webContents.on('devtools-opened', () => win.webContents.closeDevTools());
-  if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
-    trustedRendererUrl = MAIN_WINDOW_VITE_DEV_SERVER_URL;
-    trustedRendererOrigin = new URL(MAIN_WINDOW_VITE_DEV_SERVER_URL).origin;
-    win.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
-  } else {
-    trustedRendererUrl = expectedPackagedRendererUrl();
-    trustedRendererOrigin = '';
-    win.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
-  }
+  void loadRenderer(win, currentRenderer).catch(async (error) => {
+    localDiagnostics?.record('error', 'main', 'renderer-load-failed', error);
+    if (currentRenderer === 'classic') return;
+    try {
+      await loadRenderer(win, 'classic');
+      saveRendererImplementation(rendererStateFile(), 'classic');
+      installApplicationMenu(win, currentLocale);
+    } catch (recoveryError) {
+      localDiagnostics?.record('error', 'main', 'renderer-recovery-failed', recoveryError);
+    }
+  });
 }
 ipcMain.handle('archive:list', (event) => {
   validateSender(event.sender, event.senderFrame);
@@ -386,6 +465,21 @@ ipcMain.handle('preferences:set-locale', (event, rawRequest: unknown) => {
   const owner = BrowserWindow.fromWebContents(event.sender);
   if (owner) installApplicationMenu(owner, currentLocale);
 });
+ipcMain.handle('renderer:info', (event) => {
+  validateSender(event.sender, event.senderFrame);
+  return RendererImplementationInfoSchema.parse({
+    active: currentRenderer,
+    default: DEFAULT_RENDERER_IMPLEMENTATION,
+    available: ['astro', 'classic'],
+  });
+});
+ipcMain.handle('renderer:set', async (event, rawRequest: unknown) => {
+  validateSender(event.sender, event.senderFrame);
+  const request = RendererImplementationUpdateRequestSchema.parse(rawRequest);
+  const owner = BrowserWindow.fromWebContents(event.sender);
+  if (!owner) throw new Error('renderer-window-unavailable');
+  await selectRenderer(owner, request.implementation);
+});
 ipcMain.handle('diagnostics:get', (event) => {
   validateSender(event.sender, event.senderFrame);
   return ArchiveDiagnosticsSchema.parse({
@@ -457,4 +551,4 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
-export const __test__ = { safeAssetPath, contentRoot };
+export const __test__ = { safeAssetPath, contentRoot, rendererUrl };

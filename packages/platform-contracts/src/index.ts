@@ -115,6 +115,15 @@ export const ExternalUrlSchema = z
   .refine((v) => ['https:', 'mailto:'].includes(new URL(v).protocol));
 export const UiLocaleSchema = z.enum(['zh-TW', 'en']);
 export const LocaleUpdateRequestSchema = z.object({ locale: UiLocaleSchema });
+export const RendererImplementationSchema = z.enum(['astro', 'classic']);
+export const RendererImplementationInfoSchema = z.object({
+  active: RendererImplementationSchema,
+  default: RendererImplementationSchema,
+  available: z.array(RendererImplementationSchema).length(2),
+});
+export const RendererImplementationUpdateRequestSchema = z.object({
+  implementation: RendererImplementationSchema,
+});
 export const DesktopCommandSchema = z.enum([
   'palette.open',
   'search.focus',
@@ -267,6 +276,11 @@ export const ArticleListResponseSchema = z.array(ArticleSummaryDtoSchema);
 export const SearchResponseSchema = z.array(SearchResultDtoSchema);
 export type UiLocale = z.infer<typeof UiLocaleSchema>;
 export type LocaleUpdateRequest = z.infer<typeof LocaleUpdateRequestSchema>;
+export type RendererImplementation = z.infer<typeof RendererImplementationSchema>;
+export type RendererImplementationInfoDto = z.infer<typeof RendererImplementationInfoSchema>;
+export type RendererImplementationUpdateRequest = z.infer<
+  typeof RendererImplementationUpdateRequestSchema
+>;
 export type DesktopCommand = z.infer<typeof DesktopCommandSchema>;
 
 export type StartupMilestone = z.infer<typeof StartupMilestoneSchema>;

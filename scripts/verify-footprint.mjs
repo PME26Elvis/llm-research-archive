@@ -24,42 +24,51 @@ function writeReport(name, value) {
 }
 
 if (mode === 'renderer') {
-  const root = path.resolve('.vite/renderer/main_window');
-  const htmlPath = path.join(root, 'index.html');
-  if (!fs.existsSync(htmlPath)) throw new Error(`renderer entry missing: ${htmlPath}`);
-  const html = fs.readFileSync(htmlPath, 'utf8');
-  const initialAssets = new Set();
-  for (const match of html.matchAll(
-    /<(?:script|link)\b[^>]+(?:src|href)=["']([^"']+\.js)["'][^>]*>/gi,
-  )) {
-    initialAssets.add(match[1].replace(/^\.\//, ''));
-  }
-  if (!initialAssets.size) throw new Error('renderer entry references no initial JavaScript');
-  const files = [...initialAssets].map((relative) => {
-    const absolute = path.resolve(root, relative);
-    if (!absolute.startsWith(`${root}${path.sep}`) || !fs.existsSync(absolute)) {
-      throw new Error(`renderer initial asset missing: ${relative}`);
+  const rendererEntries = [
+    { implementation: 'classic', root: path.resolve('.vite/renderer/main_window') },
+    { implementation: 'astro', root: path.resolve('apps/desktop-astro/dist') },
+  ];
+  const implementations = rendererEntries.map(({ implementation, root }) => {
+    const htmlPath = path.join(root, 'index.html');
+    if (!fs.existsSync(htmlPath))
+      throw new Error(`${implementation} renderer entry missing: ${htmlPath}`);
+    const html = fs.readFileSync(htmlPath, 'utf8');
+    const initialAssets = new Set();
+    for (const match of html.matchAll(
+      /\b(?:src|href|component-url|renderer-url)=["']([^"']+\.js)["']/gi,
+    )) {
+      initialAssets.add(match[1].replace(/^\.\//, ''));
     }
-    const content = fs.readFileSync(absolute);
-    return {
-      relative,
-      bytes: content.length,
-      gzipBytes: zlib.gzipSync(content, { level: 9 }).length,
-    };
+    if (!initialAssets.size)
+      throw new Error(`${implementation} renderer references no initial JavaScript`);
+    const files = [...initialAssets].map((relative) => {
+      const absolute = path.resolve(root, relative);
+      if (!absolute.startsWith(`${root}${path.sep}`) || !fs.existsSync(absolute)) {
+        throw new Error(`${implementation} renderer initial asset missing: ${relative}`);
+      }
+      const content = fs.readFileSync(absolute);
+      return {
+        relative,
+        bytes: content.length,
+        gzipBytes: zlib.gzipSync(content, { level: 9 }).length,
+      };
+    });
+    const totalGzipBytes = files.reduce((sum, file) => sum + file.gzipBytes, 0);
+    if (totalGzipBytes > RENDERER_GZIP_BUDGET) {
+      throw new Error(
+        `${implementation} initial renderer JavaScript gzip ${totalGzipBytes} > ${RENDERER_GZIP_BUDGET}`,
+      );
+    }
+    return { implementation, root: path.relative(process.cwd(), root), totalGzipBytes, files };
   });
-  const totalGzipBytes = files.reduce((sum, file) => sum + file.gzipBytes, 0);
   const report = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     generatedAt: new Date().toISOString(),
     mode,
-    budgetBytes: RENDERER_GZIP_BUDGET,
-    totalGzipBytes,
-    files,
+    budgetBytesPerImplementation: RENDERER_GZIP_BUDGET,
+    implementations,
   };
   writeReport('footprint-renderer', report);
-  if (totalGzipBytes > RENDERER_GZIP_BUDGET) {
-    throw new Error(`initial renderer JavaScript gzip ${totalGzipBytes} > ${RENDERER_GZIP_BUDGET}`);
-  }
 } else if (mode === 'package') {
   const outRoot = path.resolve('out');
   const asars = walk(outRoot).filter((file) => path.basename(file) === 'app.asar');

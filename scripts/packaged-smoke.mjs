@@ -29,6 +29,24 @@ try {
     undefined,
     { timeout: 30000 },
   );
+  const implementation = await page.getAttribute(
+    '[data-testid="app-ready"]',
+    'data-renderer-implementation',
+  );
+  if (implementation !== 'astro') {
+    throw new Error(`packaged default renderer is ${implementation}; expected astro`);
+  }
+  if ((await page.locator('[data-astro-entry="research-observatory"]').count()) !== 1) {
+    throw new Error('packaged Astro entry marker is missing');
+  }
+  await page.getByRole('button', { name: /Classic/ }).click();
+  await page.waitForSelector('[data-testid="app-ready"][data-renderer-implementation="classic"]', {
+    timeout: 30000,
+  });
+  await page.getByRole('button', { name: /Astro/ }).click();
+  await page.waitForSelector('[data-testid="app-ready"][data-renderer-implementation="astro"]', {
+    timeout: 30000,
+  });
   const count = Number(await page.getAttribute('[data-testid="app-ready"]', 'data-article-count'));
   const title = '科技業龍頭為何認為「現在算力遠遠不夠」：原因、證據與三大主題深度分析';
   await page.getByLabel('搜尋文章').fill('算力遠遠不夠');
@@ -49,7 +67,7 @@ try {
     throw new Error(`packaged About version ${version} does not match ${expectedVersion}`);
   }
   console.log(
-    `packaged smoke ok: ${executable}; platform=${process.platform}; arch=${process.arch}; articles=${count}; title=${h2}; commit=${commit}`,
+    `packaged smoke ok: ${executable}; platform=${process.platform}; arch=${process.arch}; articles=${count}; renderer=astro+classic; title=${h2}; commit=${commit}`,
   );
 } finally {
   await app.close();

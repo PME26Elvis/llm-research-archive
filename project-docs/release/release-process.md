@@ -16,7 +16,7 @@ The default branch exposes `.github/workflows/desktop-release.yml`; it calls the
 
 1. Preflight validates and renders bounded structured release notes, resolves the requested ref to an immutable SHA, selects a collision-free version, applies it to the temporary build workspace, and runs `npm run verify`.
 2. Native Windows x64, Linux x64, macOS arm64, and macOS x64 jobs build without release-write permission.
-3. Every native job starts the packaged executable and enforces the 2 GiB package hard ceiling plus sensitive-file policy.
+3. Every native job starts the packaged executable, verifies Astro is the default, switches to Classic and back, and enforces the 2 GiB package hard ceiling plus sensitive-file policy.
 4. Aggregate creates the exact binary set, `SHA256SUMS.txt`, `release-manifest.json`, and CycloneDX `sbom.cdx.json`.
 5. The single release-authority job creates or refreshes only a same-target draft, uploads the exact assets, reads them back, and verifies names, sizes, hashes, target SHA, and draft state.
 6. `publish=true` is the only path that converts the verified draft into a public prerelease or stable release.
@@ -26,6 +26,11 @@ Published versions are immutable. Blank `requested_version` chooses the package 
 GitHub permits each release asset to be under 2 GiB. The repository's installed-package ceiling is also 2 GiB, while release-asset validation independently rejects zero-byte, missing, extra, duplicate, or mismatched artifacts.
 
 The earlier dry run `29113199684` proved draft-first Windows/Linux release behavior. Current Desktop CI and reusable release jobs additionally cover macOS arm64/x64, enforced coverage, accessibility, dependency audit, search benchmarks, renderer footprint, and native installed footprint.
+
+
+## Renderer entries in release artifacts
+
+Each native artifact contains one Electron application with two local renderer entries. The release does not publish separate Astro and Classic installers because both implementations share the same main/preload authority, content, preferences, workspaces, and import state. Astro is the default; Classic is an in-app compatibility entry. The release pipeline validates the Astro static output before packaging, copies it beside the Classic Vite output, measures each initial bundle independently, and launches both entries during packaged smoke.
 
 ## Structured release descriptions
 

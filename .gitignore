@@ -11,3 +11,5 @@ apps/desktop-electron/resources/archive-manifest.json
 test-results/
 playwright-report/
 .vite/
+
+apps/desktop-astro/.astro/

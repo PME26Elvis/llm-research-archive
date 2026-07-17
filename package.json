@@ -7,13 +7,13 @@
     "apps/*"
   ],
   "scripts": {
-    "dev": "electron-forge start -- --no-sandbox",
-    "build": "npm run content:manifest && electron-forge package",
+    "dev": "npm run build:astro && node scripts/start-renderer.mjs astro",
+    "build": "npm run content:manifest && npm run build:astro && electron-forge package",
     "lint": "node scripts/validate-architecture.mjs",
     "lint:fix": "npm run lint",
-    "format": "prettier --check \"{package.json,tsconfig*.json,vitest.config.ts,playwright.config.ts,scripts/**/*.{mjs,js},packages/**/*.{ts,json},apps/**/*.{ts,tsx,mjs,json,html},project-docs/quality/*.json,.github/workflows/desktop-*.yml}\"",
+    "format": "prettier --plugin=prettier-plugin-astro --check \"{package.json,tsconfig*.json,vitest.config.ts,playwright.config.ts,scripts/**/*.{mjs,js},packages/**/*.{ts,json},apps/**/*.{ts,tsx,mjs,json,html,astro,css},project-docs/quality/*.json,.github/workflows/desktop-*.yml}\"",
     "format:check": "npm run format",
-    "typecheck": "tsc -b",
+    "typecheck": "tsc -b && npm run typecheck:astro",
     "test": "vitest run",
     "test:unit": "vitest run packages",
     "test:contract": "vitest run packages/platform-contracts packages/application",
@@ -27,24 +27,29 @@
     "content:scan": "node --import tsx scripts/content-scan.mjs",
     "content:manifest": "node --import tsx scripts/content-manifest.mjs",
     "content:diagnose": "node --import tsx scripts/content-diagnose.mjs",
-    "package": "npm run content:manifest && electron-forge package",
+    "package": "npm run content:manifest && npm run build:astro && electron-forge package",
     "make": "npm run make:linux",
-    "make:windows": "npm run content:manifest && electron-forge make --platform win32 --arch x64 && node scripts/release-assets.mjs windows",
-    "make:linux": "npm run content:manifest && electron-forge make --platform linux --arch x64 && node scripts/release-assets.mjs linux",
-    "make:macos:arm64": "npm run content:manifest && electron-forge make --platform darwin --arch arm64 && node scripts/release-assets.mjs macos-arm64",
-    "make:macos:x64": "npm run content:manifest && electron-forge make --platform darwin --arch x64 && node scripts/release-assets.mjs macos-x64",
+    "make:windows": "npm run content:manifest && npm run build:astro && electron-forge make --platform win32 --arch x64 && node scripts/release-assets.mjs windows",
+    "make:linux": "npm run content:manifest && npm run build:astro && electron-forge make --platform linux --arch x64 && node scripts/release-assets.mjs linux",
+    "make:macos:arm64": "npm run content:manifest && npm run build:astro && electron-forge make --platform darwin --arch arm64 && node scripts/release-assets.mjs macos-arm64",
+    "make:macos:x64": "npm run content:manifest && npm run build:astro && electron-forge make --platform darwin --arch x64 && node scripts/release-assets.mjs macos-x64",
     "release:assets": "node scripts/release-assets.mjs all",
     "benchmark": "node --import tsx scripts/node-smoke.mjs --benchmark",
     "verify": "npm run format:check && npm run lint && npm run typecheck && npm run validate:traceability && npm run validate:generated && npm run validate:release-assets && npm run test:coverage && npm run test:security && npm run test:compatibility && npm run validate:accessibility && npm run validate:dependencies && npm run benchmark:search && npm run build && npm run validate:footprint:renderer",
     "smoke:packaged": "node scripts/packaged-smoke.mjs",
-    "format:write": "prettier --write \"{package.json,tsconfig*.json,vitest.config.ts,playwright.config.ts,scripts/**/*.{mjs,js},packages/**/*.{ts,json},apps/**/*.{ts,tsx,mjs,json,html},project-docs/quality/*.json,.github/workflows/desktop-*.yml}\"",
+    "format:write": "prettier --plugin=prettier-plugin-astro --write \"{package.json,tsconfig*.json,vitest.config.ts,playwright.config.ts,scripts/**/*.{mjs,js},packages/**/*.{ts,json},apps/**/*.{ts,tsx,mjs,json,html,astro,css},project-docs/quality/*.json,.github/workflows/desktop-*.yml}\"",
     "validate:generated": "node scripts/validate-generated-clean.mjs",
     "validate:release-assets": "node scripts/validate-release-assets.mjs",
     "benchmark:search": "node --import tsx scripts/search-benchmark.mjs",
     "validate:accessibility": "node scripts/validate-accessibility.mjs",
     "validate:dependencies": "node scripts/validate-dependencies.mjs",
     "validate:footprint:renderer": "node scripts/verify-footprint.mjs renderer",
-    "validate:footprint:package": "node scripts/verify-footprint.mjs package"
+    "validate:footprint:package": "node scripts/verify-footprint.mjs package",
+    "dev:astro": "npm run dev",
+    "dev:classic": "node scripts/start-renderer.mjs classic",
+    "build:astro": "astro build --root apps/desktop-astro && node scripts/prepare-astro-output.mjs && node scripts/validate-astro-output.mjs",
+    "typecheck:astro": "astro check --root apps/desktop-astro",
+    "validate:astro-output": "node scripts/validate-astro-output.mjs"
   },
   "devDependencies": {
     "@electron/asar": "3.4.1",
@@ -70,7 +75,11 @@
     "tsx": "^4.16.2",
     "typescript": "^5.5.3",
     "vite": "^5.3.3",
-    "vitest": "^1.6.0"
+    "vitest": "^1.6.0",
+    "@astrojs/check": "0.9.9",
+    "@astrojs/react": "6.0.1",
+    "astro": "7.1.0",
+    "prettier-plugin-astro": "0.14.1"
   },
   "dependencies": {
     "electron-squirrel-startup": "^1.0.1",
@@ -90,5 +99,8 @@
   "license": "MIT",
   "author": {
     "name": "PME26Elvis"
+  },
+  "overrides": {
+    "@electron/node-gyp": "10.2.0-electron.2"
   }
 }
