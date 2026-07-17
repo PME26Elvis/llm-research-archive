@@ -13,19 +13,24 @@ jobs:
   inspect:
     runs-on: ubuntu-latest
     steps:
-      - name: Capture latest applicator push failure
+      - name: Query latest applicator runs
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           set -euo pipefail
-          gh api "repos/${GITHUB_REPOSITORY}/actions/jobs/87937202170/logs" > applicator-job.log
-          tail -n 180 applicator-job.log
+          gh api \
+            "repos/${GITHUB_REPOSITORY}/actions/workflows/apply-deep-research-guide-implementation.yml/runs?branch=main&per_page=10" \
+            > applicator-runs.json
+          jq '{total_count, workflow_runs: [.workflow_runs[] | {id, name, status, conclusion, head_sha, event, run_number, run_attempt, created_at, updated_at, html_url}]}' applicator-runs.json \
+            | tee applicator-runs-summary.json
 
       - name: Upload applicator inspection
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: deep-research-applicator-inspection
-          path: applicator-job.log
+          path: |
+            applicator-runs.json
+            applicator-runs-summary.json
           if-no-files-found: error
           retention-days: 7
