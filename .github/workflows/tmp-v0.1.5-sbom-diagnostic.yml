@@ -1,0 +1,51 @@
+name: Temporary v0.1.5 SBOM diagnostic
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/tmp-v0.1.5-sbom-diagnostic.yml
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: app-main
+          fetch-depth: 1
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Install exact dependencies
+        run: npm ci
+      - name: Capture npm SBOM diagnostics
+        shell: bash
+        run: |
+          set +e
+          mkdir -p /tmp/sbom-diagnostic
+          node --version > /tmp/sbom-diagnostic/environment.txt
+          npm --version >> /tmp/sbom-diagnostic/environment.txt
+          npm sbom --sbom-format cyclonedx --json > /tmp/sbom-diagnostic/sbom.stdout.json 2> /tmp/sbom-diagnostic/sbom.stderr.txt
+          status=$?
+          printf '%s\n' "$status" > /tmp/sbom-diagnostic/exit-code.txt
+          npm ls --all --json > /tmp/sbom-diagnostic/npm-ls.json 2> /tmp/sbom-diagnostic/npm-ls.stderr.txt
+          exit 0
+      - name: Record diagnostic evidence
+        run: |
+          set -euo pipefail
+          git fetch origin ops/v0.1.5-sbom-diagnostic-receipt
+          git worktree add /tmp/receipt origin/ops/v0.1.5-sbom-diagnostic-receipt
+          cp /tmp/sbom-diagnostic/* /tmp/receipt/
+          cd /tmp/receipt
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add environment.txt exit-code.txt sbom.stdout.json sbom.stderr.txt npm-ls.json npm-ls.stderr.txt
+          git commit -m "Record v0.1.5 SBOM diagnostic ${GITHUB_RUN_ID}"
+          git pull --rebase origin ops/v0.1.5-sbom-diagnostic-receipt
+          git push origin HEAD:ops/v0.1.5-sbom-diagnostic-receipt
