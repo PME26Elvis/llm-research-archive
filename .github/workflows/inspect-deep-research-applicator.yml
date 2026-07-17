@@ -26,9 +26,9 @@ jobs:
             | tee applicator-runs-summary.json
 
           gh api \
-            "repos/${GITHUB_REPOSITORY}/actions/jobs/87932934626/logs" \
+            "repos/${GITHUB_REPOSITORY}/actions/jobs/87935493051/logs" \
             > applicator-job.log
-          tail -n 160 applicator-job.log
+          tail -n 220 applicator-job.log
 
       - name: Upload applicator inspection
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
