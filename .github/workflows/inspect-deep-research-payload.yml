@@ -1,0 +1,47 @@
+name: Inspect Deep Research payload
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/inspect-deep-research-payload.yml
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-payload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out retained payload branch
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: ops/apply-deep-research-guide-implementation
+          path: payload-source
+          fetch-depth: 1
+
+      - name: Record payload fragment hashes and sizes
+        shell: bash
+        run: |
+          set -euo pipefail
+          payload_dir='payload-source/.ops/deep-research-guide'
+          find "$payload_dir" -maxdepth 1 -type f -name 'payload-*.txt' -print0 \
+            | sort -z \
+            | xargs -0 sha256sum \
+            | tee payload-fragment-sha256.txt
+          find "$payload_dir" -maxdepth 1 -type f -name 'payload-*.txt' -printf '%f %s\n' \
+            | sort \
+            | tee payload-fragment-sizes.txt
+          tar -czf payload-fragments.tar.gz -C "$payload_dir" .
+          sha256sum payload-fragments.tar.gz | tee payload-fragments-archive.sha256
+
+      - name: Upload payload inspection
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: deep-research-payload-inspection
+          path: |
+            payload-fragment-sha256.txt
+            payload-fragment-sizes.txt
+            payload-fragments.tar.gz
+            payload-fragments-archive.sha256
+          if-no-files-found: error
+          retention-days: 7
