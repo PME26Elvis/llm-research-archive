@@ -1,0 +1,109 @@
+name: Temporary PR114 HTTP fixture finalizer v2
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/tmp-finalize-pr114-http-fixture-v2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    outputs:
+      commit_sha: ${{ steps.commit.outputs.commit_sha }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: agent/complete-astro-dual-renderer
+          fetch-depth: 0
+      - name: Use a renderer-owned HTTP fixture
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('apps/desktop-electron/e2e/source.spec.ts')
+          source = path.read_text()
+
+          first_test_end = source.index("\n});\n\ntest('internal article links")
+          reader_assertion = "  await expect(page.getByTestId('reader')).not.toContainText('<script>');"
+          reader_end = source.index(reader_assertion) + len(reader_assertion)
+          source = source[:reader_end] + source[first_test_end:]
+
+          fixture_marker = '[Broken](../missing/)\\n'
+          if fixture_marker not in source:
+              raise SystemExit('fixture marker not found')
+          source = source.replace(
+              fixture_marker,
+              '[Broken](../missing/)\\n\\n[Bad HTTP](http://example.com)\\n',
+              1,
+          )
+
+          assertion_marker = "  await expect(page.locator('article header h2')).toHaveText('Source Article');\n"
+          marker_index = source.index(assertion_marker, source.index("name: 'Broken'"))
+          insert_at = marker_index + len(assertion_marker)
+          http_assertion = """  await page.getByRole('link', { name: 'Bad HTTP' }).click();
+          await expect(page.getByRole('alert')).toContainText('已阻擋不安全連結');
+          await expect(page).toHaveURL(before);
+          await expect(page.locator('article header h2')).toHaveText('Source Article');
+          """
+          source = source[:insert_at] + http_assertion + source[insert_at:]
+          path.write_text(source)
+          PY
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --registry=https://registry.npmjs.org/
+      - run: npm run format:write
+      - name: Commit deterministic fixture
+        id: commit
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add apps/desktop-electron/e2e/source.spec.ts
+          git commit -m 'Exercise unsafe HTTP policy through article content'
+          echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Execute complete repository quality gate
+        run: npm run verify
+      - name: Require clean verified tree
+        run: git diff --exit-code && test -z "$(git status --short)"
+      - name: Push verified finalizer
+        run: git push origin HEAD:agent/complete-astro-dual-renderer
+
+  receipt:
+    if: always()
+    needs: finalize
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: ops/pr114-http-fixture-receipt
+          fetch-depth: 0
+      - name: Record finalizer result
+        env:
+          RUN_ID: ${{ github.run_id }}
+          RESULT: ${{ needs.finalize.result }}
+          VERIFIED_SHA: ${{ needs.finalize.outputs.commit_sha }}
+          TRIGGER_SHA: ${{ github.sha }}
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          fs.writeFileSync('.pr114-http-fixture.json', `${JSON.stringify({
+            runId: Number(process.env.RUN_ID), result: process.env.RESULT,
+            verifiedCommitSha: process.env.VERIFIED_SHA || null,
+            triggerSha: process.env.TRIGGER_SHA,
+            targetBranch: 'agent/complete-astro-dual-renderer', applicator: 'v2',
+            recordedAt: new Date().toISOString(),
+          }, null, 2)}\n`);
+          NODE
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .pr114-http-fixture.json
+          git commit -m "Record PR114 HTTP fixture v2 ${RUN_ID}"
+          git pull --rebase origin ops/pr114-http-fixture-receipt
+          git push origin HEAD:ops/pr114-http-fixture-receipt
