@@ -1,0 +1,119 @@
+name: Temporary Astro dual-renderer applicator
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/tmp-apply-astro-dual-renderer.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    outputs:
+      commit_sha: ${{ steps.commit.outputs.commit_sha }}
+    steps:
+      - name: Checkout implementation branch
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: agent/complete-astro-dual-renderer
+          fetch-depth: 0
+      - name: Checkout verified payload
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: ops/astro-dual-renderer-payload
+          path: .payload
+          fetch-depth: 1
+      - name: Reconstruct and apply implementation
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .payload/.astro-payload/*.part | base64 --decode | gzip --decompress > /tmp/astro-dual-renderer.patch
+          echo 'e76dce77a5ec9e0b37554f994955a2b01c20af072b4336e768f85eb63ebe5000  /tmp/astro-dual-renderer.patch' | sha256sum --check
+          git apply --check /tmp/astro-dual-renderer.patch
+          git apply /tmp/astro-dual-renderer.patch
+          rm -rf .payload
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - name: Regenerate public npm lockfile
+        run: npm install --package-lock-only --ignore-scripts --registry=https://registry.npmjs.org/
+      - name: Install exact dependencies
+        run: npm ci --registry=https://registry.npmjs.org/
+      - name: Format implementation
+        run: npm run format:write
+      - name: Create implementation commit
+        id: commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m 'Implement retained Astro and Classic renderer entries'
+          echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Execute complete repository quality gate
+        shell: bash
+        run: |
+          set -o pipefail
+          npm run verify 2>&1 | tee astro-dual-renderer-verify.log
+      - name: Require clean verified tree
+        shell: bash
+        run: git diff --exit-code && test -z "$(git status --short)"
+      - name: Push verified implementation
+        run: git push origin HEAD:agent/complete-astro-dual-renderer
+      - name: Upload verification evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: astro-dual-renderer-apply-${{ github.run_attempt }}
+          path: |
+            astro-dual-renderer-verify.log
+            coverage/
+            dist/quality/
+            dist/performance/
+          if-no-files-found: warn
+          retention-days: 14
+
+  receipt:
+    if: always()
+    needs: apply
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: ops/astro-dual-renderer-apply-receipt
+          fetch-depth: 0
+      - name: Record applicator result
+        env:
+          APPLY_RUN_ID: ${{ github.run_id }}
+          APPLY_RESULT: ${{ needs.apply.result }}
+          VERIFIED_COMMIT_SHA: ${{ needs.apply.outputs.commit_sha }}
+          APPLY_TRIGGER_SHA: ${{ github.sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const receipt = {
+            runId: Number(process.env.APPLY_RUN_ID),
+            result: process.env.APPLY_RESULT,
+            verifiedCommitSha: process.env.VERIFIED_COMMIT_SHA || null,
+            triggerSha: process.env.APPLY_TRIGGER_SHA,
+            targetBranch: 'agent/complete-astro-dual-renderer',
+            recordedAt: new Date().toISOString(),
+          };
+          fs.writeFileSync('.astro-dual-renderer-apply.json', `${JSON.stringify(receipt, null, 2)}\n`);
+          NODE
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .astro-dual-renderer-apply.json
+          git commit -m "Record Astro dual-renderer applicator ${APPLY_RUN_ID}"
+          git pull --rebase origin ops/astro-dual-renderer-apply-receipt
+          git push origin HEAD:ops/astro-dual-renderer-apply-receipt
