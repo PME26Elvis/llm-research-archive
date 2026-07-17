@@ -60,19 +60,22 @@ jobs:
           printf '%s  %s\n' \
             '8c98cc9f11d67a938714e6471d1037c48b345a1927c20fa6f1f476645cde2353' \
             'implementation.patch.gz.b64' | sha256sum --check --strict
-
           base64 --decode implementation.patch.gz.b64 > implementation.patch.gz
           printf '%s  %s\n' \
             '5d7c950c96c7c8a4f2e7f244b05606af2ede09d88b01c272724bb0583dd44c17' \
             'implementation.patch.gz' | sha256sum --check --strict
-
           gzip --decompress --stdout implementation.patch.gz > implementation.patch
           printf '%s  %s\n' \
             'd445a5fcbbeac646c80c6284d787d917c9c8e0a9fc753933fa5335e4b63be08e' \
             'implementation.patch' | sha256sum --check --strict
 
-          git -C target apply --check "$GITHUB_WORKSPACE/implementation.patch"
-          git -C target apply "$GITHUB_WORKSPACE/implementation.patch"
+          apply_args=(
+            --exclude=.github/workflows/deploy.yml
+            --exclude=.github/workflows/desktop-ci.yml
+            --exclude=.github/workflows/desktop-release-reusable.yml
+          )
+          git -C target apply "${apply_args[@]}" --check "$GITHUB_WORKSPACE/implementation.patch"
+          git -C target apply "${apply_args[@]}" "$GITHUB_WORKSPACE/implementation.patch"
           git -C target diff --check
           git -C target add --all
           git -C target diff --cached --binary \
