@@ -101,7 +101,9 @@ try {
     .getByTestId('navigation-pane')
     .getByRole('button', { name: '關於', exact: true })
     .click();
-  await page.waitForSelector('[role="dialog"]');
+  await page
+    .getByRole('dialog', { name: /關於 Research Observatory/ })
+    .waitFor({ state: 'visible', timeout: 30000 });
   const commit = await page.locator('[data-testid="about-commit"]').innerText();
   const version = await page.locator('[data-testid="about-version"]').innerText();
   const expectedVersion = JSON.parse(fs.readFileSync('package.json', 'utf8')).version;
