@@ -1,0 +1,98 @@
+name: Temporary PR114 E2E fix applicator v2
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/tmp-apply-pr114-e2e-fix-v2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    outputs:
+      commit_sha: ${{ steps.commit.outputs.commit_sha }}
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: agent/complete-astro-dual-renderer
+          fetch-depth: 0
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: ops/pr114-e2e-fix-payload
+          path: .payload
+          fetch-depth: 1
+      - name: Verify and reconstruct patch
+        run: |
+          set -euo pipefail
+          echo '2531ca46db0b89c5cfc263993493867f803090e8f89f909631cd855075d48b07  .payload/.pr114-e2e-fix/part-00' | sha256sum --check
+          echo 'cc82a7edc6e28d2167d8500c24fd24764a2524086be3d0b9e365898a8c08a316  .payload/.pr114-e2e-fix/part-01' | sha256sum --check
+          echo 'e4edf356c4970b019e52b77441087f5782f2037f3608286047b83bf37998585f  .payload/.pr114-e2e-fix/part-02' | sha256sum --check
+          cat .payload/.pr114-e2e-fix/part-* > /tmp/pr114-fix.patch.gz.b64
+          test "$(wc -c < /tmp/pr114-fix.patch.gz.b64)" -eq 5880
+          echo '45e6919b23a01875d247acf49b23dd43c77b0080e13c0311bccc74761cce69d1  /tmp/pr114-fix.patch.gz.b64' | sha256sum --check
+          base64 --decode /tmp/pr114-fix.patch.gz.b64 | gzip --decompress > /tmp/pr114-fix.patch
+          test "$(wc -c < /tmp/pr114-fix.patch)" -eq 15027
+          echo 'df1578968fa87c49f0a36a5796d9ad9ea33d5ac207311be45750b0ecd74a6695  /tmp/pr114-fix.patch' | sha256sum --check
+          rm -rf .payload
+      - name: Apply patch
+        run: |
+          set -euo pipefail
+          git apply --check /tmp/pr114-fix.patch
+          git apply /tmp/pr114-fix.patch
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -A
+          git commit -m 'Fix Astro file runtime and stable desktop commands'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --registry=https://registry.npmjs.org/
+      - name: Execute complete repository quality gate
+        run: npm run verify
+      - name: Require clean verified tree
+        run: git diff --exit-code && test -z "$(git status --short)"
+      - name: Capture verified commit
+        id: commit
+        run: echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Push verified fix
+        run: git push origin HEAD:agent/complete-astro-dual-renderer
+
+  receipt:
+    if: always()
+    needs: apply
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: ops/pr114-e2e-fix-receipt
+          fetch-depth: 0
+      - name: Record result
+        env:
+          RUN_ID: ${{ github.run_id }}
+          RESULT: ${{ needs.apply.result }}
+          VERIFIED_SHA: ${{ needs.apply.outputs.commit_sha }}
+          TRIGGER_SHA: ${{ github.sha }}
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          fs.writeFileSync('.pr114-e2e-fix.json', `${JSON.stringify({
+            runId: Number(process.env.RUN_ID), result: process.env.RESULT,
+            verifiedCommitSha: process.env.VERIFIED_SHA || null,
+            triggerSha: process.env.TRIGGER_SHA,
+            targetBranch: 'agent/complete-astro-dual-renderer', applicator: 'v2',
+            recordedAt: new Date().toISOString(),
+          }, null, 2)}\n`);
+          NODE
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .pr114-e2e-fix.json
+          git commit -m "Record PR114 E2E fix v2 ${RUN_ID}"
+          git pull --rebase origin ops/pr114-e2e-fix-receipt
+          git push origin HEAD:ops/pr114-e2e-fix-receipt
