@@ -243,6 +243,14 @@
       "updateCadence": "monthly-security-review"
     },
     {
+      "name": "esbuild",
+      "section": "devDependencies",
+      "range": "0.28.1",
+      "purpose": "Workspace peer for Astro and Vite 8 while Classic Vite retains its nested compiler",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
       "name": "js-yaml",
       "section": "devDependencies",
       "range": "^4.1.0",
