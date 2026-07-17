@@ -17,7 +17,7 @@ related-adrs:
 
 ## Current P1 Offline Reader Scope
 
-The current implementation provides the offline bundled reader, safe article import and publishing, secure Electron shell, canonical content parsing, serialized incremental full-text search, category/tag/timeline browsing, sanitized reading with local image lightbox, fenced-code copy, strict lazy Mermaid rendering, lazy syntax highlighting, accessible footnotes, persistent reader and layout preferences, switchable Traditional Chinese/English interface language, semantic Back/Forward navigation, typed native commands and command palette, validated local workspaces, Observatory archive summaries, revision dates and word-count statistics, startup telemetry, privacy-safe local diagnostics, native four-platform packaging, enforced quality budgets, and a verified draft-first release pipeline with structured Markdown change summaries. Every requirement in this specification has concrete production code and verification evidence.
+The current implementation provides the offline bundled reader, safe article import and publishing, secure Electron shell, canonical content parsing, serialized incremental full-text search, category/tag/timeline browsing, sanitized reading with local image lightbox, fenced-code copy, strict lazy Mermaid rendering, lazy syntax highlighting, accessible footnotes, persistent reader and layout preferences, switchable Traditional Chinese/English interface language, semantic Back/Forward navigation, typed native commands and command palette, validated local workspaces, Observatory archive summaries, revision dates and word-count statistics, startup telemetry, privacy-safe local diagnostics, native four-platform packaging, dual Astro and Classic renderer entries, enforced quality budgets, and a verified draft-first release pipeline with structured Markdown change summaries. Every requirement in this specification has concrete production code and verification evidence.
 
 The stable requirement names, acceptance rules for all remaining work, and sequenced delivery boundaries are defined in `project-docs/product/desktop-requirement-catalog.md`. Requirement IDs remain the traceability keys.
 
@@ -213,6 +213,13 @@ Status: `implemented`. Verification: `apps/desktop-electron/src/renderer/i18n.te
 
 Status: `implemented`. Verification: `scripts/release-notes.test.ts`, `scripts/workflow-release.test.ts`, `scripts/validate-release-assets.mjs`, and `.github/workflows/desktop-release-reusable.yml`. Optional comma-, semicolon-, newline-, or Markdown-bullet change items are bounded, normalized, deduplicated, converted to a `What's changed` Markdown list, and applied consistently to new or refreshed drafts.
 
+
+## FR-033
+
+**Name:** Dual renderer entries.
+
+Status: `implemented`. Verification: `packages/platform-contracts/src/renderer-implementation.test.ts`, `apps/desktop-electron/src/main/renderer-state.test.ts`, `scripts/astro-output.test.ts`, `apps/desktop-electron/e2e/renderer-implementations.spec.ts`, and `scripts/packaged-smoke.mjs`. One Electron application packages the default Astro workspace and the Classic React/Vite compatibility workspace. Users can switch through renderer chrome or the native View menu; the finite typed selection persists atomically, shares all backend state, and recovers to the previous entry if loading fails.
+
 ## NFR-001
 
 **Name:** Offline-first operation.
@@ -368,3 +375,10 @@ Status: `implemented`. Verification: `apps/desktop-electron/src/main/local-diagn
 **Name:** Localization integrity and native authority.
 
 Status: `implemented`. Verification: `apps/desktop-electron/tests/security.spec.ts`, `apps/desktop-electron/src/main/main-i18n.test.ts`, and `apps/desktop-electron/e2e/preferences.spec.ts`. Renderer-owned preferences are migrated and persisted locally; only the resolved allowlisted locale crosses typed, schema-validated IPC so the main process can rebuild native menus and dialogs. Unsupported locales fall back safely, and localization never grants filesystem or navigation authority.
+
+
+## NFR-027
+
+**Name:** Renderer parity and rollback.
+
+Status: `implemented`. Verification: `scripts/validate-astro-output.mjs`, `apps/desktop-electron/tests/security.spec.ts`, `apps/desktop-electron/e2e/renderer-implementations.spec.ts`, `scripts/verify-footprint.mjs`, and `scripts/packaged-smoke.mjs`. Astro static output contains only local runtime assets and a generated hash-based CSP. Existing Electron journeys execute against Astro by default, explicit tests open Classic and return to Astro, each implementation has an independent initial-JavaScript budget, and Classic remains packaged as the rollback entry.

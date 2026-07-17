@@ -55,4 +55,23 @@ describe('Electron security configuration', () => {
     expect(renderer).not.toContain('sourcePath');
     expect(renderer).not.toContain('targetDirectory');
   });
+
+  it('keeps both renderer entries behind the same typed main and preload authority', () => {
+    const main = fs.readFileSync('apps/desktop-electron/src/main/main.ts', 'utf8');
+    const preload = fs.readFileSync('apps/desktop-electron/src/preload/preload.ts', 'utf8');
+    const classic = fs.readFileSync('apps/desktop-electron/src/renderer/index.html', 'utf8');
+    const astro = fs.readFileSync('apps/desktop-astro/astro.config.mjs', 'utf8');
+
+    expect(main).toContain("ipcMain.handle('renderer:info'");
+    expect(main).toContain("ipcMain.handle('renderer:set'");
+    expect(main).toContain('RendererImplementationUpdateRequestSchema.parse');
+    expect(main).toContain("implementation === 'astro' ? 'astro_window'");
+    expect(preload).toContain('RendererImplementationInfoSchema.parse');
+    expect(preload).toContain('RendererImplementationUpdateRequestSchema.parse');
+    expect(classic).toContain('Content-Security-Policy');
+    expect(astro).toContain('security:');
+    expect(astro).toContain('csp:');
+    expect(astro).toContain("default-src 'self'");
+    expect(astro).not.toMatch(/https?:\/\//);
+  });
 });

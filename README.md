@@ -209,4 +209,22 @@ https://PME26Elvis.github.io/llm-research-archive/
 
 ## Research Observatory Desktop
 
-This branch contains the completed TypeScript/Electron desktop implementation. Use `npm ci`, then `npm run verify` for coverage, architecture, accessibility, dependency, performance, build, and renderer-footprint gates. Desktop CI additionally runs Electron E2E plus native Windows x64, Linux x64, macOS arm64, and macOS x64 make, packaged smoke, and installed-footprint checks. The app reads canonical Markdown from `docs/` by default and can select validated local workspaces through the native UI.
+This branch contains the TypeScript/Electron desktop implementation with **two retained renderer entries in one application**:
+
+- **Astro workspace (default)** — `apps/desktop-astro/` builds a static Astro document shell and modern research-workspace presentation. Existing proven interaction domains run through the official React integration while remaining behind the same typed preload boundary.
+- **Classic React/Vite workspace** — `apps/desktop-electron/src/renderer/` remains packaged as the stable compatibility entry. Users can switch between implementations from the app header or native View menu; the selection persists locally and failed switches recover to the previous entry.
+
+Both entries share Electron main/preload, canonical Markdown, Content Engine, Search Engine, application services, import transactions, localization, diagnostics, and release authority. They are not separate products and do not duplicate user data.
+
+Use `npm ci`, then `npm run verify` for formatting, Astro output validation, type checks, coverage, architecture, accessibility, dependency, performance, build, and per-renderer footprint gates. Desktop CI additionally runs the complete Electron suite against Astro by default, explicitly switches to Classic and back, and performs native Windows x64, Linux x64, macOS arm64, and macOS x64 make, packaged smoke, and installed-footprint checks.
+
+Useful development commands:
+
+```bash
+npm run dev          # Astro entry
+npm run dev:classic  # Classic React/Vite entry
+npm run build:astro  # static Astro output plus file: and CSP validation
+npm run verify       # repository-owned quality gate
+```
+
+The app reads canonical Markdown from `docs/` by default and can select validated local workspaces through the native UI.

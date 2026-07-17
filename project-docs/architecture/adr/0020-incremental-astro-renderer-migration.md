@@ -1,5 +1,5 @@
 ---
-status: proposed
+status: accepted
 owner: repository-maintainer
 last-verified: 2026-07-17
 related-adrs:
@@ -30,7 +30,7 @@ An in-place rewrite makes rollback and parity review difficult. A browser or ser
 
 ## Decision
 
-Adopt option 3 as a proposed migration direction.
+Adopt option 3 as the implemented dual-renderer architecture.
 
 Create `apps/desktop-astro/` as a side-by-side static renderer. Preserve the existing Electron main process, preload bridge, typed platform contracts, canonical Markdown Content Engine, Search Engine, Application layer, local workspace model, import transactions, and release pipeline.
 
@@ -40,7 +40,7 @@ The migration must begin with a packaged `file:`-compatibility and asset-path sp
 
 Content Collections may validate bundled/reference content at build time, but they do not replace the runtime Content Engine or read arbitrary local workspaces.
 
-The legacy renderer remains selectable until the Astro renderer passes complete requirement parity, security, accessibility, performance, corpus, Electron E2E, and four-platform package gates. Production cutover and legacy retirement occur in separate PRs with a documented rollback window.
+Astro is the default renderer and the Classic renderer remains a first-class packaged compatibility entry. The application exposes a finite typed switch in renderer chrome and the native menu, persists the selection in a versioned local state document, and recovers to the previous renderer on load failure. Both entries are exercised by Electron E2E and packaged smoke; Classic retirement is not implied by Astro becoming the default.
 
 The detailed implementation contract is `project-docs/migration/astro-frontend-refactor-spec.md`.
 
@@ -72,15 +72,12 @@ The detailed implementation contract is `project-docs/migration/astro-frontend-r
 - No requirement is marked implemented merely because an Astro shell exists.
 - React is not removed for ideological reasons; conversion requires a product, performance, or maintainability benefit.
 
-## Verification required before status changes
+## Implementation evidence
 
-This ADR remains `proposed` until Phase 0 produces:
-
-- a minimal Astro static output loaded by packaged Electron;
-- local chunk and asset verification on all four targets;
-- unchanged CSP, sandbox, navigation, permission, and preload evidence;
-- a deterministic configuration and output validator;
-- an initial footprint and startup comparison;
-- a reviewed update to the Product Spec, requirements, Acceptance Matrix, security model, testing strategy, and release process for the first planned phase.
-
-It may move to `accepted` only when those artifacts identify no unresolved architectural blocker.
+- `apps/desktop-astro/` produces deterministic static output with a hash-based Astro CSP and repository-owned `file:` asset validation.
+- `apps/desktop-electron/src/main/renderer-state.ts` owns the default, persistence, environment override, and atomic state writes.
+- `packages/platform-contracts/src/renderer-implementation.test.ts` constrains implementation names and switch payloads.
+- `apps/desktop-electron/e2e/renderer-implementations.spec.ts` proves Astro default launch and bidirectional switching.
+- `scripts/packaged-smoke.mjs` starts the installed app and opens both entries on every native target.
+- `scripts/verify-footprint.mjs renderer` enforces a separate 2 MiB gzip initial-JavaScript ceiling for each implementation.
+- The existing corpus, accessibility, localization, workspace, import, search, Mermaid, diagnostics, and navigation journeys run against Astro by default and therefore remain parity evidence.

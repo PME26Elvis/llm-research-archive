@@ -43,7 +43,11 @@
 
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, 'Noto Sans TC', sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Noto Sans TC',
+    sans-serif;
   background: var(--surface-body);
   color: var(--text-primary);
 }
@@ -433,7 +437,6 @@ th {
   }
 }
 
-
 .navigation-toolbar {
   display: flex;
   align-items: center;
@@ -464,7 +467,6 @@ th {
   border-color: var(--accent);
   background: var(--surface-selected);
 }
-
 
 .pane-separator {
   grid-column: 2;
@@ -513,7 +515,6 @@ body.resizing-sidebar {
   user-select: none;
 }
 
-
 @media (max-width: 800px) {
   .pane-separator {
     display: none;
@@ -524,7 +525,6 @@ body.resizing-sidebar {
     min-height: 45vh;
   }
 }
-
 
 .command-palette {
   width: min(92vw, 680px);
@@ -560,7 +560,6 @@ body.resizing-sidebar {
   font: inherit;
   font-size: 0.85rem;
 }
-
 
 .workspace-panel {
   display: grid;
@@ -795,7 +794,6 @@ body.resizing-sidebar {
   }
 }
 
-
 .skip-link {
   position: fixed;
   z-index: 2000;
@@ -938,5 +936,321 @@ body.resizing-sidebar {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+}
+
+/* Dual-renderer implementation selector */
+.implementation-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-panel) 86%, transparent);
+}
+
+.implementation-badge {
+  padding: 0.28rem 0.48rem;
+  border-radius: 999px;
+  background: var(--surface-selected);
+  color: var(--accent);
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.implementation-switch {
+  width: auto;
+  margin: 0;
+  padding: 0.28rem 0.5rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  font-size: 0.75rem;
+  text-align: center;
+}
+
+/* Astro renderer: a denser research-workspace composition. The React renderer keeps
+   behavioral parity while Astro owns the document shell and static output. */
+.app--astro {
+  --astro-glow: color-mix(in srgb, var(--accent) 18%, transparent);
+  --astro-panel: color-mix(in srgb, var(--surface-panel) 92%, transparent);
+  gap: 0;
+  padding: 0.65rem;
+  box-sizing: border-box;
+  background:
+    radial-gradient(circle at 12% 0%, var(--astro-glow), transparent 32rem),
+    radial-gradient(
+      circle at 100% 100%,
+      color-mix(in srgb, #9b8cff 12%, transparent),
+      transparent 36rem
+    ),
+    var(--surface-body);
+}
+
+.app--astro > aside {
+  margin: 0;
+  padding: 0.8rem;
+  border: 1px solid var(--border);
+  border-right: 0;
+  border-radius: 18px 0 0 18px;
+  background: color-mix(in srgb, var(--surface-panel) 94%, transparent);
+  box-shadow: 0 18px 60px color-mix(in srgb, #000 18%, transparent);
+  scrollbar-gutter: stable;
+}
+
+.app--astro .pane-separator {
+  width: 6px;
+  background: color-mix(in srgb, var(--border) 62%, transparent);
+}
+
+.app--astro .reader-pane {
+  border: 1px solid var(--border);
+  border-left: 0;
+  border-radius: 0 18px 18px 0;
+  background: color-mix(in srgb, var(--surface-body) 93%, transparent);
+  box-shadow: 0 18px 60px color-mix(in srgb, #000 18%, transparent);
+}
+
+.app--astro .app-header {
+  position: sticky;
+  z-index: 4;
+  top: -0.8rem;
+  margin: -0.8rem -0.8rem 0.75rem;
+  padding: 0.9rem 0.8rem 0.75rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  background: color-mix(in srgb, var(--surface-panel) 92%, transparent);
+  backdrop-filter: blur(18px);
+}
+
+.app--astro .app-header h1 {
+  max-width: 9rem;
+  margin: 0;
+  font-size: 1rem;
+  line-height: 1.05;
+  letter-spacing: -0.025em;
+}
+
+.app--astro .app-header-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.app--astro .app-header-actions > button {
+  width: 2.35rem;
+  min-height: 2.35rem;
+  overflow: hidden;
+  padding: 0.48rem;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.app--astro .workspace-panel,
+.app--astro .facet-panel {
+  border-color: color-mix(in srgb, var(--border) 72%, transparent);
+  border-radius: 14px;
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--surface-control) 82%, transparent),
+    color-mix(in srgb, var(--surface-panel) 94%, transparent)
+  );
+  box-shadow: inset 0 1px color-mix(in srgb, #fff 5%, transparent);
+}
+
+.app--astro input:not([type]),
+.app--astro input[type='text'],
+.app--astro input[type='search'] {
+  min-height: 2.7rem;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--surface-control) 90%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 5%, transparent);
+}
+
+.app--astro .browse-tabs {
+  padding: 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: 13px;
+  background: color-mix(in srgb, var(--surface-body) 70%, transparent);
+}
+
+.app--astro .browse-tabs button {
+  border-color: transparent;
+  border-radius: 10px;
+  background: transparent;
+  font-size: 0.78rem;
+}
+
+.app--astro .browse-tabs button[aria-pressed='true'] {
+  border-color: color-mix(in srgb, var(--accent) 34%, transparent);
+  background: var(--surface-selected);
+  box-shadow: 0 4px 18px color-mix(in srgb, var(--accent) 13%, transparent);
+}
+
+.app--astro .article-list {
+  display: grid;
+  gap: 0.42rem;
+  padding-bottom: 1rem;
+}
+
+.app--astro .article-list button {
+  position: relative;
+  margin: 0;
+  padding: 0.78rem 0.78rem 0.76rem 0.9rem;
+  border-color: transparent;
+  border-radius: 13px;
+  background: transparent;
+  line-height: 1.35;
+}
+
+.app--astro .article-list button::before {
+  content: '';
+  position: absolute;
+  top: 0.7rem;
+  bottom: 0.7rem;
+  left: 0.28rem;
+  width: 3px;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.app--astro .article-list button:hover {
+  border-color: var(--border);
+  background: color-mix(in srgb, var(--surface-control) 70%, transparent);
+}
+
+.app--astro .article-list button[aria-current='page'] {
+  border-color: color-mix(in srgb, var(--accent) 48%, var(--border));
+  background: linear-gradient(
+    110deg,
+    color-mix(in srgb, var(--surface-selected) 95%, transparent),
+    color-mix(in srgb, var(--surface-control) 78%, transparent)
+  );
+  box-shadow: 0 8px 28px color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.app--astro .article-list button[aria-current='page']::before {
+  background: var(--accent);
+}
+
+.app--astro .sidebar-toggle {
+  position: absolute;
+  z-index: 5;
+  top: 1.2rem;
+  left: 1rem;
+  width: auto;
+  margin: 0;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-control) 88%, transparent);
+  backdrop-filter: blur(12px);
+}
+
+.app--astro article {
+  width: min(100%, 1080px);
+  max-width: none;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 4.4rem clamp(1.4rem, 4vw, 4rem) 4rem;
+  scrollbar-gutter: stable;
+}
+
+.app--astro article > header {
+  margin: 0 0 2rem;
+  padding: clamp(1.25rem, 3vw, 2.2rem);
+  border: 1px solid color-mix(in srgb, var(--border) 72%, transparent);
+  border-radius: 22px;
+  background:
+    linear-gradient(
+      140deg,
+      color-mix(in srgb, var(--surface-control) 92%, transparent),
+      transparent
+    ),
+    color-mix(in srgb, var(--surface-panel) 88%, transparent);
+  box-shadow: 0 22px 70px color-mix(in srgb, #000 18%, transparent);
+}
+
+.app--astro article > header h2 {
+  max-width: 22ch;
+  margin: 0;
+  font-size: clamp(1.7rem, 3vw, 3rem);
+  line-height: 1.08;
+  letter-spacing: -0.045em;
+}
+
+.app--astro article > header p {
+  margin-bottom: 0;
+  color: var(--text-muted);
+}
+
+.app--astro [data-testid='reader'] {
+  padding: clamp(1.15rem, 2.5vw, 2rem);
+  border: 1px solid color-mix(in srgb, var(--border) 66%, transparent);
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--surface-panel) 66%, transparent);
+  box-shadow: inset 0 1px color-mix(in srgb, #fff 4%, transparent);
+}
+
+.app--astro [data-testid='reader'] > :first-child {
+  margin-top: 0;
+}
+
+.app--astro [data-testid='reader'] h2,
+.app--astro [data-testid='reader'] h3 {
+  scroll-margin-top: 1rem;
+  letter-spacing: -0.025em;
+}
+
+.app--astro .navigation-toolbar {
+  position: sticky;
+  z-index: 3;
+  top: 0.8rem;
+  width: fit-content;
+  margin: 0 0 1rem auto;
+  padding: 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--surface-control) 86%, transparent);
+  backdrop-filter: blur(16px);
+}
+
+.app--astro .navigation-toolbar button {
+  border-color: transparent;
+  border-radius: 999px;
+  background: transparent;
+}
+
+.app--astro .modal {
+  border-radius: 20px;
+  background: color-mix(in srgb, var(--surface-control) 95%, transparent);
+  backdrop-filter: blur(22px);
+}
+
+@media (max-width: 1000px) {
+  .app--astro .implementation-switch {
+    display: none;
+  }
+}
+
+@media (max-width: 800px) {
+  .app--astro {
+    padding: 0;
+  }
+
+  .app--astro > aside,
+  .app--astro .reader-pane {
+    border-radius: 0;
+    border-right: 0;
+    border-left: 0;
+  }
+
+  .app--astro .sidebar-toggle {
+    position: sticky;
+    top: 0.5rem;
+    margin: 0.5rem;
+  }
+
+  .app--astro article {
+    padding: 1rem;
   }
 }

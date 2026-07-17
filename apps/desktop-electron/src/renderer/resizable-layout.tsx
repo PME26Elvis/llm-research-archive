@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import type { RendererImplementation } from '@research-observatory/platform-contracts';
 import {
   MAX_SIDEBAR_WIDTH,
   MIN_SIDEBAR_WIDTH,
@@ -12,12 +13,18 @@ import { usePreferences } from './preferences-context';
 const initialPreferences = loadLayoutPreferences(window.localStorage);
 
 interface ResizableLayoutProps {
+  implementation?: RendererImplementation;
   articleCount: number;
   sidebar: ReactNode;
   children: ReactNode;
 }
 
-export function ResizableLayout({ articleCount, sidebar, children }: ResizableLayoutProps) {
+export function ResizableLayout({
+  implementation = 'classic',
+  articleCount,
+  sidebar,
+  children,
+}: ResizableLayoutProps) {
   const { t } = usePreferences();
   const [preferences, setPreferences] = useState<LayoutPreferences>(initialPreferences);
   const dragStartRef = useRef<{ x: number; width: number } | null>(null);
@@ -60,10 +67,11 @@ export function ResizableLayout({ articleCount, sidebar, children }: ResizableLa
 
   return (
     <main
-      className="app"
+      className={`app app--${implementation}`}
       style={style}
       data-testid="app-ready"
       data-article-count={articleCount}
+      data-renderer-implementation={implementation}
       data-sidebar-collapsed={preferences.sidebarCollapsed}
       data-sidebar-width={preferences.sidebarWidth}
     >

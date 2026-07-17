@@ -39,7 +39,11 @@ export const test = base.extend<ElectronFixtures>({
       const app = await electron.launch({
         executablePath: require('electron'),
         args: ['.', '--no-sandbox', ...(options.args ?? [])],
-        env: { ...(process.env as Record<string, string>), ...(options.env ?? {}) },
+        env: {
+          ...(process.env as Record<string, string>),
+          OBSERVATORY_RENDERER: 'astro',
+          ...(options.env ?? {}),
+        },
       });
 
       try {

@@ -1,0 +1,25 @@
+---
+interface Props {
+  title?: string;
+}
+
+const { title = 'Research Observatory' } = Astro.props;
+---
+
+<!doctype html>
+<html lang="zh-TW" data-renderer-shell="astro">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="application-name" content="Research Observatory Astro" />
+    <title>{title}</title>
+  </head>
+  <body>
+    <div class="astro-document-frame" aria-hidden="true">
+      <span class="astro-document-orbit"></span>
+      <span class="astro-document-grid"></span>
+    </div>
+    <slot />
+    <noscript>Research Observatory requires JavaScript for its offline desktop controls.</noscript>
+  </body>
+</html>

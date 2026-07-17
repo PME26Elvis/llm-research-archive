@@ -83,6 +83,22 @@
       "updateCadence": "monthly-security-review"
     },
     {
+      "name": "@astrojs/check",
+      "section": "devDependencies",
+      "range": "0.9.9",
+      "purpose": "Astro component and TypeScript validation",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "@astrojs/react",
+      "section": "devDependencies",
+      "range": "6.0.1",
+      "purpose": "React island integration for the Astro renderer",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
       "name": "@electron-forge/cli",
       "section": "devDependencies",
       "range": "^7.11.2",
@@ -211,6 +227,14 @@
       "updateCadence": "monthly-security-review"
     },
     {
+      "name": "astro",
+      "section": "devDependencies",
+      "range": "7.1.0",
+      "purpose": "Static-first secondary desktop renderer and application shell",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
       "name": "electron",
       "section": "devDependencies",
       "range": "43.1.0",
@@ -231,6 +255,14 @@
       "section": "devDependencies",
       "range": "^3.3.2",
       "purpose": "Deterministic source formatting",
+      "owner": "desktop-maintainers",
+      "updateCadence": "monthly-security-review"
+    },
+    {
+      "name": "prettier-plugin-astro",
+      "section": "devDependencies",
+      "range": "0.14.1",
+      "purpose": "Deterministic formatting for Astro component files",
       "owner": "desktop-maintainers",
       "updateCadence": "monthly-security-review"
     },

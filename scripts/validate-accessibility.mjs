@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 
 const css = fs.readFileSync('apps/desktop-electron/src/renderer/style.css', 'utf8');
-const renderer = fs.readFileSync('apps/desktop-electron/src/renderer/renderer.tsx', 'utf8');
+const renderer = fs.readFileSync('apps/desktop-electron/src/renderer/observatory-app.tsx', 'utf8');
 const observatory = fs.readFileSync(
   'apps/desktop-electron/src/renderer/observatory-modal.tsx',
   'utf8',

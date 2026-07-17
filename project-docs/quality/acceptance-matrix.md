@@ -69,3 +69,5 @@ related-adrs:
 | NFR-024 | Explicit product scope | implemented | project-docs/product/desktop-product-spec.md |
 | NFR-025 | Local recovery and privacy-safe logging | implemented | apps/desktop-electron/src/main/local-diagnostics.test.ts, apps/desktop-electron/e2e/accessibility.spec.ts, packages/platform-contracts/src/quality-contract.test.ts |
 | NFR-026 | Localization integrity and native authority | implemented | apps/desktop-electron/tests/security.spec.ts, apps/desktop-electron/src/main/main-i18n.test.ts, apps/desktop-electron/e2e/preferences.spec.ts |
+| FR-033 | Dual renderer entries | implemented | packages/platform-contracts/src/renderer-implementation.test.ts, apps/desktop-electron/src/main/renderer-state.test.ts, scripts/astro-output.test.ts, apps/desktop-electron/e2e/renderer-implementations.spec.ts, scripts/packaged-smoke.mjs |
+| NFR-027 | Renderer parity and rollback | implemented | scripts/validate-astro-output.mjs, apps/desktop-electron/tests/security.spec.ts, apps/desktop-electron/e2e/renderer-implementations.spec.ts, scripts/packaged-smoke.mjs |
