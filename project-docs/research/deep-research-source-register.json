@@ -1,0 +1,253 @@
+{
+  "schemaVersion": 1,
+  "title": "Deep Research field guide source register",
+  "language": "zh-Hant",
+  "researchCutoff": "2026-07-17",
+  "editorialPolicy": {
+    "primarySourcesOnly": true,
+    "vendorClaimsMustBeAttributed": true,
+    "absenceOfEvidenceIsNotEvidenceOfAbsence": true,
+    "notes": "This register supports a neutral product-history guide. It records official product announcements and help documentation, not independent quality validation."
+  },
+  "sources": [
+    {
+      "id": "GOOGLE-2024-12-11-DEEP-RESEARCH",
+      "provider": "Google",
+      "title": "Try Deep Research and our new experimental model in Gemini, your AI assistant",
+      "url": "https://blog.google/products-and-platforms/products/gemini/google-gemini-deep-research/",
+      "publicationDate": "2024-12-11",
+      "accessedDate": "2026-07-17",
+      "authority": "official-product-announcement",
+      "claimScope": [
+        "Deep Research product name and Gemini Advanced launch",
+        "Gemini 1.5 Pro launch model selection",
+        "editable multi-step research plan",
+        "iterative web research and comprehensive reports",
+        "links to original sources and Google Docs export",
+        "agentic system and one-million-token context claim"
+      ]
+    },
+    {
+      "id": "GOOGLE-2025-03-13-DEEP-RESEARCH-2-FLASH",
+      "provider": "Google",
+      "title": "New Gemini app features, available to try at no cost",
+      "url": "https://blog.google/products-and-platforms/products/gemini/new-gemini-app-features-march-2025/",
+      "publicationDate": "2025-03-13",
+      "accessedDate": "2026-07-17",
+      "authority": "official-product-announcement",
+      "claimScope": [
+        "Deep Research upgrade to Gemini 2.0 Flash Thinking Experimental",
+        "planning searching reasoning analysis and reporting stages",
+        "broader global trial availability and 45-plus languages",
+        "progress presentation while browsing"
+      ]
+    },
+    {
+      "id": "GOOGLE-2025-03-19-AUDIO-OVERVIEWS",
+      "provider": "Google",
+      "title": "6 tips to get the most out of Gemini Deep Research",
+      "url": "https://blog.google/products-and-platforms/products/gemini/tips-how-to-use-deep-research/",
+      "publicationDate": "2025-03-19",
+      "accessedDate": "2026-07-17",
+      "authority": "official-product-guidance",
+      "claimScope": [
+        "Audio Overviews for Deep Research reports",
+        "Google Docs export and works cited behavior",
+        "official product usage framing"
+      ]
+    },
+    {
+      "id": "GOOGLE-2025-05-20-PRIVATE-SOURCES",
+      "provider": "Google",
+      "title": "Gemini gets more personal, proactive and powerful",
+      "url": "https://blog.google/products-and-platforms/products/gemini/gemini-app-updates-io-2025/",
+      "publicationDate": "2025-05-20",
+      "accessedDate": "2026-07-17",
+      "authority": "official-product-announcement",
+      "claimScope": [
+        "private PDF and image sources in Deep Research",
+        "planned Google Drive and Gmail research integration"
+      ]
+    },
+    {
+      "id": "GOOGLE-2025-DEEP-RESEARCH-2-5-PRO",
+      "provider": "Google",
+      "title": "Deep Research is now available on Gemini 2.5 Pro Experimental",
+      "url": "https://blog.google/products-and-platforms/products/gemini/deep-research-gemini-2-5-pro-experimental/",
+      "publicationDate": null,
+      "accessedDate": "2026-07-17",
+      "authority": "official-product-announcement",
+      "claimScope": [
+        "Deep Research availability on Gemini 2.5 Pro Experimental",
+        "web Android and iOS access",
+        "Google Workspace availability note"
+      ],
+      "editorialNote": "The current page did not expose a reliable publication date in the retrieved official record. Do not invent a date."
+    },
+    {
+      "id": "OPENAI-2025-02-02-DEEP-RESEARCH",
+      "provider": "OpenAI",
+      "title": "Introducing deep research",
+      "url": "https://openai.com/index/introducing-deep-research/",
+      "publicationDate": "2025-02-02",
+      "accessedDate": "2026-07-17",
+      "authority": "official-product-announcement",
+      "claimScope": [
+        "deep research product name and ChatGPT launch",
+        "agentic multi-step internet research",
+        "launch model described as an early version of OpenAI o3",
+        "browser and Python tool use",
+        "text image PDF and uploaded-file analysis",
+        "five-to-thirty-minute task duration",
+        "citations and progress/source sidebar",
+        "launch limitations and later dated updates"
+      ]
+    },
+    {
+      "id": "XAI-2025-02-19-GROK-3-DEEPSEARCH",
+      "provider": "xAI",
+      "title": "Grok 3 Beta — The Age of Reasoning Agents",
+      "url": "https://x.ai/news/grok-3",
+      "publicationDate": "2025-02-19",
+      "accessedDate": "2026-07-17",
+      "authority": "official-product-announcement",
+      "claimScope": [
+        "DeepSearch product name",
+        "Grok 3 launch context",
+        "xAI description of DeepSearch as its first agent",
+        "internet access and code interpreters",
+        "dynamic query refinement",
+        "conflicting-fact and opinion synthesis",
+        "summary trace and report framing"
+      ]
+    },
+    {
+      "id": "ANTHROPIC-2025-04-15-RESEARCH",
+      "provider": "Anthropic",
+      "title": "Claude takes research to new places",
+      "url": "https://claude.com/blog/research",
+      "publicationDate": "2025-04-15",
+      "accessedDate": "2026-07-17",
+      "authority": "official-product-announcement",
+      "claimScope": [
+        "Research product name",
+        "web and Google Workspace research",
+        "multiple searches that build on each other",
+        "automatic exploration of question angles",
+        "citations and comprehensive answers in minutes",
+        "early beta launch plans and regions",
+        "secure retrieval-augmented generation for enterprise document cataloging"
+      ]
+    },
+    {
+      "id": "ANTHROPIC-CURRENT-RESEARCH-HELP",
+      "provider": "Anthropic",
+      "title": "Using Research on Claude",
+      "url": "https://support.anthropic.com/en/articles/11088861-using-research-on-claude-ai",
+      "publicationDate": null,
+      "accessedDate": "2026-07-17",
+      "authority": "official-help-documentation",
+      "claimScope": [
+        "current beta labeling",
+        "paid-plan availability",
+        "web desktop and mobile availability",
+        "web-search prerequisite",
+        "internal-context and web behavior"
+      ]
+    },
+    {
+      "id": "DEEPSEEK-2024-12-10-WEB-SEARCH",
+      "provider": "DeepSeek",
+      "title": "DeepSeek V2 系列收官，联网搜索上线官网",
+      "url": "https://api-docs.deepseek.com/zh-cn/news/news1210",
+      "publicationDate": "2024-12-10",
+      "accessedDate": "2026-07-17",
+      "authority": "official-product-announcement",
+      "claimScope": [
+        "联网搜索 product-mode name",
+        "DeepSeek-V2.5-1210 launch context",
+        "parallel keyword extraction and search",
+        "deep reading of many webpages",
+        "web-only availability and no API search at launch"
+      ]
+    },
+    {
+      "id": "DEEPSEEK-2025-01-15-APP",
+      "provider": "DeepSeek",
+      "title": "Introducing DeepSeek App",
+      "url": "https://api-docs.deepseek.com/news/news250115",
+      "publicationDate": "2025-01-15",
+      "accessedDate": "2026-07-17",
+      "authority": "official-product-announcement",
+      "claimScope": [
+        "Web search and Deep-Think mode as separate app features",
+        "DeepSeek-V3 app launch context",
+        "file upload and text extraction"
+      ]
+    },
+    {
+      "id": "DEEPSEEK-2025-01-20-R1",
+      "provider": "DeepSeek",
+      "title": "DeepSeek-R1 发布，性能对标 OpenAI o1 正式版",
+      "url": "https://api-docs.deepseek.com/zh-cn/news/news250120/",
+      "publicationDate": "2025-01-20",
+      "accessedDate": "2026-07-17",
+      "authority": "official-model-announcement",
+      "claimScope": [
+        "DeepSeek-R1 release",
+        "deepseek-reasoner API name",
+        "DeepThink website and app mode",
+        "large-scale reinforcement learning in post-training",
+        "open weights and MIT license claims"
+      ]
+    },
+    {
+      "id": "DEEPSEEK-2025-05-28-R1-0528",
+      "provider": "DeepSeek",
+      "title": "DeepSeek-R1 更新，思考更深，推理更强",
+      "url": "https://api-docs.deepseek.com/zh-cn/news/news250528",
+      "publicationDate": "2025-05-28",
+      "accessedDate": "2026-07-17",
+      "authority": "official-model-announcement",
+      "claimScope": [
+        "DeepSeek-R1-0528 model update",
+        "DeepThink mode association",
+        "increased post-training compute and reasoning-depth claims"
+      ]
+    },
+    {
+      "id": "DEEPSEEK-2025-08-21-V3-1",
+      "provider": "DeepSeek",
+      "title": "DeepSeek-V3.1 发布",
+      "url": "https://api-docs.deepseek.com/zh-cn/news/news250821",
+      "publicationDate": "2025-08-21",
+      "accessedDate": "2026-07-17",
+      "authority": "official-model-announcement",
+      "claimScope": [
+        "hybrid Think and Non-Think architecture",
+        "DeepThink toggle",
+        "agent and tool-use improvements",
+        "complex multi-step search-task claims"
+      ]
+    },
+    {
+      "id": "DEEPSEEK-CURRENT-CHANGELOG",
+      "provider": "DeepSeek",
+      "title": "Change Log",
+      "url": "https://api-docs.deepseek.com/updates/",
+      "publicationDate": null,
+      "accessedDate": "2026-07-17",
+      "authority": "official-change-log",
+      "claimScope": [
+        "dated model and API transitions",
+        "current separation of chat and reasoning modes",
+        "historical verification of DeepSeek-R1 and V3-series updates"
+      ]
+    }
+  ],
+  "negativeFinding": {
+    "provider": "DeepSeek",
+    "finding": "No official source in this register names a standalone Deep Research product. Official materials instead describe Web Search or 联网搜索 and DeepThink or 深度思考 as distinct capabilities or modes.",
+    "handlingRule": "Present DeepSeek as an adjacent implementation pattern, not as a falsely equivalent branded product. Re-check this finding whenever the guide is updated."
+  }
+}
