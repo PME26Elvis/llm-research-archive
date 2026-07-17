@@ -1,0 +1,8 @@
+{
+  "runId": 29558995783,
+  "result": "failure",
+  "triggerSha": "3bd889cab154a5bb42ee7376236552f23dc5ab6a",
+  "targetRef": "app-main",
+  "expectedVersion": "v0.1.5",
+  "recordedAt": "2026-07-17T06:09:58.439Z"
+}
