@@ -1,0 +1,59 @@
+name: Temporary Astro payload inspector
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/tmp-inspect-astro-payload.yml
+
+permissions:
+  contents: write
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout payload branch
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: ops/astro-dual-renderer-payload
+          fetch-depth: 1
+      - name: Compute payload metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          node - <<'NODE'
+          const crypto = require('node:crypto');
+          const fs = require('node:fs');
+          const path = require('node:path');
+          const root = '.astro-payload';
+          const files = fs.readdirSync(root).sort();
+          const metadata = files.map((name) => {
+            const data = fs.readFileSync(path.join(root, name));
+            return {
+              name,
+              size: data.length,
+              sha256: crypto.createHash('sha256').update(data).digest('hex'),
+            };
+          });
+          fs.writeFileSync('/tmp/astro-payload-metadata.json', `${JSON.stringify(metadata, null, 2)}\n`);
+          NODE
+      - name: Checkout diagnostics receipt
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+        with:
+          ref: ops/astro-payload-diagnostics-receipt
+          path: .receipt
+          fetch-depth: 0
+      - name: Record payload metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp /tmp/astro-payload-metadata.json .receipt/.astro-payload-metadata.json
+          cd .receipt
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add .astro-payload-metadata.json
+          git commit -m "Record Astro payload metadata ${GITHUB_RUN_ID}"
+          git pull --rebase origin ops/astro-payload-diagnostics-receipt
+          git push origin HEAD:ops/astro-payload-diagnostics-receipt
